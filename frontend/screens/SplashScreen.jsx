@@ -6,7 +6,7 @@ import { Image } from 'react-native';
 const SplashScreen = ({navigation}) => {
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace('Features'); // replace = cannot go back
+      navigation.replace('Features');
     }, 2000);
 
     return () => clearTimeout(timer);

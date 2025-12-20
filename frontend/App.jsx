@@ -1,33 +1,3 @@
-// import { NavigationContainer } from '@react-navigation/native';
-// import { createNativeStackNavigator } from '@react-navigation/native-stack';
-// import { StatusBar } from 'react-native';
-// import SplashScreen from './screens/SplashScreen';
-// import Features from './screens/Features'
-// import AuthScreen from './screens/AuthScreen'
-// import DashboardScreen from './screens/DashboardScreen';
-
-// const Stack = createNativeStackNavigator();
-
-// function App() {
-//   return (
-//     <>
-//      <StatusBar 
-//         barStyle="dark-content"
-//         backgroundColor="#FAFBFD"
-//       />
-//     <NavigationContainer>
-//       <Stack.Navigator screenOptions={{ headerShown: false }}>
-//         <Stack.Screen name="Splash" component={SplashScreen} />
-//         <Stack.Screen name="Features" component={Features} />
-//         <Stack.Screen name="AuthScreen" component={AuthScreen} />
-//         <Stack.Screen name="DashboardScreen" component={DashboardScreen} />
-//       </Stack.Navigator>
-//     </NavigationContainer>
-//       </>
-//   );
-// }
-// export default App;
-
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -36,6 +6,8 @@ import SplashScreen from './screens/SplashScreen';
 import Features from './screens/Features';
 import AuthScreen from './screens/AuthScreen';
 import DashboardScreen from './screens/DashboardScreen';
+import AccordanceScreen from './screens/AccordanceScreen';
+import AddEntryScreen from './screens/AddEntryScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createNativeStackNavigator();
@@ -123,6 +95,8 @@ function App() {
           <Stack.Screen name="Features" component={Features} />
           <Stack.Screen name="AuthScreen" component={AuthScreen} />
           <Stack.Screen name="MainApp" component={MainTabs} />
+          <Stack.Screen name="Accordance" component={AccordanceScreen} />
+          <Stack.Screen name="AddEntry" component={AddEntryScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </>

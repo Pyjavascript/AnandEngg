@@ -412,9 +412,9 @@ const DashboardScreen = ({ navigation }) => {
   });
 
   const quickActions = [
-    { id: 1, icon: 'add-circle-outline', label: 'New Entry', color: '#286DA6', screen: 'Entries' },
+    { id: 1, icon: 'add-circle-outline', label: 'New Entry', color: '#286DA6', screen: 'Accordance' },
     { id: 2, icon: 'document-text-outline', label: 'Reports', color: '#10B981', screen: 'Reports' },
-    { id: 3, icon: 'calendar-outline', label: 'Schedule', color: '#F59E0B', screen: 'Schedule' },
+    // { id: 3, icon: 'calendar-outline', label: 'Schedule', color: '#F59E0B', screen: 'Schedule' },
     { id: 4, icon: 'bar-chart-outline', label: 'Analytics', color: '#8B5CF6', screen: 'Analytics' },
   ];
 
