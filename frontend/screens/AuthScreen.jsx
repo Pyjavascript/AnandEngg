@@ -104,6 +104,7 @@ const AuthScreen = ({navigation}) => {
         </View>
 
         {/* Form Card */}
+        <View style={{flex: 1, alignItems: 'stretch',width: '100%'}}>
         <View style={styles.formCard}>
           {/* Name Input (Register only) */}
           {!isLogin && (
@@ -243,6 +244,7 @@ const AuthScreen = ({navigation}) => {
             </Pressable>
           </View>
         </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -319,7 +321,10 @@ const styles = StyleSheet.create({
     padding: 24,
     shadowColor: '#286DA6',
     borderWidth: 1,
-    borderColor:'#0000000d'
+    borderColor:'#0000000d',
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
   inputContainer: {
     marginBottom: 20,

@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   logo: {
     width: 140,
@@ -451,11 +451,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
+    // marginBottom: 40,
+    // backgroundColor: 'red',
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 5,
   },
   title: {
     fontSize: 32,
@@ -477,7 +478,7 @@ const styles = StyleSheet.create({
     height: 220,
     borderRadius: 30,
     padding: 20,
-    marginBottom: 40,
+    marginBottom: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },
