@@ -8,6 +8,9 @@ import AuthScreen from './screens/AuthScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import AccordanceScreen from './screens/AccordanceScreen';
 import AddEntryScreen from './screens/AddEntryScreen';
+import EntriesScreen from './screens/EntriesScreen';
+import ReportsScreen from './screens/ReportsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createNativeStackNavigator();
@@ -56,9 +59,9 @@ function MainTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Entries" component={PlaceholderScreen} />
-      <Tab.Screen name="Reports" component={PlaceholderScreen} />
-      <Tab.Screen name="Profile" component={PlaceholderScreen} />
+      <Tab.Screen name="Entries" component={EntriesScreen} />
+      <Tab.Screen name="Reports" component={ReportsScreen} />
+      <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }
