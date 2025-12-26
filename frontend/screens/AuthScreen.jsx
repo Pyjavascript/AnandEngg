@@ -10,11 +10,15 @@ import {
   Alert,
 } from 'react-native';
 import { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
 import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from '../config/api'
 
-const AuthScreen = ({navigation}) => {
+const AuthScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [role, setRole] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     employeeId: '',
@@ -29,33 +33,87 @@ const AuthScreen = ({navigation}) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
-    navigation.replace('MainApp')
-    // if (isLogin) {
-    //   // Login validation
-    //   if (!formData.employeeId || !formData.password) {
-    //     Alert.alert('Error', 'Please fill in all fields');
-    //     return;
-    //   }
-    //   // Handle login logic here
-    //   console.log('Login:', { employeeId: formData.employeeId, password: formData.password });
-    // } else {
-    //   // Register validation
-    //   if (!formData.name || !formData.employeeId || !formData.password || !formData.confirmPassword) {
-    //     Alert.alert('Error', 'Please fill in all fields');
-    //     return;
-    //   }
-    //   if (formData.password !== formData.confirmPassword) {
-    //     Alert.alert('Error', 'Passwords do not match');
-    //     return;
-    //   }
-    //   if (formData.password.length < 6) {
-    //     Alert.alert('Error', 'Password must be at least 6 characters');
-    //     return;
-    //   }
-    //   // Handle register logic here
-    //   console.log('Register:', formData);
-    // }
+  const handleSubmit = async () => {
+    console.log('BASE_URL =>', BASE_URL);
+
+    if (isLogin) {
+  if (!formData.employeeId || !formData.password) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeId: formData.employeeId,
+        password: formData.password,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Alert.alert('Login Failed', data.message);
+      return;
+    }
+
+    await AsyncStorage.setItem('token', data.token);
+    await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
+    Alert.alert('Success', 'Login successful');
+    navigation.replace('MainApp');
+  } catch (err) {
+    Alert.alert('Error', 'Backend not reachable');
+    console.log(err);
+  }
+} else {
+  if (
+    !formData.name ||
+    !formData.employeeId ||
+    !role ||
+    !formData.password ||
+    !formData.confirmPassword
+  ) {
+    Alert.alert('Error', 'Please fill in all fields');
+    return;
+  }
+
+  if (formData.password !== formData.confirmPassword) {
+    Alert.alert('Error', 'Passwords do not match');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: formData.name,
+        employeeId: formData.employeeId,
+        role,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      Alert.alert('Registration Failed', data.message);
+      return;
+    }
+
+    Alert.alert('Success', 'Account created');
+    setIsLogin(true);
+  } catch (err) {
+    Alert.alert('Error', 'Backend not reachable');
+    console.log(err);
+  }
+}
+
+
   };
 
   const toggleAuthMode = () => {
@@ -87,163 +145,211 @@ const AuthScreen = ({navigation}) => {
         {/* Logo Section */}
         <View style={styles.logoContainer}>
           <View style={styles.logoWrapper}>
-            <Image
-              source={AppLogo}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <Image source={AppLogo} style={styles.logo} resizeMode="contain" />
           </View>
           <Text style={styles.welcomeText}>
             {isLogin ? 'Welcome Back!' : 'Create Account'}
           </Text>
           <Text style={styles.subtitleText}>
-            {isLogin 
-              ? 'Sign in to continue to Anand Engineering' 
+            {isLogin
+              ? 'Sign in to continue to Anand Engineering'
               : 'Join Anand Engineering team'}
           </Text>
         </View>
 
         {/* Form Card */}
-        <View style={{flex: 1, alignItems: 'stretch',width: '100%'}}>
-        <View style={styles.formCard}>
-          {/* Name Input (Register only) */}
-          {!isLogin && (
+        <View style={{ flex: 1, alignItems: 'stretch', width: '100%' }}>
+          <View style={styles.formCard}>
+            {/* Name Input (Register only) */}
+            {!isLogin && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Full Name</Text>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    focusedField === 'name' && styles.inputWrapperFocused,
+                  ]}
+                >
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#B0C4D8"
+                    value={formData.name}
+                    onChangeText={value => handleInputChange('name', value)}
+                    onFocus={() => setFocusedField('name')}
+                    onBlur={() => setFocusedField(null)}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* Employee ID Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Full Name</Text>
-              <View style={[
-                styles.inputWrapper,
-                focusedField === 'name' && styles.inputWrapperFocused
-              ]}>
+              <Text style={styles.inputLabel}>Employee ID</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  focusedField === 'employeeId' && styles.inputWrapperFocused,
+                ]}
+              >
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your full name"
+                  placeholder="Enter your employee ID"
                   placeholderTextColor="#B0C4D8"
-                  value={formData.name}
-                  onChangeText={(value) => handleInputChange('name', value)}
-                  onFocus={() => setFocusedField('name')}
+                  value={formData.employeeId}
+                  onChangeText={value => handleInputChange('employeeId', value)}
+                  onFocus={() => setFocusedField('employeeId')}
                   onBlur={() => setFocusedField(null)}
-                  autoCapitalize="words"
+                  autoCapitalize="none"
                 />
               </View>
             </View>
-          )}
+            {/* Role Picker (Register only) */}
+            {!isLogin && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Role</Text>
 
-          {/* Employee ID Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Employee ID</Text>
-            <View style={[
-              styles.inputWrapper,
-              focusedField === 'employeeId' && styles.inputWrapperFocused
-            ]}>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your employee ID"
-                placeholderTextColor="#B0C4D8"
-                value={formData.employeeId}
-                onChangeText={(value) => handleInputChange('employeeId', value)}
-                onFocus={() => setFocusedField('employeeId')}
-                onBlur={() => setFocusedField(null)}
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    focusedField === 'role' && styles.inputWrapperFocused,
+                  ]}
+                >
+                  <Picker
+                    selectedValue={role}
+                    onValueChange={itemValue => setRole(itemValue)}
+                    style={styles.picker}
+                    dropdownIconColor="#286DA6"
+                    onFocus={() => setFocusedField('role')}
+                    onBlur={() => setFocusedField(null)}
+                  >
+                    <Picker.Item label="Select role" value="" color="#B0C4D8" />
+                    <Picker.Item
+                      label="Machine Operator"
+                      value="machine_operator"
+                    />
+                    <Picker.Item
+                      label="Quality Inspector"
+                      value="quality_inspector"
+                    />
+                    <Picker.Item
+                      label="Quality Manager"
+                      value="quality_manager"
+                    />
+                  </Picker>
+                </View>
+              </View>
+            )}
 
-          {/* Password Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Password</Text>
-            <View style={[
-              styles.inputWrapper,
-              focusedField === 'password' && styles.inputWrapperFocused
-            ]}>
-              <TextInput
-                style={[styles.input, styles.inputWithIcon]}
-                placeholder="Enter your password"
-                placeholderTextColor="#B0C4D8"
-                value={formData.password}
-                onChangeText={(value) => handleInputChange('password', value)}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField(null)}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <Pressable 
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
+            {/* Password Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  focusedField === 'password' && styles.inputWrapperFocused,
+                ]}
               >
-                <Text style={styles.eyeIconText}>
-                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                <TextInput
+                  style={[styles.input, styles.inputWithIcon]}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#B0C4D8"
+                  value={formData.password}
+                  onChangeText={value => handleInputChange('password', value)}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Text style={styles.eyeIconText}>
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Confirm Password Input (Register only) */}
+            {!isLogin && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Confirm Password</Text>
+                <View
+                  style={[
+                    styles.inputWrapper,
+                    focusedField === 'confirmPassword' &&
+                      styles.inputWrapperFocused,
+                    formData.confirmPassword &&
+                      formData.password !== formData.confirmPassword &&
+                      styles.inputWrapperError,
+                  ]}
+                >
+                  <TextInput
+                    style={[styles.input, styles.inputWithIcon]}
+                    placeholder="Re-enter your password"
+                    placeholderTextColor="#B0C4D8"
+                    value={formData.confirmPassword}
+                    onChangeText={value =>
+                      handleInputChange('confirmPassword', value)
+                    }
+                    onFocus={() => setFocusedField('confirmPassword')}
+                    onBlur={() => setFocusedField(null)}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                  />
+                  <Pressable
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Text style={styles.eyeIconText}>
+                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </Pressable>
+                </View>
+                {formData.confirmPassword &&
+                  formData.password !== formData.confirmPassword && (
+                    <Text style={styles.errorText}>Passwords do not match</Text>
+                  )}
+              </View>
+            )}
+
+            {/* Forgot Password (Login only) */}
+            {isLogin && (
+              <Pressable style={styles.forgotPasswordContainer}>
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </Pressable>
+            )}
+
+            {/* Submit Button */}
+            <Pressable
+              onPress={handleSubmit}
+              style={({ pressed }) => [
+                styles.submitButton,
+                pressed && styles.submitButtonPressed,
+              ]}
+            >
+              <Text style={styles.submitButtonText}>
+                {isLogin ? 'Sign In' : 'Create Account'}
+              </Text>
+            </Pressable>
+
+            {/* Toggle Auth Mode */}
+            <View style={styles.toggleContainer}>
+              <Text style={styles.toggleText}>
+                {isLogin
+                  ? "Don't have an account? "
+                  : 'Already have an account? '}
+              </Text>
+              <Pressable onPress={toggleAuthMode}>
+                <Text style={styles.toggleLink}>
+                  {isLogin ? 'Register' : 'Sign In'}
                 </Text>
               </Pressable>
             </View>
           </View>
-
-          {/* Confirm Password Input (Register only) */}
-          {!isLogin && (
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Confirm Password</Text>
-              <View style={[
-                styles.inputWrapper,
-                focusedField === 'confirmPassword' && styles.inputWrapperFocused,
-                formData.confirmPassword && formData.password !== formData.confirmPassword && styles.inputWrapperError
-              ]}>
-                <TextInput
-                  style={[styles.input, styles.inputWithIcon]}
-                  placeholder="Re-enter your password"
-                  placeholderTextColor="#B0C4D8"
-                  value={formData.confirmPassword}
-                  onChangeText={(value) => handleInputChange('confirmPassword', value)}
-                  onFocus={() => setFocusedField('confirmPassword')}
-                  onBlur={() => setFocusedField(null)}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                />
-                <Pressable 
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeIcon}
-                >
-                  <Text style={styles.eyeIconText}>
-                    {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
-                </Pressable>
-              </View>
-              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                <Text style={styles.errorText}>Passwords do not match</Text>
-              )}
-            </View>
-          )}
-
-          {/* Forgot Password (Login only) */}
-          {isLogin && (
-            <Pressable style={styles.forgotPasswordContainer}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </Pressable>
-          )}
-
-          {/* Submit Button */}
-          <Pressable
-            onPress={handleSubmit}
-            style={({ pressed }) => [
-              styles.submitButton,
-              pressed && styles.submitButtonPressed,
-            ]}
-          >
-            <Text style={styles.submitButtonText}>
-              {isLogin ? 'Sign In' : 'Create Account'}
-            </Text>
-          </Pressable>
-
-          {/* Toggle Auth Mode */}
-          <View style={styles.toggleContainer}>
-            <Text style={styles.toggleText}>
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-            </Text>
-            <Pressable onPress={toggleAuthMode}>
-              <Text style={styles.toggleLink}>
-                {isLogin ? 'Register' : 'Sign In'}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -297,7 +403,7 @@ const styles = StyleSheet.create({
   },
   logoWrapper: {
     marginBottom: 20,
-    padding: 20
+    padding: 20,
   },
   logo: {
     width: 160,
@@ -321,7 +427,7 @@ const styles = StyleSheet.create({
     padding: 24,
     shadowColor: '#286DA6',
     borderWidth: 1,
-    borderColor:'#0000000d',
+    borderColor: '#0000000d',
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
@@ -375,6 +481,13 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginLeft: 4,
   },
+  picker: {
+    flex: 1,
+    color: '#286DA6',
+    height: 56,
+    marginLeft: 8,
+  },
+
   forgotPasswordContainer: {
     alignItems: 'flex-end',
     marginBottom: 24,

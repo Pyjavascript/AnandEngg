@@ -19,33 +19,33 @@ const EntriesScreen = ({ navigation }) => {
       bgColor: '#E3F2FD',
       onPress: () => navigation.navigate('Accordance'),
     },
-    {
-      id: 2,
-      title: 'Quality Check',
-      subtitle: 'Quick quality inspection',
-      icon: 'checkmark-circle-outline',
-      color: '#10B981',
-      bgColor: '#D1FAE5',
-      onPress: () => {},
-    },
-    {
-      id: 3,
-      title: 'Process Review',
-      subtitle: 'Review process status',
-      icon: 'git-network-outline',
-      color: '#F59E0B',
-      bgColor: '#FEF3C7',
-      onPress: () => {},
-    },
-    {
-      id: 4,
-      title: 'Safety Check',
-      subtitle: 'Safety inspection form',
-      icon: 'shield-checkmark-outline',
-      color: '#EF4444',
-      bgColor: '#FEE2E2',
-      onPress: () => {},
-    },
+    // {
+    //   id: 2,
+    //   title: 'Quality Check',
+    //   subtitle: 'Quick quality inspection',
+    //   icon: 'checkmark-circle-outline',
+    //   color: '#10B981',
+    //   bgColor: '#D1FAE5',
+    //   onPress: () => {},
+    // },
+    // {
+    //   id: 3,
+    //   title: 'Process Review',
+    //   subtitle: 'Review process status',
+    //   icon: 'git-network-outline',
+    //   color: '#F59E0B',
+    //   bgColor: '#FEF3C7',
+    //   onPress: () => {},
+    // },
+    // {
+    //   id: 4,
+    //   title: 'Safety Check',
+    //   subtitle: 'Safety inspection form',
+    //   icon: 'shield-checkmark-outline',
+    //   color: '#EF4444',
+    //   bgColor: '#FEE2E2',
+    //   onPress: () => {},
+    // },
   ];
 
   const recentTemplates = [
@@ -86,7 +86,7 @@ const EntriesScreen = ({ navigation }) => {
         </View>
 
         {/* Recent Templates */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Templates</Text>
           {recentTemplates.map((template) => (
             <TouchableOpacity key={template.id} style={styles.templateCard}>
@@ -100,7 +100,7 @@ const EntriesScreen = ({ navigation }) => {
               <Ionicons name="chevron-forward" size={20} color="#B0C4D8" />
             </TouchableOpacity>
           ))}
-        </View>
+        </View> */}
 
         {/* Info Card */}
         <View style={styles.infoCard}>
@@ -188,38 +188,38 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
-  templateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E3F2FD',
-  },
-  templateIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E3F2FD',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  templateInfo: {
-    flex: 1,
-  },
-  templateName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  templateCount: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
+  // templateCard: {
+  //   flexDirection: 'row',
+  //   alignItems: 'center',
+  //   backgroundColor: '#FFFFFF',
+  //   borderRadius: 12,
+  //   padding: 14,
+  //   marginBottom: 10,
+  //   borderWidth: 1,
+  //   borderColor: '#E3F2FD',
+  // },
+  // templateIcon: {
+  //   width: 48,
+  //   height: 48,
+  //   borderRadius: 24,
+  //   backgroundColor: '#E3F2FD',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  //   marginRight: 12,
+  // },
+  // templateInfo: {
+  //   flex: 1,
+  // },
+  // templateName: {
+  //   fontSize: 15,
+  //   fontWeight: '600',
+  //   color: '#1F2937',
+  //   marginBottom: 2,
+  // },
+  // templateCount: {
+  //   fontSize: 12,
+  //   color: '#6B7280',
+  // },
   infoCard: {
     flexDirection: 'row',
     backgroundColor: '#E3F2FD',

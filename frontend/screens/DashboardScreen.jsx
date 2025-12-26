@@ -6,7 +6,7 @@
 //   Pressable,
 //   Image,
 // } from 'react-native';
-// import Ionicons from 'react-native-vector-icons/Ionicons'; 
+// import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { useState } from 'react';
 
 // const DashboardScreen = ({ navigation }) => {
@@ -54,7 +54,7 @@
 //               </View>
 //             </Pressable>
 //           </View>
-          
+
 //           {/* Employee ID Badge */}
 //           <View style={styles.employeeIdBadge}>
 //             <Ionicons name="card" size={16} color="#286DA6" />
@@ -400,57 +400,148 @@ import {
   Pressable,
   Image,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons'; 
-import { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DashboardScreen = ({ navigation }) => {
-  const [userData] = useState({
-    name: 'Rajesh Kumar',
-    employeeId: 'AE-2024-001',
-    role: 'Quality Inspector',
-    avatar: 'https://ui-avatars.com/api/?name=Rajesh+Kumar&background=286DA6&color=fff&size=200',
+  // const [userData] = useState({
+  //   name: 'Rajesh Kumar',
+  //   employeeId: 'AE-2024-001',
+  //   role: 'Quality Inspector',
+  //   avatar: 'https://ui-avatars.com/api/?name=Rajesh+Kumar&background=286DA6&color=fff&size=200',
+  // });
+  const [userData, setUserData] = useState({
+    name: '',
+    role: '',
+    employeeId: '',
+    avatar: '',
   });
 
-  const quickActions = [
-    { id: 1, icon: 'add-circle-outline', label: 'New Entry', color: '#286DA6', screen: 'Accordance' },
-    { id: 2, icon: 'document-text-outline', label: 'Reports', color: '#10B981', screen: 'Reports' },
-    // { id: 3, icon: 'calendar-outline', label: 'Schedule', color: '#F59E0B', screen: 'Schedule' },
-    { id: 4, icon: 'bar-chart-outline', label: 'Analytics', color: '#8B5CF6', screen: 'Analytics' },
-  ];
+useEffect(() => {
+  const loadUser = async () => {
+    const storedUser = await AsyncStorage.getItem('user');
+
+    if (!storedUser) return;
+
+    const user = JSON.parse(storedUser);
+
+    setUserData({
+      name: user.name,
+      role: user.role,
+      employeeId: user.employeeId,
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        user.name
+      )}&background=286DA6&color=fff&size=200`,
+    });
+  };
+
+  loadUser();
+}, []);
+
+
+  // const quickActions = [
+  //   { id: 1, icon: 'add-circle-outline', label: 'New Entry', color: '#286DA6', screen: 'Accordance' },
+  //   { id: 2, icon: 'document-text-outline', label: 'Reports', color: '#10B981', screen: 'Reports' },
+  //   // { id: 3, icon: 'calendar-outline', label: 'Schedule', color: '#F59E0B', screen: 'Schedule' },
+  //   { id: 4, icon: 'bar-chart-outline', label: 'Analytics', color: '#8B5CF6', screen: 'Analytics' },
+  // ];
 
   const todayStats = [
-    { id: 1, label: 'Tasks', value: '8', icon: 'checkbox-outline', color: '#286DA6' },
-    { id: 2, label: 'Hours', value: '6.5', icon: 'time-outline', color: '#10B981' },
-    { id: 3, label: 'Reports', value: '3', icon: 'document-outline', color: '#F59E0B' },
+    // { id: 1, label: 'Tasks', value: '8', icon: 'checkbox-outline', color: '#286DA6' },
+    {
+      id: 1,
+      label: 'Approved',
+      value: '8',
+      icon: 'checkbox',
+      color: '#0fd15aff',
+    },
+    {
+      id: 2,
+      label: 'Pending',
+      value: '3',
+      icon: 'help-circle',
+      color: '#F59E0B',
+    },
+    {
+      id: 3,
+      label: 'Rejected',
+      value: '2',
+      icon: 'close-circle',
+      color: '#f5460bff',
+    },
+    {
+      id: 4,
+      label: 'Total',
+      value: '13',
+      icon: 'cellular',
+      color: '#0b90f5ff',
+    },
   ];
 
   const recentEntries = [
-    { id: 1, title: 'Machine #45 Quality Check', time: '10:30 AM', type: 'inspection', status: 'completed' },
-    { id: 2, title: 'Production Line A Review', time: '09:15 AM', type: 'review', status: 'completed' },
-    { id: 3, title: 'Material Quality Report', time: 'Yesterday', type: 'report', status: 'pending' },
+    {
+      id: 1,
+      title: 'Machine #45 Quality Check',
+      time: '10:30 AM',
+      type: 'inspection',
+      status: 'completed',
+    },
+    {
+      id: 2,
+      title: 'Production Line A Review',
+      time: '09:15 AM',
+      type: 'review',
+      status: 'completed',
+    },
+    {
+      id: 3,
+      title: 'Material Quality Report',
+      time: 'Yesterday',
+      type: 'report',
+      status: 'pending',
+    },
   ];
 
   const upcomingTasks = [
-    { id: 1, title: 'Weekly Quality Meeting', time: '2:00 PM', priority: 'high' },
-    { id: 2, title: 'Equipment Inspection', time: '3:30 PM', priority: 'medium' },
+    {
+      id: 1,
+      title: 'Weekly Quality Meeting',
+      time: '2:00 PM',
+      priority: 'high',
+    },
+    {
+      id: 2,
+      title: 'Equipment Inspection',
+      time: '3:30 PM',
+      priority: 'medium',
+    },
     { id: 3, title: 'Submit Daily Report', time: '5:00 PM', priority: 'high' },
   ];
 
-  const getTypeIcon = (type) => {
-    switch(type) {
-      case 'inspection': return 'search-outline';
-      case 'review': return 'eye-outline';
-      case 'report': return 'document-text-outline';
-      default: return 'document-outline';
+  const getTypeIcon = type => {
+    switch (type) {
+      case 'inspection':
+        return 'search-outline';
+      case 'review':
+        return 'eye-outline';
+      case 'report':
+        return 'document-text-outline';
+      default:
+        return 'document-outline';
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch(priority) {
-      case 'high': return '#EF4444';
-      case 'medium': return '#F59E0B';
-      case 'low': return '#10B981';
-      default: return '#6B7280';
+  const getPriorityColor = priority => {
+    switch (priority) {
+      case 'high':
+        return '#EF4444';
+      case 'medium':
+        return '#F59E0B';
+      case 'low':
+        return '#10B981';
+      default:
+        return '#6B7280';
     }
   };
 
@@ -462,27 +553,28 @@ const DashboardScreen = ({ navigation }) => {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>Welcome back,</Text>
-              <Text style={styles.userName}>{userData.name}</Text>
-              <Text style={styles.userRole}>{userData.role}</Text>
+              {userData && (
+                <>
+                  <Text style={styles.userName}>{userData.name}</Text>
+                  <Text style={styles.userRole}>{userData.role}</Text>
+                </>
+              )}
             </View>
             <Pressable
               onPress={() => navigation.navigate('Profile')}
               style={styles.avatarContainer}
             >
-              <Image
-                source={{ uri: userData.avatar }}
-                style={styles.avatar}
-              />
+              <Image source={{ uri: userData.avatar }} style={styles.avatar} />
               <View style={styles.editBadge}>
                 <Ionicons name="pencil" size={12} color="#FFFFFF" />
               </View>
             </Pressable>
           </View>
-          
+
           {/* Employee ID Badge */}
           <View style={styles.employeeIdBadge}>
             <Ionicons name="card" size={16} color="#286DA6" />
-            <Text style={styles.employeeIdText}>{userData.employeeId}</Text>
+            <Text style={styles.employeeIdText}>{userData.employeeId || '-'}</Text>
           </View>
         </View>
 
@@ -490,7 +582,7 @@ const DashboardScreen = ({ navigation }) => {
         <View style={styles.todaySummary}>
           <Text style={styles.todayTitle}>Today's Summary</Text>
           <View style={styles.todayStatsRow}>
-            {todayStats.map((stat) => (
+            {todayStats.map(stat => (
               <View key={stat.id} style={styles.todayStatItem}>
                 <Ionicons name={stat.icon} size={20} color={stat.color} />
                 <Text style={styles.todayStatValue}>{stat.value}</Text>
@@ -501,7 +593,7 @@ const DashboardScreen = ({ navigation }) => {
         </View>
 
         {/* Quick Actions Grid */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => (
@@ -517,35 +609,43 @@ const DashboardScreen = ({ navigation }) => {
               </Pressable>
             ))}
           </View>
-        </View>
+        </View> */}
 
         {/* Recent Entries */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Entries</Text>
+            <Text style={styles.sectionTitle}>Inspections</Text>
             <Pressable onPress={() => navigation.navigate('Entries')}>
               <Text style={styles.seeAllText}>See All</Text>
             </Pressable>
           </View>
 
-          {recentEntries.map((entry) => (
+          {recentEntries.map(entry => (
             <Pressable key={entry.id} style={styles.entryCard}>
               <View style={styles.entryIconContainer}>
-                <Ionicons name={getTypeIcon(entry.type)} size={20} color="#286DA6" />
+                <Ionicons
+                  name={getTypeIcon(entry.type)}
+                  size={20}
+                  color="#286DA6"
+                />
               </View>
               <View style={styles.entryContent}>
                 <Text style={styles.entryTitle}>{entry.title}</Text>
                 <Text style={styles.entryTime}>{entry.time}</Text>
               </View>
-              <View style={[
-                styles.entryStatus,
-                entry.status === 'completed' && styles.entryStatusCompleted,
-                entry.status === 'pending' && styles.entryStatusPending,
-              ]}>
-                <Ionicons 
-                  name={entry.status === 'completed' ? 'checkmark-circle' : 'time'} 
-                  size={18} 
-                  color={entry.status === 'completed' ? '#10B981' : '#F59E0B'} 
+              <View
+                style={[
+                  styles.entryStatus,
+                  entry.status === 'completed' && styles.entryStatusCompleted,
+                  entry.status === 'pending' && styles.entryStatusPending,
+                ]}
+              >
+                <Ionicons
+                  name={
+                    entry.status === 'completed' ? 'checkmark-circle' : 'time'
+                  }
+                  size={18}
+                  color={entry.status === 'completed' ? '#10B981' : '#F59E0B'}
                 />
               </View>
             </Pressable>
@@ -662,7 +762,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor:'#0000000d',
+    borderColor: '#0000000d',
   },
   todayTitle: {
     fontSize: 16,
@@ -709,29 +809,29 @@ const styles = StyleSheet.create({
     color: '#286DA6',
     fontWeight: '600',
   },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickActionItem: {
-    width: '23%',
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickActionIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickActionLabel: {
-    fontSize: 12,
-    color: '#1F2937',
-    fontWeight: '600',
-    textAlign: 'center',
-  },
+  // quickActionsGrid: {
+  //   flexDirection: 'row',
+  //   flexWrap: 'wrap',
+  //   gap: 12,
+  // },
+  // quickActionItem: {
+  //   width: '23%',
+  //   alignItems: 'center',
+  //   gap: 8,
+  // },
+  // quickActionIcon: {
+  //   width: 56,
+  //   height: 56,
+  //   borderRadius: 16,
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+  // quickActionLabel: {
+  //   fontSize: 12,
+  //   color: '#1F2937',
+  //   fontWeight: '600',
+  //   textAlign: 'center',
+  // },
   entryCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -740,7 +840,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor:'#0000000d',
+    borderColor: '#0000000d',
   },
   entryIconContainer: {
     width: 40,
