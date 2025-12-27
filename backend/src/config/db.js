@@ -1,19 +1,29 @@
+// const mysql = require('mysql2');
+
+
+// const db = mysql.createPool({
+//   host: process.env.MYSQLHOST || "localhost",
+//   user: process.env.MYSQLUSER || "root",
+//   password: process.env.MYSQLPASSWORD || DB_PASS,
+//   database: process.env.MYSQLDATABASE || DB_NAME,
+//   port: process.env.MYSQLPORT || 3306
+// });
+
+// module.exports = db;
+
+//mysql://root:rolCQhtOJIhZgZCfILBwQKzYtVYmozpW@yamabiko.proxy.rlwy.net:30528/AnandDB
+
 const mysql = require('mysql2');
 
-
 const db = mysql.createPool({
-  host: process.env.MYSQLHOST || "localhost",
-  user: process.env.MYSQLUSER || "root",
-  password: process.env.MYSQLPASSWORD || DB_PASS,
-  database: process.env.MYSQLDATABASE || DB_NAME,
-  port: process.env.MYSQLPORT || 3306;
-});
-db.connect((err) => {
-  if (err) {
-    console.error("Database connection failed: " + err.stack);
-    return;
-  }
-  console.log("Connected to MySQL Database");
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 module.exports = db;
