@@ -26,11 +26,18 @@ exports.findByEmployeeId = async (employeeId) => {
   return rows;
 };
 
-exports.createUser = async ({ name, employeeId, role, password }) => {
+// exports.createUser = async ({ name, employeeId, role, password }) => {
+//   const [result] = await db.query(
+//     'INSERT INTO users (name, employee_id, role, password) VALUES (?, ?, ?, ?)',
+//     [name, employeeId, role, password]
+//   );
+//   return result;
+// };
+exports.createUser = async ({ name, employeeId, email, phone, role, password }) => {
   const [result] = await db.query(
-    'INSERT INTO users (name, employee_id, role, password) VALUES (?, ?, ?, ?)',
-    [name, employeeId, role, password]
+    `INSERT INTO users (name, employee_id, email, phone, role, password)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, employeeId, email, phone, role, password]
   );
   return result;
 };
-

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import AppLogo from '../assets/pictures/AppLogo.png';
+import AppLogo from '../assets/pictures/AppLogo2.png';
 import { Image } from 'react-native';
 
 const SplashScreen = ({navigation}) => {

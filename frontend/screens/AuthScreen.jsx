@@ -26,6 +26,8 @@ const AuthScreen = ({ navigation }) => {
     employeeId: '',
     password: '',
     confirmPassword: '',
+    email: '',
+    phone: '',
   });
   const [focusedField, setFocusedField] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +83,8 @@ const AuthScreen = ({ navigation }) => {
       if (
         !formData.name ||
         !formData.employeeId ||
+        !formData.email ||
+        !formData.phone ||
         !role ||
         !formData.password ||
         !formData.confirmPassword
@@ -103,6 +107,8 @@ const AuthScreen = ({ navigation }) => {
           body: JSON.stringify({
             name: formData.name,
             employeeId: formData.employeeId,
+            email: formData.email,
+            phone: formData.phone,
             role,
             password: formData.password,
             confirmPassword: formData.confirmPassword,
@@ -122,103 +128,41 @@ const AuthScreen = ({ navigation }) => {
       } catch (err) {
         Alert.alert('Error', 'Backend not reachable');
         console.log(err);
+        // if (err.code === 'ER_DUP_ENTRY') {
+        //   return res
+        //     .status(400)
+        //     .json({ message: 'Email or phone already exists' });
+        // }
       } finally {
         setLoading(false);
       }
     }
   };
 
-  //   const handleSubmit = async () => {
-  //     console.log('BASE_URL =>', BASE_URL);
-
-  //     if (isLogin) {
-  //   if (!formData.employeeId || !formData.password) {
-  //     Alert.alert('Error', 'Please fill in all fields');
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch(`${BASE_URL}/api/auth/login`, {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         employeeId: formData.employeeId,
-  //         password: formData.password,
-  //       }),
-  //     });
-
-  //     const data = await res.json();
-
-  //     if (!res.ok) {
-  //       Alert.alert('Login Failed', data.message);
-  //       return;
-  //     }
-
-  //     await AsyncStorage.setItem('token', data.token);
-  //     await AsyncStorage.setItem('user', JSON.stringify(data.user));
-
-  //     Alert.alert('Success', 'Login successful');
-  //     navigation.replace('MainApp');
-  //   } catch (err) {
-  //     Alert.alert('Error', 'Backend not reachable');
-  //     console.log(err);
-  //   }
-  // } else {
-  //   if (
-  //     !formData.name ||
-  //     !formData.employeeId ||
-  //     !role ||
-  //     !formData.password ||
-  //     !formData.confirmPassword
-  //   ) {
-  //     Alert.alert('Error', 'Please fill in all fields');
-  //     return;
-  //   }
-
-  //   if (formData.password !== formData.confirmPassword) {
-  //     Alert.alert('Error', 'Passwords do not match');
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch(`${BASE_URL}/api/auth/register`, {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify({
-  //         name: formData.name,
-  //         employeeId: formData.employeeId,
-  //         role,
-  //         password: formData.password,
-  //         confirmPassword: formData.confirmPassword,
-  //       }),
-  //     });
-
-  //     const data = await res.json();
-
-  //     if (!res.ok) {
-  //       Alert.alert('Registration Failed', data.message);
-  //       return;
-  //     }
-
-  //     Alert.alert('Success', 'Account created');
-  //     setIsLogin(true);
-  //   } catch (err) {
-  //     Alert.alert('Error', 'Backend not reachable');
-  //     console.log(err);
-  //   }
-  // }
-
-  //   };
-
+  // const toggleAuthMode = () => {
+  //   setIsLogin(!isLogin);
+  //   setFormData({
+  //     name: '',
+  //     employeeId: '',
+  //     email: '',
+  //     phone: '',
+  //     password: '',
+  //     confirmPassword: '',
+  //   });
+  //   setFocusedField(null);
+  // };
   const toggleAuthMode = () => {
-    setIsLogin(!isLogin);
+    setIsLogin(prev => !prev);
+    setRole('');
+    setFocusedField(null); // ← this must stay
     setFormData({
       name: '',
       employeeId: '',
+      email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
     });
-    setFocusedField(null);
   };
 
   return (
@@ -299,6 +243,43 @@ const AuthScreen = ({ navigation }) => {
                 />
               </View>
             </View>
+            {!isLogin && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter email"
+                      placeholderTextColor="#B0C4D8"
+                      value={formData.email}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      onChangeText={v => handleInputChange('email', v)}
+                      onFocus={() => setFocusedField('email')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Phone</Text>
+                  <View style={styles.inputWrapper}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter phone number"
+                      placeholderTextColor="#B0C4D8"
+                      keyboardType="phone-pad"
+                      value={formData.phone}
+                      onChangeText={v => handleInputChange('phone', v)}
+                      onFocus={() => setFocusedField('phone')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </View>
+                </View>
+              </>
+            )}
+
             {/* Role Picker (Register only) */}
             {!isLogin && (
               <View style={styles.inputContainer}>

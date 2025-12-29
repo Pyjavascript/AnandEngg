@@ -37,6 +37,8 @@ export default function AddEntryScreen({ route, navigation }) {
           qa: parsed.name,
         }));
       }
+      console.log(form);
+      
     };
 
     loadUser();
@@ -54,7 +56,8 @@ export default function AddEntryScreen({ route, navigation }) {
     partDescription: part.description,
     docNo: part.docNo,
     revNo: part.revNo,
-    inspectionDate: new Date(), // Current date
+    reportType: reportType,
+    inspectionDate: new Date().toLocaleDateString('en-GB'), // Current date
     shift: '',
     dimensions: initDimensions,
     visualObservation: '',
@@ -67,6 +70,8 @@ export default function AddEntryScreen({ route, navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
+    console.log(form);
+    
     // Validation
     if (!form.shift) {
       Alert.alert('Missing Information', 'Please select a shift');
@@ -98,7 +103,7 @@ export default function AddEntryScreen({ route, navigation }) {
       setLoading(false);
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
-      console.log('Submission Error:', errorMessage);
+      console.log('Submission Error:', errorMessage,err);
       Alert.alert('Error', 'Failed to submit report: ' + errorMessage);
       setLoading(false);
     }
@@ -120,9 +125,9 @@ export default function AddEntryScreen({ route, navigation }) {
     }
   };
 
-  const formatDate = date => {
-    return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
-  };
+  // const formatDate = date => {
+  //   return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
+  // };
 
   return (
     <KeyboardAvoidingView
@@ -164,9 +169,10 @@ export default function AddEntryScreen({ route, navigation }) {
             </View>
             <View style={styles.inspectorRow}>
               <Text style={styles.inspectorLabel}>Date:</Text>
-              <Text style={styles.inspectorValue}>
+              {/* <Text style={styles.inspectorValue}>
                 {formatDate(form.inspectionDate)}
-              </Text>
+              </Text> */}
+              <Text style={styles.inspectorValue}>{form.inspectionDate}</Text>
             </View>
           </View>
         </View>
@@ -651,3 +657,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+

@@ -119,9 +119,9 @@ const ProfileScreen = ({ navigation }) => {
               }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={styles.editAvatarBtn}>
+            {/* <TouchableOpacity style={styles.editAvatarBtn}>
               <Ionicons name="camera" size={18} color="#FFFFFF" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           <Text style={styles.profileName}>{userData.name || '-'}</Text>
