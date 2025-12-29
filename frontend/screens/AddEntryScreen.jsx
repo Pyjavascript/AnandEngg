@@ -1,53 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
   Image,
   Alert,
-  Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
 import { BASE_URL } from '../config/api';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 
 export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType } = route.params;
 
-  const userData = {
-    name: 'Rajesh Kumar',
-    employeeId: 'AE-2024-001',
-  };
+  const [userData, setUserData] = useState({
+    name: '',
+    employeeId: '',
+  });
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await AsyncStorage.getItem('user');
+      if (user) {
+        const parsed = JSON.parse(user);
+        setUserData({
+          name: parsed.name,
+          employeeId: parsed.employee_id, // or parsed.employeeId if you store that
+        });
 
+        setForm(prev => ({
+          ...prev,
+          qa: parsed.name,
+        }));
+      }
+    };
+
+    loadUser();
+  }, []);
+  // Initialize Dimensions
   const initDimensions = part.dimensions.map(d => ({
     ...d,
     actual: Array.isArray(d.actual) ? d.actual : [d.actual || ''],
   }));
 
+  // Initialize Form with current date
   const [form, setForm] = useState({
     customer: customer,
     partNumber: part.partNo,
     partDescription: part.description,
     docNo: part.docNo,
     revNo: part.revNo,
-    inspectionDate: new Date(),
+    inspectionDate: new Date(), // Current date
     shift: '',
     dimensions: initDimensions,
     visualObservation: '',
     remarks: '',
-    qa: userData.name,
+    qa: userData.name, // Pre-filled with Rajesh Kumar
     reviewedBy: '',
     approvedBy: '',
   });
 
   const [loading, setLoading] = useState(false);
-  const [imageZoomed, setImageZoomed] = useState(false);
 
   const handleSubmit = async () => {
+    // Validation
     if (!form.shift) {
       Alert.alert('Missing Information', 'Please select a shift');
       return;
@@ -55,9 +75,25 @@ export default function AddEntryScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      await axios.post(`${BASE_URL}api/report/create`, form);
+      // await axios.post(`${BASE_URL}api/report/create`, form);
+      const token = await AsyncStorage.getItem('token');
+      // setLoading(true);
+      await new Promise(resolve => setTimeout(resolve, 0));
+      if (!token) {
+        Alert.alert('Session expired', 'Please login again');
+        setLoading(false);
+        return;
+      }
+
+      await axios.post(`${BASE_URL}/api/report/create`, form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       Alert.alert('Success', 'Inspection report submitted successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+        { text: 'OK', onPress: () => navigation.goBack() },
       ]);
       setLoading(false);
     } catch (err) {
@@ -76,7 +112,7 @@ export default function AddEntryScreen({ route, navigation }) {
     }
   };
 
-  const addSample = (dimIndex) => {
+  const addSample = dimIndex => {
     const updated = [...form.dimensions];
     if (updated[dimIndex] && updated[dimIndex].actual) {
       updated[dimIndex].actual.push('');
@@ -84,257 +120,245 @@ export default function AddEntryScreen({ route, navigation }) {
     }
   };
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-GB');
+  const formatDate = date => {
+    return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Inspection Report</Text>
-          <Text style={styles.headerSubtitle}>{reportType}</Text>
-        </View>
-      </View>
-
-      {/* Inspector Info Card */}
-      <View style={styles.inspectorCard}>
-        <View style={styles.inspectorHeader}>
-          <Ionicons name="person-circle-outline" size={24} color="#286DA6" />
-          <Text style={styles.inspectorTitle}>Inspector Details</Text>
-        </View>
-        <View style={styles.inspectorInfo}>
-          <View style={styles.inspectorRow}>
-            <Text style={styles.inspectorLabel}>Name:</Text>
-            <Text style={styles.inspectorValue}>{userData.name}</Text>
-          </View>
-          <View style={styles.inspectorRow}>
-            <Text style={styles.inspectorLabel}>Employee ID:</Text>
-            <Text style={styles.inspectorValue}>{userData.employeeId}</Text>
-          </View>
-          <View style={styles.inspectorRow}>
-            <Text style={styles.inspectorLabel}>Date:</Text>
-            <Text style={styles.inspectorValue}>{formatDate(form.inspectionDate)}</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Part Info Card - Compact */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Part Information</Text>
-        
-        {/* Image with Zoom Icon */}
-        <View style={styles.imageContainer}>
-          <Image source={part.img} style={styles.partImage} />
-          <TouchableOpacity 
-            style={styles.zoomButton}
-            onPress={() => setImageZoomed(true)}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={10}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
           >
-            <Ionicons name="expand-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-        </View>
-
-        {/* Compact Info Grid */}
-        <View style={styles.compactGrid}>
-          <View style={styles.compactRow}>
-            <Text style={styles.compactLabel}>Customer</Text>
-            <Text style={styles.compactValue}>{form.customer}</Text>
-          </View>
-          <View style={styles.compactRow}>
-            <Text style={styles.compactLabel}>Part No</Text>
-            <Text style={styles.compactValue}>{form.partNumber}</Text>
-          </View>
-          <View style={styles.compactRow}>
-            <Text style={styles.compactLabel}>Doc No</Text>
-            <Text style={styles.compactValue}>{form.docNo}</Text>
-          </View>
-          <View style={styles.compactRow}>
-            <Text style={styles.compactLabel}>Rev No</Text>
-            <Text style={styles.compactValue}>{form.revNo}</Text>
-          </View>
-          <View style={[styles.compactRow, styles.fullWidth]}>
-            <Text style={styles.compactLabel}>Description</Text>
-            <Text style={styles.compactValue}>{form.partDescription}</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>Inspection Report</Text>
+            <Text style={styles.headerSubtitle}>{reportType}</Text>
           </View>
         </View>
-      </View>
 
-      {/* Shift Selection - Compact */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Shift</Text>
-        <View style={styles.pickerWrapper}>
-          <Picker
-            selectedValue={form.shift}
-            onValueChange={(v) => setForm({ ...form, shift: v })}
-            style={styles.picker}
-            dropdownIconColor="#286DA6"
-          >
-            <Picker.Item label="Select Shift" value="" />
-            <Picker.Item label="Day Shift" value="day" />
-            <Picker.Item label="Evening Shift" value="evening" />
-            <Picker.Item label="Night Shift" value="night" />
-          </Picker>
-        </View>
-      </View>
-
-      {/* Dimensions Section - Compact */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Dimensions ({form.dimensions.length})</Text>
-        
-        {form.dimensions.map((d, i) => (
-          <View key={i} style={styles.dimensionCard}>
-            {/* Compact Header */}
-            <View style={styles.dimensionHeader}>
-              <View style={styles.dimensionBadge}>
-                <Text style={styles.dimensionBadgeText}>{d.slNo}</Text>
-              </View>
-              <View style={styles.dimensionInfo}>
-                <Text style={styles.dimensionDesc}>{d.desc}</Text>
-                <Text style={styles.dimensionSpec}>Spec: {d.spec}</Text>
-              </View>
+        {/* Inspector Info Card */}
+        <View style={styles.inspectorCard}>
+          <View style={styles.inspectorHeader}>
+            <Ionicons name="person-circle-outline" size={24} color="#286DA6" />
+            <Text style={styles.inspectorTitle}>Inspector Details</Text>
+          </View>
+          <View style={styles.inspectorInfo}>
+            <View style={styles.inspectorRow}>
+              <Text style={styles.inspectorLabel}>Name:</Text>
+              <Text style={styles.inspectorValue}>{userData.name}</Text>
             </View>
+            <View style={styles.inspectorRow}>
+              <Text style={styles.inspectorLabel}>Employee ID:</Text>
+              <Text style={styles.inspectorValue}>{userData.employeeId}</Text>
+            </View>
+            <View style={styles.inspectorRow}>
+              <Text style={styles.inspectorLabel}>Date:</Text>
+              <Text style={styles.inspectorValue}>
+                {formatDate(form.inspectionDate)}
+              </Text>
+            </View>
+          </View>
+        </View>
 
-            {/* Samples - Horizontal when single, vertical when multiple */}
-            <View style={styles.samplesWrapper}>
+        {/* Part Info Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Part Information</Text>
+          <Image source={part.img} style={styles.partImage} />
+
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Customer</Text>
+              <Text style={styles.infoValue}>{form.customer}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Part No</Text>
+              <Text style={styles.infoValue}>{form.partNumber}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Doc No</Text>
+              <Text style={styles.infoValue}>{form.docNo}</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>Rev No</Text>
+              <Text style={styles.infoValue}>{form.revNo}</Text>
+            </View>
+          </View>
+
+          <View style={styles.descriptionBox}>
+            <Text style={styles.descriptionLabel}>Description</Text>
+            <Text style={styles.descriptionValue}>{form.partDescription}</Text>
+          </View>
+        </View>
+
+        {/* Shift Selection */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Shift Details</Text>
+          <View style={styles.pickerWrapper}>
+            <Ionicons
+              name="time-outline"
+              size={20}
+              color="#286DA6"
+              style={styles.pickerIcon}
+            />
+            <Picker
+              selectedValue={form.shift}
+              onValueChange={v => setForm({ ...form, shift: v })}
+              style={styles.picker}
+              dropdownIconColor="#286DA6"
+            >
+              <Picker.Item label="Select Shift" value="" />
+              <Picker.Item label="Day Shift" value="day" />
+              <Picker.Item label="Evening Shift" value="evening" />
+              <Picker.Item label="Night Shift" value="night" />
+            </Picker>
+          </View>
+        </View>
+
+        {/* Dimensions Section */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="resize-outline" size={24} color="#286DA6" />
+            <Text style={styles.cardTitle}>Dimensions Inspection</Text>
+          </View>
+
+          {form.dimensions.map((d, i) => (
+            <View key={i} style={styles.dimensionCard}>
+              <View style={styles.dimensionHeader}>
+                <View style={styles.dimensionNumber}>
+                  <Text style={styles.dimensionNumberText}>{d.slNo}</Text>
+                </View>
+                <View style={styles.dimensionInfo}>
+                  <Text style={styles.dimensionDesc}>{d.desc}</Text>
+                  <Text style={styles.dimensionSpec}>
+                    Specification: {d.spec}
+                  </Text>
+                </View>
+              </View>
+
               {Array.isArray(d.actual) &&
                 d.actual.map((val, idx) => (
-                  <View key={idx} style={styles.sampleInputWrapper}>
+                  <View key={idx} style={styles.actualInputContainer}>
+                    <Text style={styles.actualLabel}>Sample {idx + 1}</Text>
                     <TextInput
-                      style={styles.sampleInput}
-                      placeholder={`Sample ${idx + 1}`}
+                      style={styles.actualInput}
+                      placeholder="Enter actual value"
                       placeholderTextColor="#B0C4D8"
                       value={val}
                       keyboardType="numeric"
-                      onChangeText={(newVal) => handleDimensionChange(i, idx, newVal)}
+                      onChangeText={newVal =>
+                        handleDimensionChange(i, idx, newVal)
+                      }
                     />
                   </View>
                 ))}
-            </View>
 
-            <TouchableOpacity
-              style={styles.addSampleBtn}
-              onPress={() => addSample(i)}
-            >
-              <Ionicons name="add-circle-outline" size={16} color="#286DA6" />
-              <Text style={styles.addSampleText}>Add Sample</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </View>
-
-      {/* Observations & Remarks - Combined */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Observations & Remarks</Text>
-        
-        <Text style={styles.inputLabel}>Visual Observation</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="Enter visual observations..."
-          placeholderTextColor="#B0C4D8"
-          value={form.visualObservation}
-          multiline
-          numberOfLines={3}
-          onChangeText={(t) => setForm({ ...form, visualObservation: t })}
-        />
-
-        <Text style={[styles.inputLabel, { marginTop: 12 }]}>Remarks</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="Enter remarks..."
-          placeholderTextColor="#B0C4D8"
-          value={form.remarks}
-          multiline
-          numberOfLines={3}
-          onChangeText={(t) => setForm({ ...form, remarks: t })}
-        />
-      </View>
-
-      {/* Approvals - Compact */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Approvals</Text>
-        
-        <View style={styles.approvalRow}>
-          <Text style={styles.approvalLabel}>QA</Text>
-          <TextInput
-            style={styles.approvalInput}
-            placeholder="QA Name"
-            placeholderTextColor="#B0C4D8"
-            value={form.qa}
-            onChangeText={(t) => setForm({ ...form, qa: t })}
-          />
-        </View>
-
-        <View style={styles.approvalRow}>
-          <Text style={styles.approvalLabel}>Reviewed</Text>
-          <TextInput
-            style={styles.approvalInput}
-            placeholder="Reviewer Name"
-            placeholderTextColor="#B0C4D8"
-            value={form.reviewedBy}
-            onChangeText={(t) => setForm({ ...form, reviewedBy: t })}
-          />
-        </View>
-
-        <View style={styles.approvalRow}>
-          <Text style={styles.approvalLabel}>Approved</Text>
-          <TextInput
-            style={styles.approvalInput}
-            placeholder="Approver Name"
-            placeholderTextColor="#B0C4D8"
-            value={form.approvedBy}
-            onChangeText={(t) => setForm({ ...form, approvedBy: t })}
-          />
-        </View>
-      </View>
-
-      {/* Submit Button */}
-      <TouchableOpacity
-        style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
-        onPress={handleSubmit}
-        disabled={loading}
-      >
-        {loading ? (
-          <Text style={styles.submitBtnText}>Submitting...</Text>
-        ) : (
-          <>
-            <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
-            <Text style={styles.submitBtnText}>Submit Report</Text>
-          </>
-        )}
-      </TouchableOpacity>
-
-      <View style={{ height: 30 }} />
-
-      {/* Image Zoom Modal */}
-      <Modal
-        visible={imageZoomed}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setImageZoomed(false)}
-      >
-        <View style={styles.modalContainer}>
-          <TouchableOpacity 
-            style={styles.modalBackground}
-            activeOpacity={1}
-            onPress={() => setImageZoomed(false)}
-          >
-            <View style={styles.zoomedImageContainer}>
-              <Image source={part.img} style={styles.zoomedImage} resizeMode="contain" />
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => setImageZoomed(false)}
+              <TouchableOpacity
+                style={styles.addSampleBtn}
+                onPress={() => addSample(i)}
               >
-                <Ionicons name="close-circle" size={40} color="#FFFFFF" />
+                <Ionicons name="add-circle-outline" size={18} color="#286DA6" />
+                <Text style={styles.addSampleText}>Add Sample</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
+          ))}
         </View>
-      </Modal>
-    </ScrollView>
+
+        {/* Observations */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Visual Observation</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Enter visual observations..."
+            placeholderTextColor="#B0C4D8"
+            value={form.visualObservation}
+            multiline
+            numberOfLines={4}
+            onChangeText={t => setForm({ ...form, visualObservation: t })}
+          />
+        </View>
+
+        {/* Remarks */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Remarks</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Enter any remarks..."
+            placeholderTextColor="#B0C4D8"
+            value={form.remarks}
+            multiline
+            numberOfLines={4}
+            onChangeText={t => setForm({ ...form, remarks: t })}
+          />
+        </View>
+
+        {/* Approvals */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Approvals</Text>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>QA Inspector</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="QA Name"
+              placeholderTextColor="#B0C4D8"
+              value={form.qa}
+              onChangeText={t => setForm({ ...form, qa: t })}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Reviewed By</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Reviewer Name"
+              placeholderTextColor="#B0C4D8"
+              value={form.reviewedBy}
+              onChangeText={t => setForm({ ...form, reviewedBy: t })}
+            />
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Approved By</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Approver Name"
+              placeholderTextColor="#B0C4D8"
+              value={form.approvedBy}
+              onChangeText={t => setForm({ ...form, approvedBy: t })}
+            />
+          </View>
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity
+          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <Text style={styles.submitBtnText}>Submitting...</Text>
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+              <Text style={styles.submitBtnText}>Submit Inspection Report</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -381,8 +405,11 @@ const styles = StyleSheet.create({
     marginTop: -10,
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1,
-    borderColor:'#0000000d',
+    shadowColor: '#286DA6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   inspectorHeader: {
     flexDirection: 'row',
@@ -418,101 +445,112 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
-    marginTop: 12,
+    marginTop: 16,
     borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor:'#0000000d',
+    padding: 16,
+    shadowColor: '#286DA6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#286DA6',
-    marginBottom: 12,
-  },
-  imageContainer: {
-    position: 'relative',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   partImage: {
     width: '100%',
-    height: 180,
+    height: 200,
     resizeMode: 'contain',
     backgroundColor: '#F8FBFE',
     borderRadius: 12,
+    marginBottom: 16,
   },
-  zoomButton: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#286DA6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  compactGrid: {
-    gap: 8,
-  },
-  compactRow: {
+  infoGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 12,
+  },
+  infoItem: {
+    flex: 1,
+    minWidth: '45%',
     backgroundColor: '#F8FBFE',
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
   },
-  fullWidth: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-  },
-  compactLabel: {
+  infoLabel: {
     fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500',
+    marginBottom: 4,
   },
-  compactValue: {
-    fontSize: 13,
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  descriptionBox: {
+    backgroundColor: '#F8FBFE',
+    padding: 12,
+    borderRadius: 10,
+  },
+  descriptionLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  descriptionValue: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
   },
   pickerWrapper: {
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
     borderColor: '#E3F2FD',
     backgroundColor: '#F8FBFE',
-    borderRadius: 10,
-    overflow: 'hidden',
+    borderRadius: 12,
+    paddingLeft: 12,
+  },
+  pickerIcon: {
+    marginRight: 8,
   },
   picker: {
+    flex: 1,
     color: '#1F2937',
   },
   dimensionCard: {
     backgroundColor: '#F8FBFE',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 8,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E3F2FD',
   },
   dimensionHeader: {
     flexDirection: 'row',
-    marginBottom: 10,
-    gap: 10,
+    marginBottom: 12,
+    gap: 12,
   },
-  dimensionBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  dimensionNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#286DA6',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dimensionBadgeText: {
-    fontSize: 12,
+  dimensionNumberText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -520,91 +558,81 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dimensionDesc: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   dimensionSpec: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#286DA6',
     fontWeight: '500',
   },
-  samplesWrapper: {
-    gap: 6,
-    marginBottom: 6,
+  actualInputContainer: {
+    marginBottom: 8,
   },
-  sampleInputWrapper: {
-    flexDirection: 'row',
+  actualLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+    fontWeight: '500',
   },
-  sampleInput: {
-    flex: 1,
+  actualInput: {
     borderWidth: 1,
     borderColor: '#E3F2FD',
     backgroundColor: '#FFFFFF',
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 14,
+    padding: 12,
+    borderRadius: 10,
+    fontSize: 15,
     color: '#1F2937',
   },
   addSampleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 6,
+    gap: 6,
+    paddingVertical: 8,
   },
   addSampleText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#286DA6',
     fontWeight: '600',
   },
+  inputContainer: {
+    marginBottom: 16,
+  },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E3F2FD',
+    backgroundColor: '#F8FBFE',
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 15,
+    color: '#1F2937',
   },
   textArea: {
     borderWidth: 1,
     borderColor: '#E3F2FD',
     backgroundColor: '#F8FBFE',
-    padding: 12,
-    borderRadius: 10,
-    fontSize: 14,
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 15,
     color: '#1F2937',
-    minHeight: 80,
+    minHeight: 100,
     textAlignVertical: 'top',
-  },
-  approvalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    gap: 10,
-  },
-  approvalLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    width: 70,
-  },
-  approvalInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#F8FBFE',
-    padding: 10,
-    borderRadius: 10,
-    fontSize: 14,
-    color: '#1F2937',
   },
   submitBtn: {
     flexDirection: 'row',
     backgroundColor: '#286DA6',
     marginHorizontal: 20,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 14,
+    marginTop: 24,
+    padding: 18,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -621,30 +649,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  // Modal Styles
-  modalContainer: {
-    flex: 1,
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  zoomedImageContainer: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  zoomedImage: {
-    width: '95%',
-    height: '95%',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
   },
 });

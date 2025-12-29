@@ -429,7 +429,7 @@ useEffect(() => {
     setUserData({
       name: user.name,
       role: user.role,
-      employeeId: user.employeeId,
+      employeeId: user.employee_id,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
         user.name
       )}&background=286DA6&color=fff&size=200`,

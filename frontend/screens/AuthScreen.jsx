@@ -14,11 +14,13 @@ import { Picker } from '@react-native-picker/picker';
 import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BASE_URL from '../config/api'
+import BASE_URL from '../config/api';
 
 const AuthScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const [formData, setFormData] = useState({
     name: '',
     employeeId: '',
@@ -34,87 +36,179 @@ const AuthScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
+    if (loading) return;
+
     console.log('BASE_URL =>', BASE_URL);
+    setLoading(true);
 
     if (isLogin) {
-  if (!formData.employeeId || !formData.password) {
-    Alert.alert('Error', 'Please fill in all fields');
-    return;
-  }
+      if (!formData.employeeId || !formData.password) {
+        Alert.alert('Error', 'Please fill in all fields');
+        setLoading(false);
+        return;
+      }
 
-  try {
-    const res = await fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        employeeId: formData.employeeId,
-        password: formData.password,
-      }),
-    });
+      try {
+        const res = await fetch(`${BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            employeeId: formData.employeeId,
+            password: formData.password,
+          }),
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (!res.ok) {
-      Alert.alert('Login Failed', data.message);
-      return;
+        if (!res.ok) {
+          Alert.alert('Login Failed', data.message);
+          setLoading(false);
+          return;
+        }
+
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
+        Alert.alert('Success', 'Login successful');
+        navigation.replace('MainApp');
+      } catch (err) {
+        Alert.alert('Error', 'Backend not reachable');
+        console.log(err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (
+        !formData.name ||
+        !formData.employeeId ||
+        !role ||
+        !formData.password ||
+        !formData.confirmPassword
+      ) {
+        Alert.alert('Error', 'Please fill in all fields');
+        setLoading(false);
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/auth/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            employeeId: formData.employeeId,
+            role,
+            password: formData.password,
+            confirmPassword: formData.confirmPassword,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          Alert.alert('Registration Failed', data.message);
+          setLoading(false);
+          return;
+        }
+
+        Alert.alert('Success', 'Account created');
+        setIsLogin(true);
+      } catch (err) {
+        Alert.alert('Error', 'Backend not reachable');
+        console.log(err);
+      } finally {
+        setLoading(false);
+      }
     }
-
-    await AsyncStorage.setItem('token', data.token);
-    await AsyncStorage.setItem('user', JSON.stringify(data.user));
-
-    Alert.alert('Success', 'Login successful');
-    navigation.replace('MainApp');
-  } catch (err) {
-    Alert.alert('Error', 'Backend not reachable');
-    console.log(err);
-  }
-} else {
-  if (
-    !formData.name ||
-    !formData.employeeId ||
-    !role ||
-    !formData.password ||
-    !formData.confirmPassword
-  ) {
-    Alert.alert('Error', 'Please fill in all fields');
-    return;
-  }
-
-  if (formData.password !== formData.confirmPassword) {
-    Alert.alert('Error', 'Passwords do not match');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: formData.name,
-        employeeId: formData.employeeId,
-        role,
-        password: formData.password,
-        confirmPassword: formData.confirmPassword,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      Alert.alert('Registration Failed', data.message);
-      return;
-    }
-
-    Alert.alert('Success', 'Account created');
-    setIsLogin(true);
-  } catch (err) {
-    Alert.alert('Error', 'Backend not reachable');
-    console.log(err);
-  }
-}
-
-
   };
+
+  //   const handleSubmit = async () => {
+  //     console.log('BASE_URL =>', BASE_URL);
+
+  //     if (isLogin) {
+  //   if (!formData.employeeId || !formData.password) {
+  //     Alert.alert('Error', 'Please fill in all fields');
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await fetch(`${BASE_URL}/api/auth/login`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         employeeId: formData.employeeId,
+  //         password: formData.password,
+  //       }),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (!res.ok) {
+  //       Alert.alert('Login Failed', data.message);
+  //       return;
+  //     }
+
+  //     await AsyncStorage.setItem('token', data.token);
+  //     await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
+  //     Alert.alert('Success', 'Login successful');
+  //     navigation.replace('MainApp');
+  //   } catch (err) {
+  //     Alert.alert('Error', 'Backend not reachable');
+  //     console.log(err);
+  //   }
+  // } else {
+  //   if (
+  //     !formData.name ||
+  //     !formData.employeeId ||
+  //     !role ||
+  //     !formData.password ||
+  //     !formData.confirmPassword
+  //   ) {
+  //     Alert.alert('Error', 'Please fill in all fields');
+  //     return;
+  //   }
+
+  //   if (formData.password !== formData.confirmPassword) {
+  //     Alert.alert('Error', 'Passwords do not match');
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await fetch(`${BASE_URL}/api/auth/register`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({
+  //         name: formData.name,
+  //         employeeId: formData.employeeId,
+  //         role,
+  //         password: formData.password,
+  //         confirmPassword: formData.confirmPassword,
+  //       }),
+  //     });
+
+  //     const data = await res.json();
+
+  //     if (!res.ok) {
+  //       Alert.alert('Registration Failed', data.message);
+  //       return;
+  //     }
+
+  //     Alert.alert('Success', 'Account created');
+  //     setIsLogin(true);
+  //   } catch (err) {
+  //     Alert.alert('Error', 'Backend not reachable');
+  //     console.log(err);
+  //   }
+  // }
+
+  //   };
 
   const toggleAuthMode = () => {
     setIsLogin(!isLogin);
@@ -326,13 +420,19 @@ const AuthScreen = ({ navigation }) => {
             {/* Submit Button */}
             <Pressable
               onPress={handleSubmit}
+              disabled={loading}
               style={({ pressed }) => [
                 styles.submitButton,
-                pressed && styles.submitButtonPressed,
+                (pressed || loading) && styles.submitButtonPressed,
+                loading && { opacity: 0.7 },
               ]}
             >
               <Text style={styles.submitButtonText}>
-                {isLogin ? 'Sign In' : 'Create Account'}
+                {loading
+                  ? 'Loading...'
+                  : isLogin
+                  ? 'Sign In'
+                  : 'Create Account'}
               </Text>
             </Pressable>
 
