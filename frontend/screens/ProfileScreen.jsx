@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
+
 
 const ProfileScreen = ({ navigation }) => {
   // ✅ ALL useState FIRST
@@ -24,7 +26,34 @@ const ProfileScreen = ({ navigation }) => {
   });
 
   // ✅ THEN useEffect
-  useEffect(() => {
+  // useEffect(() => {
+  //   const loadUser = async () => {
+  //     try {
+  //       const storedUser = await AsyncStorage.getItem('user');
+  //       if (!storedUser) return;
+
+  //       const user = JSON.parse(storedUser);
+
+  //       setUserData({
+  //         name: user.name || '',
+  //         role: user.role || '',
+  //         employeeId: user.employeeId || user.employee_id || '',
+  //         email: user.email || '',
+  //         phone: user.phone || '',
+  //         department: user.department || '',
+  //         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+  //           user.name || 'User',
+  //         )}&background=286DA6&color=fff&size=200`,
+  //       });
+  //     } catch (err) {
+  //       console.log('Failed to load profile user', err);
+  //     }
+  //   };
+
+  //   loadUser();
+  // }, []);
+  useFocusEffect(
+  React.useCallback(() => {
     const loadUser = async () => {
       try {
         const storedUser = await AsyncStorage.getItem('user');
@@ -49,7 +78,8 @@ const ProfileScreen = ({ navigation }) => {
     };
 
     loadUser();
-  }, []);
+  }, [])
+);
 
   const stats = [
     {
@@ -79,7 +109,7 @@ const ProfileScreen = ({ navigation }) => {
     {
       title: 'Account',
       items: [
-        { id: 1, icon: 'person-outline', label: 'Edit Profile', onPress: () => {} },
+        { id: 1, icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
         { id: 2, icon: 'lock-closed-outline', label: 'Change Password', onPress: () => {} },
       ],
     },

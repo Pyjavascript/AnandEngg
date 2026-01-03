@@ -1,21 +1,3 @@
-// const db = require('../config/db');
-
-// exports.findByEmployeeId = (employeeId, callback) => {
-//   db.query(
-//     'SELECT * FROM users WHERE employee_id = ?',
-//     [employeeId],
-//     callback
-//   );
-// };
-
-// exports.createUser = (user, callback) => {
-//   db.query(
-//     'INSERT INTO users (name, employee_id, role, password) VALUES (?, ?, ?, ?)',
-//     [user.name, user.employeeId, user.role, user.password],
-//     callback
-//   );
-// };
-
 const db = require('../config/db');
 
 exports.findByEmployeeId = async (employeeId) => {
@@ -26,18 +8,21 @@ exports.findByEmployeeId = async (employeeId) => {
   return rows;
 };
 
-// exports.createUser = async ({ name, employeeId, role, password }) => {
-//   const [result] = await db.query(
-//     'INSERT INTO users (name, employee_id, role, password) VALUES (?, ?, ?, ?)',
-//     [name, employeeId, role, password]
-//   );
-//   return result;
-// };
 exports.createUser = async ({ name, employeeId, email, phone, role, password }) => {
   const [result] = await db.query(
     `INSERT INTO users (name, employee_id, email, phone, role, password)
      VALUES (?, ?, ?, ?, ?, ?)`,
     [name, employeeId, email, phone, role, password]
+  );
+  return result;
+};
+
+exports.updateProfile = async (employeeId, name, email, phone) => {
+  const [result] = await db.query(
+    `UPDATE users 
+     SET name = ?, email = ?, phone = ?
+     WHERE employee_id = ?`,
+    [name, email, phone, employeeId]
   );
   return result;
 };

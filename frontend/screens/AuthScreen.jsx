@@ -15,6 +15,10 @@ import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import RoleSelector from '../components/RoleSelector';
+
+const FONT_FAMILY = 'Poppins-Regular';
 
 const AuthScreen = ({ navigation }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -61,6 +65,8 @@ const AuthScreen = ({ navigation }) => {
         });
 
         const data = await res.json();
+        console.log('LOGIN RESPONSE:', data);
+        console.log('TOKEN TO SAVE:', data.token);
 
         if (!res.ok) {
           Alert.alert('Login Failed', data.message);
@@ -128,33 +134,16 @@ const AuthScreen = ({ navigation }) => {
       } catch (err) {
         Alert.alert('Error', 'Backend not reachable');
         console.log(err);
-        // if (err.code === 'ER_DUP_ENTRY') {
-        //   return res
-        //     .status(400)
-        //     .json({ message: 'Email or phone already exists' });
-        // }
       } finally {
         setLoading(false);
       }
     }
   };
 
-  // const toggleAuthMode = () => {
-  //   setIsLogin(!isLogin);
-  //   setFormData({
-  //     name: '',
-  //     employeeId: '',
-  //     email: '',
-  //     phone: '',
-  //     password: '',
-  //     confirmPassword: '',
-  //   });
-  //   setFocusedField(null);
-  // };
   const toggleAuthMode = () => {
     setIsLogin(prev => !prev);
     setRole('');
-    setFocusedField(null); // ← this must stay
+    setFocusedField(null);
     setFormData({
       name: '',
       employeeId: '',
@@ -176,9 +165,9 @@ const AuthScreen = ({ navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         {/* Decorative Background Elements */}
-        <View style={styles.decorativeCircle1} />
+        {/* <View style={styles.decorativeCircle1} />
         <View style={styles.decorativeCircle2} />
-        <View style={styles.decorativeCircle3} />
+        <View style={styles.decorativeCircle3} /> */}
 
         {/* Logo Section */}
         <View style={styles.logoContainer}>
@@ -189,9 +178,7 @@ const AuthScreen = ({ navigation }) => {
             {isLogin ? 'Welcome Back!' : 'Create Account'}
           </Text>
           <Text style={styles.subtitleText}>
-            {isLogin
-              ? 'Sign in to continue to Anand Engineering'
-              : 'Join Anand Engineering team'}
+            {isLogin ? 'Sign in to continue' : 'Join Anand Engineering team'}
           </Text>
         </View>
 
@@ -201,17 +188,19 @@ const AuthScreen = ({ navigation }) => {
             {/* Name Input (Register only) */}
             {!isLogin && (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Full Name</Text>
+                {/* <Text style={styles.inputLabel}>Full Name</Text> */}
                 <View
                   style={[
                     styles.inputWrapper,
                     focusedField === 'name' && styles.inputWrapperFocused,
                   ]}
                 >
+                  <Ionicons name="person-outline" size={25} color="#00000053" />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your full name"
-                    placeholderTextColor="#B0C4D8"
+                    // placeholderTextColor="#B0C4D8"
+                    placeholderTextColor="#00000053"
                     value={formData.name}
                     onChangeText={value => handleInputChange('name', value)}
                     onFocus={() => setFocusedField('name')}
@@ -224,17 +213,19 @@ const AuthScreen = ({ navigation }) => {
 
             {/* Employee ID Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Employee ID</Text>
+              {/* <Text style={styles.inputLabel}>Employee ID</Text> */}
               <View
                 style={[
                   styles.inputWrapper,
                   focusedField === 'employeeId' && styles.inputWrapperFocused,
                 ]}
               >
+                <Ionicons name="id-card-outline" size={25} color="#00000053" />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your employee ID"
-                  placeholderTextColor="#B0C4D8"
+                  // placeholderTextColor="#B0C4D8"
+                  placeholderTextColor="#00000053"
                   value={formData.employeeId}
                   onChangeText={value => handleInputChange('employeeId', value)}
                   onFocus={() => setFocusedField('employeeId')}
@@ -246,12 +237,14 @@ const AuthScreen = ({ navigation }) => {
             {!isLogin && (
               <>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Email</Text>
+                  {/* <Text style={styles.inputLabel}>Email</Text> */}
                   <View style={styles.inputWrapper}>
+                    <Ionicons name="mail-outline" size={25} color="#00000053" />
                     <TextInput
                       style={styles.input}
                       placeholder="Enter email"
-                      placeholderTextColor="#B0C4D8"
+                      // placeholderTextColor="#B0C4D8"
+                      placeholderTextColor="#00000053"
                       value={formData.email}
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -263,12 +256,15 @@ const AuthScreen = ({ navigation }) => {
                 </View>
 
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Phone</Text>
+                  {/* <Text style={styles.inputLabel}>Phone</Text> */}
+
                   <View style={styles.inputWrapper}>
+                    <Ionicons name="call-outline" size={25} color="#00000053" />
                     <TextInput
                       style={styles.input}
                       placeholder="Enter phone number"
-                      placeholderTextColor="#B0C4D8"
+                      // placeholderTextColor="#B0C4D8"
+                      placeholderTextColor="#00000053"
                       keyboardType="phone-pad"
                       value={formData.phone}
                       onChangeText={v => handleInputChange('phone', v)}
@@ -281,7 +277,7 @@ const AuthScreen = ({ navigation }) => {
             )}
 
             {/* Role Picker (Register only) */}
-            {!isLogin && (
+            {/* {!isLogin && (
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Role</Text>
 
@@ -315,21 +311,27 @@ const AuthScreen = ({ navigation }) => {
                   </Picker>
                 </View>
               </View>
-            )}
+            )} */}
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
+              {/* <Text style={styles.inputLabel}>Password</Text> */}
               <View
                 style={[
                   styles.inputWrapper,
                   focusedField === 'password' && styles.inputWrapperFocused,
                 ]}
               >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={25}
+                  color="#00000053"
+                />
                 <TextInput
                   style={[styles.input, styles.inputWithIcon]}
                   placeholder="Enter your password"
-                  placeholderTextColor="#B0C4D8"
+                  // placeholderTextColor="#B0C4D8"
+                  placeholderTextColor="#00000053"
                   value={formData.password}
                   onChangeText={value => handleInputChange('password', value)}
                   onFocus={() => setFocusedField('password')}
@@ -338,12 +340,14 @@ const AuthScreen = ({ navigation }) => {
                   autoCapitalize="none"
                 />
                 <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
+                  onPress={() => setShowPassword(prev => !prev)}
                   style={styles.eyeIcon}
                 >
-                  <Text style={styles.eyeIconText}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={25}
+                    color="#00000053"
+                  />
                 </Pressable>
               </View>
             </View>
@@ -351,7 +355,7 @@ const AuthScreen = ({ navigation }) => {
             {/* Confirm Password Input (Register only) */}
             {!isLogin && (
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Confirm Password</Text>
+                {/* <Text style={styles.inputLabel}>Confirm Password</Text> */}
                 <View
                   style={[
                     styles.inputWrapper,
@@ -362,10 +366,16 @@ const AuthScreen = ({ navigation }) => {
                       styles.inputWrapperError,
                   ]}
                 >
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={25}
+                    color="#00000053"
+                  />
                   <TextInput
                     style={[styles.input, styles.inputWithIcon]}
                     placeholder="Re-enter your password"
-                    placeholderTextColor="#B0C4D8"
+                    // placeholderTextColor="#B0C4D8"
+                    placeholderTextColor="#00000053"
                     value={formData.confirmPassword}
                     onChangeText={value =>
                       handleInputChange('confirmPassword', value)
@@ -376,12 +386,16 @@ const AuthScreen = ({ navigation }) => {
                     autoCapitalize="none"
                   />
                   <Pressable
-                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                    onPress={() => setShowConfirmPassword(prev => !prev)}
                     style={styles.eyeIcon}
                   >
-                    <Text style={styles.eyeIconText}>
-                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                    </Text>
+                    <Ionicons
+                      name={
+                        showConfirmPassword ? 'eye-outline' : 'eye-off-outline'
+                      }
+                      size={25}
+                      color="#00000053"
+                    />
                   </Pressable>
                 </View>
                 {formData.confirmPassword &&
@@ -397,7 +411,13 @@ const AuthScreen = ({ navigation }) => {
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </Pressable>
             )}
-
+            {!isLogin && (
+              <RoleSelector
+                value={role}
+                onChange={setRole}
+                error={!role ? 'Please select a role' : ''}
+              />
+            )}
             {/* Submit Button */}
             <Pressable
               onPress={handleSubmit}
@@ -430,6 +450,20 @@ const AuthScreen = ({ navigation }) => {
                 </Text>
               </Pressable>
             </View>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>
+                Use These Account's for testing:{' '}
+              </Text>
+              <Text style={styles.footerText}>
+                Machine Operator - EMP001: test1234
+              </Text>
+              <Text style={styles.footerText}>
+                Quality Inspector - EMP002: test1234
+              </Text>
+              <Text style={styles.footerText}>
+                Quality Manager - EMP003: test1234
+              </Text>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -440,44 +474,45 @@ const AuthScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    // backgroundColor: '#F8FBFE',
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 10,
     paddingTop: 60,
     paddingBottom: 40,
   },
-  decorativeCircle1: {
-    position: 'absolute',
-    top: -50,
-    right: -50,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#E3F2FD',
-    opacity: 0.4,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    top: 150,
-    left: -80,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: '#BBDEFB',
-    opacity: 0.3,
-  },
-  decorativeCircle3: {
-    position: 'absolute',
-    bottom: 100,
-    right: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#E3F2FD',
-    opacity: 0.3,
-  },
+  // decorativeCircle1: {
+  //   position: 'absolute',
+  //   top: -50,
+  //   right: -50,
+  //   width: 200,
+  //   height: 200,
+  //   borderRadius: 100,
+  //   backgroundColor: '#E3F2FD',
+  //   opacity: 0.4,
+  // },
+  // decorativeCircle2: {
+  //   position: 'absolute',
+  //   top: 150,
+  //   left: -80,
+  //   width: 160,
+  //   height: 160,
+  //   borderRadius: 80,
+  //   backgroundColor: '#BBDEFB',
+  //   opacity: 0.3,
+  // },
+  // decorativeCircle3: {
+  //   position: 'absolute',
+  //   bottom: 100,
+  //   right: -40,
+  //   width: 120,
+  //   height: 120,
+  //   borderRadius: 60,
+  //   backgroundColor: '#E3F2FD',
+  //   opacity: 0.3,
+  // },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
@@ -494,21 +529,22 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: '#286DA6',
-    marginBottom: 8,
+    marginBottom: 4,
     letterSpacing: -0.5,
   },
   subtitleText: {
     fontSize: 15,
-    color: '#5A8FBE',
+    // color: '#5A8FBE',
     textAlign: 'center',
+    color: '#00000053',
   },
   formCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     shadowColor: '#286DA6',
-    borderWidth: 1,
-    borderColor: '#0000000d',
+    // borderWidth: 1,
+    // borderColor: '#0000000d',
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
@@ -524,12 +560,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   inputWrapper: {
-    backgroundColor: '#F8FBFE',
+    // backgroundColor: '#F8FBFE',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#E3F2FD',
+    borderWidth: 1,
+    // borderColor: '#E3F2FD',
+    borderColor: '#00000053',
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
   },
   inputWrapperFocused: {
     borderColor: '#286DA6',
@@ -581,17 +619,8 @@ const styles = StyleSheet.create({
   submitButton: {
     backgroundColor: '#286DA6',
     paddingVertical: 15,
-    borderRadius: 16,
+    borderRadius: 40,
     alignItems: 'center',
-    shadowColor: '#286DA6',
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-    marginTop: 8,
   },
   submitButtonPressed: {
     transform: [{ scale: 0.98 }],
@@ -623,7 +652,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   footerText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#B0C4D8',
     textAlign: 'center',
     lineHeight: 18,

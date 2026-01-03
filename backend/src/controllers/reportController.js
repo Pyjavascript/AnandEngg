@@ -19,25 +19,47 @@ const Report = require("../models/reportModel");
 
 //   // res.json({ message: "Report created" });
 // };
+// const CreateReport = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     await Report.create({
+//       user_id: userId,
+//       title: req.body.partDescription,
+//       part_no: req.body.partNumber,
+//       report_type: req.body.reportType,
+//       report_data: req.body, // Remove JSON.stringify here
+//     });
+//     res.json({ message: 'Report created',userId,title: req.body.partDescription,
+//       part_no: req.body.partNumber,
+//       report_type: req.body.reportType,
+//       report_data: req.body });
+//   } catch (err) {
+//     console.error('CREATE REPORT ERROR:', err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 const CreateReport = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log('USER ID FROM TOKEN:', req.user.id);
     await Report.create({
       user_id: userId,
       title: req.body.partDescription,
       part_no: req.body.partNumber,
       report_type: req.body.reportType,
-      report_data: req.body, // Remove JSON.stringify here
+      report_data: JSON.stringify(req.body), // ✅ REQUIRED
     });
-    res.json({ message: 'Report created',userId,title: req.body.partDescription,
-      part_no: req.body.partNumber,
-      report_type: req.body.reportType,
-      report_data: req.body });
+
+    res.status(201).json({
+      message: 'Report created successfully',
+      user_id: userId,
+    });
   } catch (err) {
     console.error('CREATE REPORT ERROR:', err);
     res.status(500).json({ message: err.message });
   }
 };
+
 
 
 // router.get('/my-reports', auth, async (req, res) => {

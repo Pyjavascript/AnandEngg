@@ -248,7 +248,7 @@ const AccordanceScreen = ({ navigation }) => {
         {/* Part Preview */}
         {part ? (
           <View style={styles.previewCard}>
-            <Text style={styles.previewTitle}>Selected Part Preview</Text>
+            {/* <Text style={styles.previewTitle}>Selected Part Preview</Text> */}
             <Image source={part.img} style={styles.previewImage} />
             <View style={styles.previewInfo}>
               <View style={styles.previewRow}>
@@ -359,40 +359,45 @@ const styles = StyleSheet.create({
   pickerWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: "#E3F2FD",
-    backgroundColor: "#F8FBFE",
+    borderWidth: 1,
+    // borderColor: "#E3F2FD",
+    borderColor: '#00000053',
+    // backgroundColor: "#F8FBFE",
     borderRadius: 12,
     paddingLeft: 12,
   },
   pickerIcon: {
     marginRight: 8,
+    color:"#00000053"
   },
   picker: {
     flex: 1,
     color: "#1F2937",
   },
   previewCard: {
-    backgroundColor: '#F8FBFE',
+    // backgroundColor: '#F8FBFE',
     borderRadius: 16,
     padding: 16,
     marginTop: 8,
-    borderWidth: 2,
-    borderColor: '#E3F2FD',
+    borderWidth: 1,
+    // borderColor: '#E3F2FD',
+     borderColor: '#00000053',
   },
   previewTitle: {
-    fontSize: 15,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#286DA6',
+    // color: '#286DA6',
     marginBottom: 12,
   },
   previewImage: {
     width: '100%',
-    height: 180,
-    resizeMode: 'contain',
+    height: 200,
+    resizeMode: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#0000000d',
   },
   previewInfo: {
     gap: 8,
@@ -403,12 +408,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   previewLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#6B7280',
     fontWeight: '500',
   },
   previewValue: {
-    fontSize: 13,
+    fontSize: 11,
     color: '#1F2937',
     fontWeight: '600',
     flex: 1,
@@ -420,15 +425,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 20,
     padding: 18,
-    borderRadius: 16,
+    borderRadius: 40,
     alignItems: "center",
     justifyContent: 'center',
     gap: 8,
-    shadowColor: "#286DA6",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   submitBtnText: {
     color: "#FFFFFF",
