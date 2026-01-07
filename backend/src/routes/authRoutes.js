@@ -6,6 +6,11 @@ const authMiddleware = require('../middleware/auth')
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.put('/profile',authMiddleware,authController.updateProfile)
+router.put(
+  '/change-password',
+  authMiddleware,
+  authController.changePassword
+);
 // /api/users/profile
 
 module.exports = router;

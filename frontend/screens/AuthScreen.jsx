@@ -17,10 +17,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import RoleSelector from '../components/RoleSelector';
+import CustomAlert from '../components/CustomAlert';
 
 const FONT_FAMILY = 'Poppins-Regular';
 
 const AuthScreen = ({ navigation }) => {
+  const [alert, setAlert] = useState({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+  const showAlert = (type, title, message = '') => {
+    setAlert({ visible: true, type, title, message });
+  };
+
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,7 +80,9 @@ const AuthScreen = ({ navigation }) => {
         console.log('TOKEN TO SAVE:', data.token);
 
         if (!res.ok) {
-          Alert.alert('Login Failed', data.message);
+          // Alert.alert('Login Failed', data.message);
+          showAlert('error', 'Login Failed', data.message);
+
           setLoading(false);
           return;
         }
@@ -77,10 +90,17 @@ const AuthScreen = ({ navigation }) => {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-        Alert.alert('Success', 'Login successful');
-        navigation.replace('MainApp');
+        // Alert.alert('Success', 'Login successful');
+        // navigation.replace('MainApp');
+        showAlert('success', 'Login Successful');
+
+        setTimeout(() => {
+          navigation.replace('MainApp');
+        }, 1500);
       } catch (err) {
-        Alert.alert('Error', 'Backend not reachable');
+        // Alert.alert('Error', 'Backend not reachable');
+        showAlert('error', 'Login Failed', 'Backend not reachable');
+
         console.log(err);
       } finally {
         setLoading(false);
@@ -95,7 +115,9 @@ const AuthScreen = ({ navigation }) => {
         !formData.password ||
         !formData.confirmPassword
       ) {
-        Alert.alert('Error', 'Please fill in all fields');
+        // Alert.alert('Error', 'Please fill in all fields');
+        showAlert('error', 'Invalid Input', 'Please fill all fields');
+
         setLoading(false);
         return;
       }
@@ -129,10 +151,20 @@ const AuthScreen = ({ navigation }) => {
           return;
         }
 
-        Alert.alert('Success', 'Account created');
+        // Alert.alert('Success', 'Account created');
+        // showAlert('success', 'Login Successful');
+        showAlert('success', 'Account Created', 'You can now sign in');
+
+
+        setTimeout(() => {
+          navigation.replace('MainApp');
+        }, 1500);
+
         setIsLogin(true);
       } catch (err) {
-        Alert.alert('Error', 'Backend not reachable');
+        showAlert('error', 'Registration Failed', 'Backend not reachable');
+        // showAlert('error', 'Login Failed', data.message);
+
         console.log(err);
       } finally {
         setLoading(false);
@@ -466,6 +498,13 @@ const AuthScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
+        <CustomAlert
+          visible={alert.visible}
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

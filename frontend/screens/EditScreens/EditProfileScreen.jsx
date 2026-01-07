@@ -15,6 +15,7 @@ import axios from 'axios';
 import BASE_URL from '../../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView } from 'react-native';
+import CustomAlert from '../../components/CustomAlert';
 
 const EditProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,20 @@ const EditProfileScreen = ({ navigation }) => {
     employeeId: '',
     role: '',
   });
-
+  const [alert, setAlert] = useState({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+  const showAlert = (type, title, message = '') => {
+  setAlert({
+    visible: true,
+    type,
+    title,
+    message,
+  });
+};
   useEffect(() => {
     loadUserData();
   }, []);
@@ -51,7 +65,7 @@ const EditProfileScreen = ({ navigation }) => {
   };
   const handleSave = async () => {
     if (!form.name || !form.email || !form.phone) {
-      Alert.alert('Error', 'All fields are required');
+      showAlert('error', 'Invalid Input', 'All fields are required');
       return;
     }
 
@@ -62,7 +76,9 @@ const EditProfileScreen = ({ navigation }) => {
       const storedUser = await AsyncStorage.getItem('user');
 
       if (!token || !storedUser) {
-        Alert.alert('Session expired', 'Please login again');
+        // showAlert('Session expired', 'Please login again');
+        showAlert('error', 'Session Expired', 'Please login again');
+        setLoading(false);
         return;
       }
 
@@ -93,23 +109,33 @@ const EditProfileScreen = ({ navigation }) => {
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
 
-      Alert.alert('Success', response.data.message, [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      // Alert.alert('Success', response.data.message, [
+      //   { text: 'OK', onPress: () => navigation.goBack() },
+      // ]);
+      showAlert('success', 'Profile Updated');
+
+      setTimeout(() => {
+        navigation.goBack();
+      }, 1500);
     } catch (error) {
       console.log('FULL ERROR:', error);
       console.log('RESPONSE:', error.response);
       console.log('DATA:', error.response?.data);
       console.log('STATUS:', error.response?.status);
 
-      Alert.alert(
-        'Error',
-        JSON.stringify(error.response?.data || error.message),
-      );
+      // Alert.alert(
+      //   'Error',
+      //   JSON.stringify(error.response?.data || error.message),
+      // );
 
-      Alert.alert(
-        'Error',
-        error.response?.data?.message || 'Failed to update profile',
+      // Alert.alert(
+      //   'Error',
+      //   error.response?.data?.message || 'Failed to update profile',
+      // );
+      showAlert(
+        'error',
+        'Update Failed',
+        error.response?.data?.message || 'Something went wrong',
       );
     } finally {
       setLoading(false);
@@ -247,6 +273,13 @@ const EditProfileScreen = ({ navigation }) => {
           <View style={{ height: 30 }} />
         </ScrollView>
       </View>
+      <CustomAlert
+        visible={alert.visible}
+        type={alert.type}
+        title={alert.title}
+        message={alert.message}
+        onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -375,13 +408,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 24,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 40,
     gap: 8,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   saveButtonDisabled: {
     opacity: 0.6,

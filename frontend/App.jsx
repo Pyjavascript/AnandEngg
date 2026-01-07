@@ -12,6 +12,7 @@ import EntriesScreen from './screens/EntriesScreen';
 import ReportsScreen from './screens/ReportsScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import EditProfileScreen from './screens/EditScreens/EditProfileScreen';
+import ChangePasswordScreen from './screens/EditScreens/ChangePasswordScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createNativeStackNavigator();
@@ -69,9 +70,23 @@ function MainTabs() {
 // Temporary Placeholder Screen (you can replace these later)
 function PlaceholderScreen() {
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FBFE' }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F8FBFE',
+      }}
+    >
       <Ionicons name="construct-outline" size={64} color="#B0C4D8" />
-      <Text style={{ fontSize: 18, color: '#286DA6', marginTop: 16, fontWeight: '600' }}>
+      <Text
+        style={{
+          fontSize: 18,
+          color: '#286DA6',
+          marginTop: 16,
+          fontWeight: '600',
+        }}
+      >
         Coming Soon
       </Text>
       <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
@@ -88,10 +103,7 @@ import { View, Text } from 'react-native';
 function App() {
   return (
     <>
-      <StatusBar 
-        barStyle="dark-content"
-        backgroundColor="#FAFBFD"
-      />
+      <StatusBar barStyle="dark-content" backgroundColor="#FAFBFD" />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
@@ -100,7 +112,8 @@ function App() {
           <Stack.Screen name="MainApp" component={MainTabs} />
           <Stack.Screen name="Accordance" component={AccordanceScreen} />
           <Stack.Screen name="AddEntry" component={AddEntryScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen}/>
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </>
@@ -108,4 +121,3 @@ function App() {
 }
 
 export default App;
-

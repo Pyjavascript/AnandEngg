@@ -26,3 +26,16 @@ exports.updateProfile = async (employeeId, name, email, phone) => {
   );
   return result;
 };
+
+ exports.updatePassword = (employeeId, password) => {
+  return new Promise((resolve, reject) => {
+    db.query(
+      'UPDATE users SET password = ? WHERE employee_id = ?',
+      [password, employeeId],
+      (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }
+    );
+  });
+};

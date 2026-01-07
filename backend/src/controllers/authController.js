@@ -108,5 +108,40 @@ const updateProfile = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const employeeId = req.user.employee_id; // from JWT
 
-module.exports = { register, login, updateProfile };
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ message: 'All fields required' });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    const users = await User.findByEmployeeId(employeeId);
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await User.updatePassword(employeeId, hashedPassword);
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+module.exports = { register, login, updateProfile,changePassword };

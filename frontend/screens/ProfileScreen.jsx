@@ -11,9 +11,21 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
+import CustomAlert from '../components/CustomAlert';
 
 const ProfileScreen = ({ navigation }) => {
+  const [reports, setReports] = useState([]);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [alert, setAlert] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+  const showAlert = (type, title, message = '') => {
+    setAlert({ visible: true, type, title, message });
+  };
+
   // ✅ ALL useState FIRST
   const [userData, setUserData] = useState({
     name: '',
@@ -24,82 +36,110 @@ const ProfileScreen = ({ navigation }) => {
     department: '',
     avatar: '',
   });
-
-  // ✅ THEN useEffect
-  // useEffect(() => {
-  //   const loadUser = async () => {
-  //     try {
-  //       const storedUser = await AsyncStorage.getItem('user');
-  //       if (!storedUser) return;
-
-  //       const user = JSON.parse(storedUser);
-
-  //       setUserData({
-  //         name: user.name || '',
-  //         role: user.role || '',
-  //         employeeId: user.employeeId || user.employee_id || '',
-  //         email: user.email || '',
-  //         phone: user.phone || '',
-  //         department: user.department || '',
-  //         avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-  //           user.name || 'User',
-  //         )}&background=286DA6&color=fff&size=200`,
-  //       });
-  //     } catch (err) {
-  //       console.log('Failed to load profile user', err);
-  //     }
-  //   };
-
-  //   loadUser();
-  // }, []);
   useFocusEffect(
-  React.useCallback(() => {
-    const loadUser = async () => {
-      try {
-        const storedUser = await AsyncStorage.getItem('user');
-        if (!storedUser) return;
+    React.useCallback(() => {
+      const loadUser = async () => {
+        try {
+          const storedUser = await AsyncStorage.getItem('user');
+          if (!storedUser) return;
 
-        const user = JSON.parse(storedUser);
+          const user = JSON.parse(storedUser);
 
-        setUserData({
-          name: user.name || '',
-          role: user.role || '',
-          employeeId: user.employeeId || user.employee_id || '',
-          email: user.email || '',
-          phone: user.phone || '',
-          department: user.department || '',
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
-            user.name || 'User',
-          )}&background=286DA6&color=fff&size=200`,
-        });
-      } catch (err) {
-        console.log('Failed to load profile user', err);
-      }
-    };
+          setUserData({
+            name: user.name || '',
+            role: user.role || '',
+            employeeId: user.employeeId || user.employee_id || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            department: user.department || '',
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              user.name || 'User',
+            )}&background=286DA6&color=fff&size=200`,
+          });
+        } catch (err) {
+          console.log('Failed to load profile user', err);
+        }
+      };
 
-    loadUser();
-  }, [])
-);
+      loadUser();
+    }, []),
+  );
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchMyReports = async () => {
+        try {
+          const token = await AsyncStorage.getItem('token');
+          if (!token) return;
+
+          const res = await fetch(`${BASE_URL}/api/report/my-reports`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          const data = await res.json();
+          setReports(data);
+        } catch (err) {
+          console.log('Failed to load report stats', err);
+        } finally {
+          setLoadingStats(false);
+        }
+      };
+
+      fetchMyReports();
+    }, []),
+  );
+  const totalReports = reports.length;
+
+  const approvedReports = reports.filter(r => r.status === 'approved').length;
+
+  const inProcessReports = reports.filter(
+    r => (r.status || 'pending') === 'pending',
+  ).length;
+
+  // const stats = [
+  //   {
+  //     id: 1,
+  //     label: 'Reports',
+  //     value: '24',
+  //     icon: 'document-text-outline',
+  //     color: '#286DA6',
+  //   },
+  //   {
+  //     id: 2,
+  //     label: 'In process',
+  //     value: '156',
+  //     icon: 'time-outline',
+  //     color: '#10B981',
+  //   },
+  //   {
+  //     id: 3,
+  //     label: 'Approved',
+  //     value: '142',
+  //     icon: 'checkmark-circle-outline',
+  //     color: '#F59E0B',
+  //   },
+  // ];
 
   const stats = [
     {
       id: 1,
       label: 'Reports',
-      value: '24',
+      value: loadingStats ? '-' : totalReports,
       icon: 'document-text-outline',
       color: '#286DA6',
     },
     {
       id: 2,
-      label: 'Inspections',
-      value: '156',
-      icon: 'clipboard-outline',
+      label: 'In process',
+      value: loadingStats ? '-' : inProcessReports,
+      icon: 'time-outline',
       color: '#10B981',
     },
     {
       id: 3,
       label: 'Approved',
-      value: '142',
+      value: loadingStats ? '-' : approvedReports,
       icon: 'checkmark-circle-outline',
       color: '#F59E0B',
     },
@@ -109,25 +149,44 @@ const ProfileScreen = ({ navigation }) => {
     {
       title: 'Account',
       items: [
-        { id: 1, icon: 'person-outline', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
-        { id: 2, icon: 'lock-closed-outline', label: 'Change Password', onPress: () => {} },
+        {
+          id: 1,
+          icon: 'person-outline',
+          label: 'Edit Profile',
+          onPress: () => navigation.navigate('EditProfile'),
+        },
+        {
+          id: 2,
+          icon: 'lock-closed-outline',
+          label: 'Change Password',
+          onPress: () => navigation.navigate('ChangePassword'),
+        },
       ],
     },
   ];
 
+  // const handleLogout = async () => {
+  //   Alert.alert('Logout', 'Are you sure you want to logout?', [
+  //     { text: 'Cancel', style: 'cancel' },
+  //     {
+  //       text: 'Logout',
+  //       style: 'destructive',
+  //       onPress: async () => {
+  //         await AsyncStorage.removeItem('user');
+  //         await AsyncStorage.removeItem('token');
+  //         navigation.replace('AuthScreen');
+  //       },
+  //     },
+  //   ]);
+  // };
   const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.removeItem('user');
-          await AsyncStorage.removeItem('token');
-          navigation.replace('AuthScreen');
-        },
-      },
-    ]);
+    showAlert('info', 'Logging out');
+
+    setTimeout(async () => {
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('token');
+      navigation.replace('AuthScreen');
+    }, 1200);
   };
 
   return (
@@ -159,9 +218,7 @@ const ProfileScreen = ({ navigation }) => {
 
           <View style={styles.employeeBadge}>
             <Ionicons name="card-outline" size={14} color="#286DA6" />
-            <Text style={styles.employeeId}>
-              {userData.employeeId || '-'}
-            </Text>
+            <Text style={styles.employeeId}>{userData.employeeId || '-'}</Text>
           </View>
         </View>
 
@@ -197,19 +254,35 @@ const ProfileScreen = ({ navigation }) => {
             <View style={styles.menuCard}>
               {section.items.map((item, index) => (
                 <View key={item.id}>
-                  <TouchableOpacity style={styles.menuItem} onPress={item.onPress}>
+                  <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={item.onPress}
+                  >
                     <View style={styles.menuLeft}>
                       <View style={styles.menuIcon}>
                         <Ionicons name={item.icon} size={20} color="#286DA6" />
                       </View>
                       <Text style={styles.menuLabel}>{item.label}</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color="#B0C4D8" />
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color="#B0C4D8"
+                    />
                   </TouchableOpacity>
-                  {index < section.items.length - 1 && <View style={styles.divider} />}
+                  {index < section.items.length - 1 && (
+                    <View style={styles.divider} />
+                  )}
                 </View>
               ))}
             </View>
+            <CustomAlert
+              visible={alert.visible}
+              type={alert.type}
+              title={alert.title}
+              message={alert.message}
+              onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
+            />
           </View>
         ))}
 
