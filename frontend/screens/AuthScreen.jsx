@@ -8,6 +8,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator
 } from 'react-native';
 import { useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
@@ -18,8 +19,6 @@ import BASE_URL from '../config/api';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import RoleSelector from '../components/RoleSelector';
 import CustomAlert from '../components/CustomAlert';
-
-const FONT_FAMILY = 'Poppins-Regular';
 
 const AuthScreen = ({ navigation }) => {
   const [alert, setAlert] = useState({
@@ -60,7 +59,8 @@ const AuthScreen = ({ navigation }) => {
 
     if (isLogin) {
       if (!formData.employeeId || !formData.password) {
-        Alert.alert('Error', 'Please fill in all fields');
+        // Alert.alert('Error', 'Please fill in all fields');
+         showAlert('error', 'Login Failed', 'Please fill in all fields');
         setLoading(false);
         return;
       }
@@ -123,7 +123,8 @@ const AuthScreen = ({ navigation }) => {
       }
 
       if (formData.password !== formData.confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
+        // Alert.alert('Error', 'Passwords do not match');
+        showAlert('error', 'Invalid Input', 'Passwords do not match');
         setLoading(false);
         return;
       }
@@ -146,7 +147,8 @@ const AuthScreen = ({ navigation }) => {
         const data = await res.json();
 
         if (!res.ok) {
-          Alert.alert('Registration Failed', data.message);
+          // Alert.alert('Registration Failed', data.message);
+          showAlert('error', 'Error', 'Registration Failed: ' + data.message);
           setLoading(false);
           return;
         }
@@ -154,12 +156,6 @@ const AuthScreen = ({ navigation }) => {
         // Alert.alert('Success', 'Account created');
         // showAlert('success', 'Login Successful');
         showAlert('success', 'Account Created', 'You can now sign in');
-
-
-        setTimeout(() => {
-          navigation.replace('MainApp');
-        }, 1500);
-
         setIsLogin(true);
       } catch (err) {
         showAlert('error', 'Registration Failed', 'Backend not reachable');
@@ -451,7 +447,7 @@ const AuthScreen = ({ navigation }) => {
               />
             )}
             {/* Submit Button */}
-            <Pressable
+            {/* <Pressable
               onPress={handleSubmit}
               disabled={loading}
               style={({ pressed }) => [
@@ -461,12 +457,44 @@ const AuthScreen = ({ navigation }) => {
               ]}
             >
               <Text style={styles.submitButtonText}>
-                {loading
-                  ? 'Loading...'
-                  : isLogin
-                  ? 'Sign In'
-                  : 'Create Account'}
+                {loading ? (
+                  <TouchableOpacity
+                    style={styles.saveButton}
+                    onPress={handleChangePassword}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#FFF" />
+                    ) : (
+                      <>
+                        <Ionicons name="key-outline" size={20} color="#FFF" />
+                        <Text style={styles.saveText}>Update Password</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                ) : isLogin ? (
+                  'Sign In'
+                ) : (
+                  'Create Account'
+                )}
               </Text>
+            </Pressable> */}
+            <Pressable
+              onPress={handleSubmit}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.submitButton,
+                (pressed || loading) && styles.submitButtonPressed,
+                
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={styles.submitButtonText}>
+                  {isLogin ? 'Sign In' : 'Create Account'}
+                </Text>
+              )}
             </Pressable>
 
             {/* Toggle Auth Mode */}

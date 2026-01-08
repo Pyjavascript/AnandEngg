@@ -28,6 +28,11 @@ const ChangePasswordScreen = ({ navigation }) => {
     title: '',
     message: '',
   });
+  const [showPassword, setShowPassword] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
 
   const showAlert = (type, title, message = '') => {
     setAlert({ visible: true, type, title, message });
@@ -57,11 +62,11 @@ const ChangePasswordScreen = ({ navigation }) => {
       }
 
       await axios.put(
-        `http://192.168.29.34:5000/api/auth/change-password`,
+        `${BASE_URL}/api/auth/change-password`,
         { currentPassword, newPassword, confirmPassword },
         {
           headers: { Authorization: `Bearer ${token}` },
-        }
+        },
       );
 
       showAlert('success', 'Password Updated');
@@ -71,7 +76,7 @@ const ChangePasswordScreen = ({ navigation }) => {
       showAlert(
         'error',
         'Update Failed',
-        err.response?.data?.message || 'Something went wrong'
+        err.response?.data?.message || 'Something went wrong',
       );
     } finally {
       setLoading(false);
@@ -89,26 +94,48 @@ const ChangePasswordScreen = ({ navigation }) => {
       </View>
 
       <ScrollView>
-        {['currentPassword', 'newPassword', 'confirmPassword'].map((field, i) => (
-          <View key={i} style={styles.inputGroup}>
-            <Text style={styles.label}>
-              {field === 'currentPassword'
-                ? 'Current Password'
-                : field === 'newPassword'
-                ? 'New Password'
-                : 'Confirm Password'}
-            </Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#6B7280" />
-              <TextInput
-                secureTextEntry
-                style={styles.input}
-                value={form[field]}
-                onChangeText={v => setForm({ ...form, [field]: v })}
-              />
+        {['currentPassword', 'newPassword', 'confirmPassword'].map(
+          (field, i) => (
+            <View key={i} style={styles.inputGroup}>
+              <Text style={styles.label}>
+                {field === 'currentPassword'
+                  ? 'Current Password'
+                  : field === 'newPassword'
+                  ? 'New Password'
+                  : 'Confirm Password'}
+              </Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={20}
+                  color="#6B7280"
+                />
+                <TextInput
+                  style={styles.input}
+                  value={form[field]}
+                  onChangeText={v => setForm({ ...form, [field]: v })}
+                  secureTextEntry={!showPassword[field]}
+                />
+                <TouchableOpacity
+                  onPress={() =>
+                    setShowPassword(prev => ({
+                      ...prev,
+                      [field]: !prev[field],
+                    }))
+                  }
+                >
+                  <Ionicons
+                    name={
+                      showPassword[field] ? 'eye-outline' : 'eye-off-outline'
+                    }
+                    size={25}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
+          ),
+        )}
 
         <TouchableOpacity
           style={styles.saveButton}
@@ -126,7 +153,10 @@ const ChangePasswordScreen = ({ navigation }) => {
         </TouchableOpacity>
       </ScrollView>
 
-      <CustomAlert {...alert} onHide={() => setAlert(a => ({ ...a, visible: false }))} />
+      <CustomAlert
+        {...alert}
+        onHide={() => setAlert(a => ({ ...a, visible: false }))}
+      />
     </View>
   );
 };
@@ -200,6 +230,5 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-
 
 export default ChangePasswordScreen;

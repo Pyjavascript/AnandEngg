@@ -121,7 +121,7 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    const users = await User.findByEmployeeId(employeeId);
+    const users = await User.findByEmployeeId(employee_Id);
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }
