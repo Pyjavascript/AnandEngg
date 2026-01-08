@@ -89,6 +89,8 @@ const AuthScreen = ({ navigation }) => {
 
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        await AsyncStorage.setItem('role', data.user.role);
+
 
         // Alert.alert('Success', 'Login successful');
         // navigation.replace('MainApp');

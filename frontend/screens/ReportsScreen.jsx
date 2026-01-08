@@ -13,6 +13,56 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
 
 const ReportsScreen = () => {
+  const [role, setRole] = useState(null);
+  useEffect(() => {
+    const getRole = async () => {
+      const userRole = await AsyncStorage.getItem('role');
+      setRole(userRole);
+    };
+    getRole();
+  }, []);
+  const handleApprove = async (id, role) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const endpoint =
+        role === 'inspector'
+          ? `${BASE_URL}/api/report/approve/inspector/${id}`
+          : `${BASE_URL}/api/report/approve/manager/${id}`;
+
+      await axios.put(
+        endpoint,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      alert('Report approved successfully');
+      fetchReports();
+    } catch (err) {
+      console.log('APPROVE ERROR:', err.response?.data || err.message);
+    }
+  };
+
+  const handleReject = async id => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.put(
+        `${BASE_URL}/api/report/reject/${id}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      alert('Report rejected');
+      fetchReports();
+    } catch (err) {
+      console.log('REJECT ERROR:', err.response?.data || err.message);
+    }
+  };
+
+  const handleViewReport = id => {
+    // navigation logic to view the report details
+    // for example:
+    // navigation.navigate('ReportDetail', { reportId: id });
+    alert(`Open report #${id}`);
+  };
+
   // const [activeFilter, setActiveFilter] = useState('all');
 
   // const filters = [
@@ -56,53 +106,49 @@ const ReportsScreen = () => {
   //     inspector: 'Rajesh Kumar',
   //   },
   // ];
-   const [activeFilter, setActiveFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-  let mounted = true;
+    let mounted = true;
 
-  const fetchReports = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+    const fetchReports = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (!token) return;
 
-      const res = await axios.get(
-        `${BASE_URL}/api/report/my-reports`,
-        {
+        const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
           headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+        });
 
-      if (mounted) setReports(res.data);
-    } catch (err) {
-      console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
-    } finally {
-      if (mounted) setLoading(false);
-    }
+        if (mounted) setReports(res.data);
+      } catch (err) {
+        console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    fetchReports();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const counts = {
+    all: reports.length,
+    pending: reports.filter(r => (r.status || 'pending') === 'pending').length,
+    approved: reports.filter(r => r.status === 'approved').length,
+    rejected: reports.filter(r => r.status === 'rejected').length,
   };
 
-  fetchReports();
-
-  return () => {
-    mounted = false;
-  };
-}, []);
-
-const counts = {
-  all: reports.length,
-  pending: reports.filter(r => (r.status || 'pending') === 'pending').length,
-  approved: reports.filter(r => r.status === 'approved').length,
-  rejected: reports.filter(r => r.status === 'rejected').length,
-};
-
-const filters = [
-  { id: 'all', label: 'All', count: counts.all },
-  { id: 'pending', label: 'Pending', count: counts.pending },
-  { id: 'approved', label: 'Approved', count: counts.approved },
-  { id: 'rejected', label: 'Rejected', count: counts.rejected },
-];
-
+  const filters = [
+    { id: 'all', label: 'All', count: counts.all },
+    { id: 'pending', label: 'Pending', count: counts.pending },
+    { id: 'approved', label: 'Approved', count: counts.approved },
+    { id: 'rejected', label: 'Rejected', count: counts.rejected },
+  ];
 
   const getStatusColor = status => {
     switch (status) {
@@ -117,11 +163,9 @@ const filters = [
     }
   };
   const filteredReports =
-  activeFilter === 'all'
-    ? reports
-    : reports.filter(
-        r => (r.status || 'pending') === activeFilter
-      );
+    activeFilter === 'all'
+      ? reports
+      : reports.filter(r => (r.status || 'pending') === activeFilter);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -236,12 +280,88 @@ const filters = [
                       size={14}
                       color="#6B7280"
                     />
-                    <Text style={styles.reportInfoText}>{new Date(report.created_at).toLocaleDateString('en-GB')}</Text>
-                  
+                    <Text style={styles.reportInfoText}>
+                      {new Date(report.created_at).toLocaleDateString('en-GB')}
+                    </Text>
                   </View>
                 </View>
+                {/* Role-based actions */}
+                {role === 'machine_operator' && (
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={() => handleViewReport(report.id)}
+                  >
+                    <Ionicons
+                      name="document-text-outline"
+                      size={16}
+                      color="#fff"
+                    />
+                    <Text style={styles.actionBtnText}>View Report</Text>
+                  </TouchableOpacity>
+                )}
+
+                {role === 'quality_inspector' &&
+                  report.status === 'pending_inspector' && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#059669' },
+                        ]}
+                        onPress={() => handleApprove(report.id, 'inspector')}
+                      >
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Approve</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#DC2626' },
+                        ]}
+                        onPress={() => handleReject(report.id)}
+                      >
+                        <Ionicons
+                          name="close-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                {role === 'quality_manager' && report.status === 'pending_manager' && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#059669' }]}
+                      onPress={() => handleApprove(report.id, 'manager')}
+                    >
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={16}
+                        color="#fff"
+                      />
+                      <Text style={styles.actionBtnText}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
+                      onPress={() => handleReject(report.id)}
+                    >
+                      <Ionicons
+                        name="close-circle-outline"
+                        size={16}
+                        color="#fff"
+                      />
+                      <Text style={styles.actionBtnText}>Reject</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </TouchableOpacity>
-            );    
+            );
           })}
         </View>
 
@@ -404,6 +524,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
   },
+  actionRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 10,
+  gap: 10,
+},
+
+actionBtn: {
+  flex: 1,
+  flexDirection: 'row',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#286DA6',
+  paddingVertical: 10,
+  borderRadius: 10,
+  gap: 6,
+},
+
+actionBtnText: {
+  color: '#FFFFFF',
+  fontSize: 14,
+  fontWeight: '600',
+},
+
 });
 
 export default ReportsScreen;
