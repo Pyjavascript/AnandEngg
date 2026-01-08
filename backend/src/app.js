@@ -11,7 +11,7 @@ const db = require('./config/db');
 
 const app = express();
 const fn = async() => {
-  console.log(await bcrypt.hash('test1234', 10));
+  // console.log(await bcrypt.hash('test1234', 10));
 }
 
 // app.use(cors({allowedHeaders: ['Content-Type', 'Authorization']}));

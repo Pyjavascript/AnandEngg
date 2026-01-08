@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { BASE_URL } from '../config/api';
+import BASE_URL from '../config/api';
 import axios from 'axios';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -91,7 +91,7 @@ export default function AddEntryScreen({ route, navigation }) {
         return;
       }
 
-      await axios.post('http://192.168.29.34:5000/api/report/create', form, {
+      await axios.post(`${BASE_URL}/api/report/create`, form, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

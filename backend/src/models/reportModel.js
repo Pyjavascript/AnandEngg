@@ -81,3 +81,65 @@ exports.RejectReport = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+const db = require('../config/db');
+
+// ✅ Create a new report
+exports.create = async (data) => {
+  const [result] = await db.query(
+    `INSERT INTO reports (user_id, title, part_no, report_type, report_data, status)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      data.user_id,
+      data.title,
+      data.part_no,
+      data.report_type,
+      JSON.stringify(data.report_data),
+      'pending' // default status
+    ]
+  );
+  return result;
+};
+
+// ✅ Fetch reports based on user role
+exports.findByRole = async (role, userId) => {
+  let query = '';
+  let params = [];
+
+  if (role === 'operator') {
+    query = `SELECT * FROM reports WHERE user_id = ? ORDER BY created_at DESC`;
+    params = [userId];
+  } else if (role === 'inspector') {
+    query = `SELECT * FROM reports WHERE status IN ('pending', 'inspector_approved') ORDER BY created_at DESC`;
+  } else if (role === 'manager') {
+    query = `SELECT * FROM reports WHERE status IN ('inspector_approved', 'manager_approved') ORDER BY created_at DESC`;
+  } else {
+    query = `SELECT * FROM reports ORDER BY created_at DESC`;
+  }
+
+  const [rows] = await db.query(query, params);
+  return rows;
+};
+
+// ✅ Approve by Inspector → changes status to “inspector_approved”
+exports.approveByInspector = async (reportId) => {
+  await db.query(
+    `UPDATE reports SET status = 'inspector_approved' WHERE id = ?`,
+    [reportId]
+  );
+};
+
+// ✅ Approve by Manager → changes status to “approved”
+exports.approveByManager = async (reportId) => {
+  await db.query(
+    `UPDATE reports SET status = 'approved' WHERE id = ?`,
+    [reportId]
+  );
+};
+
+// ✅ Reject a report
+exports.rejectReport = async (reportId) => {
+  await db.query(
+    `UPDATE reports SET status = 'rejected' WHERE id = ?`,
+    [reportId]
+  );
+};

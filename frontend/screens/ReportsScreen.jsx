@@ -111,7 +111,6 @@ const ReportsScreen = () => {
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let mounted = true;
-
     const fetchReports = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
@@ -121,15 +120,17 @@ const ReportsScreen = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (mounted) setReports(res.data);
+        setReports(res.data);
       } catch (err) {
         console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
       } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchReports();
+    useEffect(() => {
+      fetchReports();
+    }, []);
 
     return () => {
       mounted = false;
@@ -158,6 +159,13 @@ const ReportsScreen = () => {
         return { bg: '#FEF3C7', text: '#D97706', icon: 'time' };
       case 'rejected':
         return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
+      case 'inspector_approved':
+        return {
+          bg: '#DBEAFE',
+          text: '#1D4ED8',
+          icon: 'checkmark-done-circle',
+        };
+
       default:
         return { bg: '#E5E7EB', text: '#6B7280', icon: 'help-circle' };
     }
@@ -334,32 +342,75 @@ const ReportsScreen = () => {
                     </View>
                   )}
 
-                {role === 'quality_manager' && report.status === 'pending_manager' && (
-                  <View style={styles.actionRow}>
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: '#059669' }]}
-                      onPress={() => handleApprove(report.id, 'manager')}
-                    >
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={16}
-                        color="#fff"
-                      />
-                      <Text style={styles.actionBtnText}>Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.actionBtn, { backgroundColor: '#DC2626' }]}
-                      onPress={() => handleReject(report.id)}
-                    >
-                      <Ionicons
-                        name="close-circle-outline"
-                        size={16}
-                        color="#fff"
-                      />
-                      <Text style={styles.actionBtnText}>Reject</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                {role === 'quality_inspector' &&
+                  report.status === 'pending' && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#059669' },
+                        ]}
+                        onPress={() => handleApprove(report.id, 'inspector')}
+                      >
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Approve</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#DC2626' },
+                        ]}
+                        onPress={() => handleReject(report.id)}
+                      >
+                        <Ionicons
+                          name="close-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+
+                {role === 'quality_manager' &&
+                  report.status === 'inspector_approved' && (
+                    <View style={styles.actionRow}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#059669' },
+                        ]}
+                        onPress={() => handleApprove(report.id, 'manager')}
+                      >
+                        <Ionicons
+                          name="checkmark-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Approve</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.actionBtn,
+                          { backgroundColor: '#DC2626' },
+                        ]}
+                        onPress={() => handleReject(report.id)}
+                      >
+                        <Ionicons
+                          name="close-circle-outline"
+                          size={16}
+                          color="#fff"
+                        />
+                        <Text style={styles.actionBtnText}>Reject</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
               </TouchableOpacity>
             );
           })}
@@ -525,29 +576,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   actionRow: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  marginTop: 10,
-  gap: 10,
-},
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    gap: 10,
+  },
 
-actionBtn: {
-  flex: 1,
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: '#286DA6',
-  paddingVertical: 10,
-  borderRadius: 10,
-  gap: 6,
-},
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#286DA6',
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
 
-actionBtnText: {
-  color: '#FFFFFF',
-  fontSize: 14,
-  fontWeight: '600',
-},
-
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });
 
 export default ReportsScreen;
