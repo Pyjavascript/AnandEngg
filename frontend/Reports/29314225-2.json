@@ -1,0 +1,15 @@
+{
+  "reportType": "Cutting Inspection Report",
+  "customer": "Vestas",
+  "partNo": "29314225-2",
+  "description": "DOOR PLATE BOTTOM RH",
+  "docNo": "AE – QA-IR-FCG- SC02",
+  "revNo": "00",
+  "date": "27-09-2024",
+  "diagram": "1.png",
+  "dimensions": [
+    { "slNo": 1, "desc": "Total Length", "spec": "647", "actual": "" },
+    { "slNo": 2, "desc": "Width 1", "spec": "56-1", "actual": "" },
+    { "slNo": 3, "desc": "Width 2", "spec": "115-1", "actual": "" }
+  ]
+}

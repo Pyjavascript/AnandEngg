@@ -109,32 +109,24 @@ const ReportsScreen = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const fetchReports = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setReports(res.data);
+    } catch (err) {
+      console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    let mounted = true;
-    const fetchReports = async () => {
-      try {
-        const token = await AsyncStorage.getItem('token');
-        if (!token) return;
-
-        const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        setReports(res.data);
-      } catch (err) {
-        console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    useEffect(() => {
-      fetchReports();
-    }, []);
-
-    return () => {
-      mounted = false;
-    };
+    fetchReports();
   }, []);
 
   const counts = {

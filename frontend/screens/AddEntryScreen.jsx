@@ -14,10 +14,24 @@ import axios from 'axios';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import CustomAlert from '../components/CustomAlert';
 
 export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType } = route.params;
-
+  const [alert, setAlert] = useState({
+    visible: false,
+    type: 'success', // success | error | info
+    title: '',
+    message: '',
+  });
+  const showAlert = ({ type = 'info', title, message }) => {
+    setAlert({
+      visible: true,
+      type,
+      title,
+      message,
+    });
+  };
   const [userData, setUserData] = useState({
     name: '',
     employeeId: '',
@@ -38,7 +52,6 @@ export default function AddEntryScreen({ route, navigation }) {
         }));
       }
       console.log(form);
-      
     };
 
     loadUser();
@@ -72,10 +85,16 @@ export default function AddEntryScreen({ route, navigation }) {
 
   const handleSubmit = async () => {
     console.log(form);
-    
+
     // Validation
     if (!form.shift) {
-      Alert.alert('Missing Information', 'Please select a shift');
+      // Alert.alert('Missing Information', 'Please select a shift');
+      showAlert({
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please select a shift',
+      });
+
       return;
     }
 
@@ -98,14 +117,30 @@ export default function AddEntryScreen({ route, navigation }) {
         },
       });
 
-      Alert.alert('Success', 'Inspection report submitted successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      // Alert.alert('Success', 'Inspection report submitted successfully!', [
+      //   { text: 'OK', onPress: () => navigation.goBack() },
+      // ]);
+      showAlert({
+        type: 'success',
+        title: 'Success',
+        message: 'Inspection report submitted successfully!',
+      });
+
+      setTimeout(() => {
+        navigation.goBack();
+      }, 2000); // same as alert duration
+
       setLoading(false);
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message;
-      console.log('Submission Error:', errorMessage,err);
-      Alert.alert('Error', 'Failed to submit report: ' + errorMessage);
+      console.log('Submission Error:', errorMessage, err);
+      // Alert.alert('Error', 'Failed to submit report: ' + errorMessage);
+      showAlert({
+        type: 'error',
+        title: 'Submission Failed',
+        message: errorMessage,
+      });
+
       setLoading(false);
     }
   };
@@ -362,6 +397,18 @@ export default function AddEntryScreen({ route, navigation }) {
             </>
           )}
         </TouchableOpacity>
+        <CustomAlert
+          visible={alert.visible}
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onHide={() =>
+            setAlert(prev => ({
+              ...prev,
+              visible: false,
+            }))
+          }
+        />
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -639,15 +686,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 24,
     padding: 18,
-    borderRadius: 16,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   submitBtnDisabled: {
     opacity: 0.6,
@@ -658,5 +700,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-

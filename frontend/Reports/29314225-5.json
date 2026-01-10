@@ -1,0 +1,17 @@
+{
+  "reportType": "Cutting Inspection Report",
+  "customer": "Vestas",
+  "partNo": "29314225-5",
+  "description": "DOOR WELD SUPPORT TOP",
+  "docNo": "AE – QA-IR-FCG-DF05",
+  "revNo": "00",
+  "date": "27-09-2024",
+  "diagram": "3.png",
+  "dimensions": [
+    { "slNo": 1, "desc": "Overall Length", "spec": "1180-2", "actual": "" },
+    { "slNo": 2, "desc": "Width", "spec": "50±1", "actual": "" },
+    { "slNo": 3, "desc": "Thickness", "spec": "5", "actual": "" },
+    { "slNo": 4, "desc": "Angle", "spec": "2x45°", "actual": "" },
+    { "slNo": 5, "desc": "Distance", "spec": "2x10", "actual": "" }
+  ]
+}
