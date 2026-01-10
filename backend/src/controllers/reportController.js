@@ -125,3 +125,25 @@ exports.RejectReport = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.GetReportById = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    // 🔒 Optional ownership check (recommended)
+    if (
+      req.user.role === 'machine_operator' &&
+      report.user_id !== req.user.id
+    ) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

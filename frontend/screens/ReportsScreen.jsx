@@ -11,8 +11,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
+import { useNavigation } from '@react-navigation/native';
 
 const ReportsScreen = () => {
+  const navigation = useNavigation();
   const [role, setRole] = useState(null);
   useEffect(() => {
     const getRole = async () => {
@@ -60,7 +62,9 @@ const ReportsScreen = () => {
     // navigation logic to view the report details
     // for example:
     // navigation.navigate('ReportDetail', { reportId: id });
-    alert(`Open report #${id}`);
+    // alert(`Open report #${id}`);
+    navigation.navigate('ReportDetail', { reportId: id });
+
   };
 
   // const [activeFilter, setActiveFilter] = useState('all');
@@ -286,19 +290,13 @@ const ReportsScreen = () => {
                   </View>
                 </View>
                 {/* Role-based actions */}
-                {role === 'machine_operator' && (
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => handleViewReport(report.id)}
-                  >
-                    <Ionicons
-                      name="document-text-outline"
-                      size={16}
-                      color="#fff"
-                    />
-                    <Text style={styles.actionBtnText}>View Report</Text>
-                  </TouchableOpacity>
-                )}
+                <TouchableOpacity
+                  onPress={() => handleViewReport(report.id)}
+                  style={styles.viewRow}
+                >
+                  <Ionicons name="eye-outline" size={16} color="#286DA6" />
+                  <Text style={styles.viewText}>View Report</Text>
+                </TouchableOpacity>
 
                 {role === 'quality_inspector' &&
                   report.status === 'pending_inspector' && (
@@ -340,7 +338,7 @@ const ReportsScreen = () => {
                       <TouchableOpacity
                         style={[
                           styles.actionBtn,
-                          { backgroundColor: '#059669' },
+                          { backgroundColor: '#1F7A8C' },
                         ]}
                         onPress={() => handleApprove(report.id, 'inspector')}
                       >
@@ -415,6 +413,23 @@ const ReportsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  viewRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 6,
+  alignSelf: 'flex-end',
+  marginTop: 8,
+   backgroundColor: 'rgba(40, 109, 166, 0.1)',
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 6,
+},
+
+viewText: {
+  fontSize: 13,
+  fontWeight: '600',
+  color: '#286DA6',
+},
   container: {
     flex: 1,
     backgroundColor: '#F8FBFE',
@@ -572,6 +587,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 10,
     gap: 10,
+    width: '100%',
   },
 
   actionBtn: {
@@ -581,7 +597,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#286DA6',
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: 40,
     gap: 6,
   },
 
