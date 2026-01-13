@@ -1,108 +1,14 @@
-// import React, { useEffect, useState } from 'react';
-// import { View, Text, StyleSheet, ScrollView } from 'react-native';
-// import axios from 'axios';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import Ionicons from 'react-native-vector-icons/Ionicons';
-// import BASE_URL from '../config/api';
-
-// const ReportDetailScreen = ({ route }) => {
-//   const { reportId } = route.params;
-//   const [report, setReport] = useState(null);
-
-//   useEffect(() => {
-//     fetchReport();
-//   }, []);
-
-//   const fetchReport = async () => {
-//     const token = await AsyncStorage.getItem('token');
-//     const res = await axios.get(`${BASE_URL}/api/report/${reportId}`, {
-//       headers: { Authorization: `Bearer ${token}` },
-//     });
-//     setReport(res.data);
-//   };
-
-//   if (!report) return null;
-
-//   const data = report.report_data; // JSON
-
-//   return (
-//     <ScrollView style={styles.container}>
-//       <Text style={styles.title}>{report.title}</Text>
-
-//       <View style={styles.metaRow}>
-//         <Text style={styles.meta}>Part No: {report.part_no}</Text>
-//         <Text style={styles.meta}>Status: {report.status}</Text>
-//       </View>
-
-//       <Text style={styles.section}>Inspection Details</Text>
-
-//       {Object.entries(data).map(([key, value]) => (
-//         <View key={key} style={styles.row}>
-//           <Text style={styles.label}>{key}</Text>
-//           <Text style={styles.value}>
-//             {typeof value === 'object' ? JSON.stringify(value) : value}
-//           </Text>
-//         </View>
-//       ))}
-//     </ScrollView>
-//   );
-// };
-
-// export default ReportDetailScreen;
-
-
-// const styles = StyleSheet.create({
-//   container: {
-//     padding: 16,
-//     backgroundColor: '#F8FBFE',
-//   },
-//   title: {
-//     fontSize: 22,
-//     fontWeight: '700',
-//     color: '#286DA6',
-//     marginBottom: 12,
-//   },
-//   metaRow: {
-//     flexDirection: 'row',
-//     justifyContent: 'space-between',
-//     marginBottom: 16,
-//   },
-//   meta: {
-//     fontSize: 13,
-//     color: '#6B7280',
-//   },
-//   section: {
-//     fontSize: 16,
-//     fontWeight: '600',
-//     marginBottom: 8,
-//   },
-//   row: {
-//     backgroundColor: '#fff',
-//     padding: 12,
-//     borderRadius: 8,
-//     marginBottom: 8,
-//     borderWidth: 1,
-//     borderColor: '#E3F2FD',
-//   },
-//   label: {
-//     fontSize: 12,
-//     color: '#6B7280',
-//     marginBottom: 4,
-//   },
-//   value: {
-//     fontSize: 14,
-//     color: '#1F2937',
-//   },
-// });
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TextInput,
   TouchableOpacity,
+  ActivityIndicator,
+  Image,
+  TextInput,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -114,135 +20,496 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const [report, setReport] = useState(null);
   const [role, setRole] = useState(null);
-  const [editable, setEditable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Editable fields for inspector/manager
+  const [visualObservation, setVisualObservation] = useState('');
+  const [remarks, setRemarks] = useState('');
 
   useEffect(() => {
     load();
   }, []);
 
   const load = async () => {
-    const token = await AsyncStorage.getItem('token');
-    const user = JSON.parse(await AsyncStorage.getItem('user'));
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const user = JSON.parse(await AsyncStorage.getItem('user'));
 
-    setRole(user.role);
-    setEditable(user.role !== 'operator');
+      setRole(user.role);
 
-    const res = await axios.get(`${BASE_URL}/api/report/${reportId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      const res = await axios.get(`${BASE_URL}/api/report/${reportId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    setReport(res.data);
+      setReport(res.data);
+      setVisualObservation(res.data.report_data.visualObservation || '');
+      setRemarks(res.data.report_data.remarks || '');
+    } catch (error) {
+      console.log('Load error:', error);
+      Alert.alert('Error', 'Failed to load report');
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      
+      // Update observations/remarks before approving
+      const updateData = {
+        visualObservation,
+        remarks,
+      };
+
+      const endpoint =
+        role === 'quality_inspector'
+          ? `${BASE_URL}/api/report/approve/inspector/${reportId}`
+          : `${BASE_URL}/api/report/approve/manager/${reportId}`;
+
+      await axios.put(
+        endpoint,
+        updateData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      Alert.alert('Success', 'Report approved successfully', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (err) {
+      console.log('APPROVE ERROR:', err.response?.data || err.message);
+      Alert.alert('Error', 'Failed to approve report');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    Alert.alert(
+      'Reject Report',
+      'Are you sure you want to reject this report? Please add remarks explaining why.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            if (!remarks.trim()) {
+              Alert.alert('Required', 'Please add remarks before rejecting');
+              return;
+            }
+
+            setSubmitting(true);
+            try {
+              const token = await AsyncStorage.getItem('token');
+              await axios.put(
+                `${BASE_URL}/api/report/reject/${reportId}`,
+                { remarks },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+
+              Alert.alert('Success', 'Report rejected', [
+                { text: 'OK', onPress: () => navigation.goBack() },
+              ]);
+            } catch (err) {
+              console.log('REJECT ERROR:', err.response?.data || err.message);
+              Alert.alert('Error', 'Failed to reject report');
+            } finally {
+              setSubmitting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const getStatusStyle = status => {
+    switch (status) {
+      case 'approved':
+        return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
+      case 'pending':
+        return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
+      case 'rejected':
+        return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
+      case 'inspector_approved':
+        return {
+          bg: '#EFF6FF',
+          text: '#2563EB',
+          icon: 'checkmark-done-circle',
+        };
+      default:
+        return { bg: '#F3F4F6', text: '#6B7280', icon: 'help-circle' };
+    }
+  };
+
+  // Determine if current user can edit this report
+  const canEdit = () => {
+    if (!report || !role) return false;
+
+    // Inspector can edit when status is pending
+    if (role === 'quality_inspector' && report.status === 'pending') {
+      return true;
+    }
+
+    // Manager can edit when status is inspector_approved
+    if (role === 'quality_manager' && report.status === 'inspector_approved') {
+      return true;
+    }
+
+    return false;
+  };
+
+  // Determine if current user can take action
+  const canTakeAction = () => {
+    if (!report || !role) return false;
+
+    // Inspector can approve/reject when pending
+    if (role === 'quality_inspector' && report.status === 'pending') {
+      return true;
+    }
+
+    // Manager can approve/reject when inspector approved
+    if (role === 'quality_manager' && report.status === 'inspector_approved') {
+      return true;
+    }
+
+    return false;
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#286DA6" />
+        <Text style={styles.loadingText}>Loading report...</Text>
+      </View>
+    );
+  }
 
   if (!report) return null;
 
   const data = report.report_data;
-
-  const updateField = (key, value) => {
-    setReport(prev => ({
-      ...prev,
-      report_data: {
-        ...prev.report_data,
-        [key]: value,
-      },
-    }));
-  };
+  const statusStyle = getStatusStyle(report.status);
+  const isEditable = canEdit();
+  const showActions = canTakeAction();
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#fff" />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Inspection Report</Text>
+        <View style={styles.placeholder} />
       </View>
 
-      {/* Meta */}
-      <View style={styles.card}>
-        <Text style={styles.title}>{report.title}</Text>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Title & Status Card */}
+        <View style={styles.titleCard}>
+          <View style={styles.titleRow}>
+            <Text style={styles.reportTitle}>{report.title}</Text>
+            <View
+              style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}
+            >
+              <Ionicons
+                name={statusStyle.icon}
+                size={14}
+                color={statusStyle.text}
+              />
+              <Text style={[styles.statusText, { color: statusStyle.text }]}>
+                {report.status === 'inspector_approved'
+                  ? 'Reviewed'
+                  : report.status}
+              </Text>
+            </View>
+          </View>
 
-        <View style={styles.metaRow}>
-          <Text style={styles.meta}>Part No: {report.part_no}</Text>
-          <Text style={styles.meta}>Status: {report.status}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaItem}>
+              <Ionicons name="cube-outline" size={16} color="#64748B" />
+              <Text style={styles.metaText}>Part: {report.part_no}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={16} color="#64748B" />
+              <Text style={styles.metaText}>
+                {new Date(report.created_at).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </Text>
+            </View>
+          </View>
+
+          {data.shift && (
+            <View style={styles.shiftTag}>
+              <Ionicons name="time-outline" size={14} color="#286DA6" />
+              <Text style={styles.shiftText}>
+                {data.shift === 'day'
+                  ? 'Day Shift'
+                  : data.shift === 'evening'
+                  ? 'Evening Shift'
+                  : 'Night Shift'}
+              </Text>
+            </View>
+          )}
+
+          {/* Workflow Progress */}
+          <View style={styles.workflowContainer}>
+            <Text style={styles.workflowTitle}>Approval Workflow</Text>
+            <View style={styles.workflowSteps}>
+              <WorkflowStep
+                label="Operator"
+                icon="create-outline"
+                completed={true}
+                active={false}
+              />
+              <View style={styles.workflowLine} />
+              <WorkflowStep
+                label="Inspector"
+                icon="search-outline"
+                completed={
+                  report.status === 'inspector_approved' ||
+                  report.status === 'approved'
+                }
+                active={report.status === 'pending'}
+              />
+              <View style={styles.workflowLine} />
+              <WorkflowStep
+                label="Manager"
+                icon="checkmark-done-outline"
+                completed={report.status === 'approved'}
+                active={report.status === 'inspector_approved'}
+              />
+            </View>
+          </View>
         </View>
-      </View>
-      {/* Part Information */}
-<View style={styles.card}>
-  <Text style={styles.cardTitle}>Part Information</Text>
 
-  <View style={styles.infoGrid}>
-    <InfoItem label="Customer" value={data.customer} />
-    <InfoItem label="Part No" value={data.partNumber} />
-    <InfoItem label="Doc No" value={data.docNo} />
-    <InfoItem label="Rev No" value={data.revNo} />
-  </View>
+        {/* Part Information */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="information-circle" size={20} color="#286DA6" />
+            <Text style={styles.cardTitle}>Part Information</Text>
+          </View>
 
-  <View style={styles.descriptionBox}>
-    <Text style={styles.infoLabel}>Description</Text>
-    <Text style={styles.infoValue}>{data.partDescription}</Text>
-  </View>
-</View>
+          <View style={styles.infoGrid}>
+            <InfoItem label="Customer" value={data.customer} />
+            <InfoItem label="Part Number" value={data.partNumber} />
+            <InfoItem label="Doc Number" value={data.docNo} />
+            <InfoItem label="Rev Number" value={data.revNo} />
+          </View>
 
-      {/* Observations */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Visual Observation</Text>
-
-        <TextInput
-          style={[styles.textArea, !editable && styles.readOnly]}
-          editable={editable}
-          value={data.visualObservation || ''}
-          onChangeText={t => updateField('visualObservation', t)}
-        />
-      </View>
-
-      {/* Remarks */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Remarks</Text>
-
-        <TextInput
-          style={[styles.textArea, !editable && styles.readOnly]}
-          editable={editable}
-          value={data.remarks || ''}
-          onChangeText={t => updateField('remarks', t)}
-        />
-      </View>
-
-      {/* Approvals */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Approvals</Text>
-
-        <DetailRow label="QA Inspector" value={data.qa} />
-        <DetailRow label="Reviewed By" value={data.reviewedBy} />
-        <DetailRow label="Approved By" value={data.approvedBy} />
-      </View>
-
-      {/* Actions */}
-      {editable && (
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.approveBtn}>
-            <Ionicons name="checkmark-outline" size={18} color="#fff" />
-            <Text style={styles.actionText}>Approve</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.rejectBtn}>
-            <Ionicons name="close-outline" size={18} color="#fff" />
-            <Text style={styles.actionText}>Reject</Text>
-          </TouchableOpacity>
+          {data.partDescription && (
+            <View style={styles.descriptionBox}>
+              <Text style={styles.descLabel}>Description</Text>
+              <Text style={styles.descValue}>{data.partDescription}</Text>
+            </View>
+          )}
         </View>
-      )}
 
-      <View style={{ height: 30 }} />
-    </ScrollView>
+        {/* Dimensions Inspection */}
+        {data.dimensions && data.dimensions.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="resize-outline" size={20} color="#286DA6" />
+              <Text style={styles.cardTitle}>
+                Dimensions Inspection ({data.dimensions.length})
+              </Text>
+            </View>
+
+            {data.dimensions.map((dim, index) => (
+              <View key={index} style={styles.dimensionCard}>
+                <View style={styles.dimensionHeader}>
+                  <View style={styles.dimensionNumber}>
+                    <Text style={styles.dimensionNumberText}>{dim.slNo}</Text>
+                  </View>
+                  <View style={styles.dimensionInfo}>
+                    <Text style={styles.dimensionDesc}>{dim.desc}</Text>
+                    <Text style={styles.dimensionSpec}>
+                      Specification: {dim.spec}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.actualValues}>
+                  <Text style={styles.actualLabel}>Actual Values:</Text>
+                  <View style={styles.actualChips}>
+                    {Array.isArray(dim.actual) && dim.actual.length > 0 ? (
+                      dim.actual.map((val, idx) => (
+                        <View key={idx} style={styles.actualChip}>
+                          <Text style={styles.actualChipLabel}>
+                            Sample {idx + 1}
+                          </Text>
+                          <Text style={styles.actualChipValue}>
+                            {val || '-'}
+                          </Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noData}>
+                        No measurements recorded
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Visual Observation - Editable by Inspector/Manager */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="eye-outline" size={20} color="#286DA6" />
+            <Text style={styles.cardTitle}>Visual Observation</Text>
+            {isEditable && (
+              <View style={styles.editableBadge}>
+                <Ionicons name="create-outline" size={12} color="#286DA6" />
+                <Text style={styles.editableText}>Editable</Text>
+              </View>
+            )}
+          </View>
+
+          {isEditable ? (
+            <TextInput
+              style={styles.textArea}
+              placeholder="Add your visual observations..."
+              placeholderTextColor="#94A3B8"
+              value={visualObservation}
+              onChangeText={setVisualObservation}
+              multiline
+              textAlignVertical="top"
+            />
+          ) : (
+            <View style={styles.textBox}>
+              <Text style={styles.textContent}>
+                {data.visualObservation || 'No observations recorded'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Remarks - Editable by Inspector/Manager */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="chatbox-outline" size={20} color="#286DA6" />
+            <Text style={styles.cardTitle}>Remarks</Text>
+            {isEditable && (
+              <View style={styles.editableBadge}>
+                <Ionicons name="create-outline" size={12} color="#286DA6" />
+                <Text style={styles.editableText}>Editable</Text>
+              </View>
+            )}
+          </View>
+
+          {isEditable ? (
+            <TextInput
+              style={styles.textArea}
+              placeholder="Add your remarks..."
+              placeholderTextColor="#94A3B8"
+              value={remarks}
+              onChangeText={setRemarks}
+              multiline
+              textAlignVertical="top"
+            />
+          ) : (
+            <View style={styles.textBox}>
+              <Text style={styles.textContent}>
+                {data.remarks || 'No remarks added'}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Approvals */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons
+              name="checkmark-done-outline"
+              size={20}
+              color="#286DA6"
+            />
+            <Text style={styles.cardTitle}>Approvals</Text>
+          </View>
+
+          <View style={styles.approvalsList}>
+            <ApprovalItem
+              icon="person-outline"
+              label="QA Inspector"
+              value={data.qa}
+            />
+            <ApprovalItem
+              icon="eye-outline"
+              label="Reviewed By"
+              value={data.reviewedBy}
+            />
+            <ApprovalItem
+              icon="checkmark-circle-outline"
+              label="Approved By"
+              value={data.approvedBy}
+            />
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        {showActions && (
+          <View style={styles.actionContainer}>
+            <Text style={styles.actionTitle}>
+              {role === 'quality_inspector'
+                ? 'Inspector Review'
+                : 'Manager Final Approval'}
+            </Text>
+            <Text style={styles.actionSubtitle}>
+              {role === 'quality_inspector'
+                ? 'Review the measurements and add your observations before approving'
+                : 'Provide final approval after reviewing inspector comments'}
+            </Text>
+
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.approveBtn]}
+                onPress={handleApprove}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color="#FFFFFF"
+                    />
+                    <Text style={styles.actionBtnText}>Approve Report</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.actionBtn, styles.rejectBtn]}
+                onPress={handleReject}
+                disabled={submitting}
+              >
+                <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+                <Text style={styles.actionBtnText}>Reject Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 30 }} />
+      </ScrollView>
+    </View>
   );
 }
-
-const DetailRow = ({ label, value }) => (
-  <View style={styles.detailRow}>
-    <Text style={styles.detailLabel}>{label}</Text>
-    <Text style={styles.detailValue}>{value || '-'}</Text>
-  </View>
-);
 
 const InfoItem = ({ label, value }) => (
   <View style={styles.infoItem}>
@@ -251,111 +518,469 @@ const InfoItem = ({ label, value }) => (
   </View>
 );
 
+const ApprovalItem = ({ icon, label, value }) => (
+  <View style={styles.approvalItem}>
+    <View style={styles.approvalIcon}>
+      <Ionicons name={icon} size={18} color="#286DA6" />
+    </View>
+    <View style={styles.approvalContent}>
+      <Text style={styles.approvalLabel}>{label}</Text>
+      <Text style={styles.approvalValue}>{value || 'Pending'}</Text>
+    </View>
+  </View>
+);
+
+const WorkflowStep = ({ label, icon, completed, active }) => (
+  <View style={styles.workflowStep}>
+    <View
+      style={[
+        styles.workflowIcon,
+        completed && styles.workflowIconCompleted,
+        active && styles.workflowIconActive,
+      ]}
+    >
+      <Ionicons
+        name={completed ? 'checkmark' : icon}
+        size={16}
+        color={completed ? '#FFFFFF' : active ? '#286DA6' : '#94A3B8'}
+      />
+    </View>
+    <Text
+      style={[
+        styles.workflowLabel,
+        completed && styles.workflowLabelCompleted,
+        active && styles.workflowLabelActive,
+      ]}
+    >
+      {label}
+    </Text>
+  </View>
+);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: '#F8FAFC',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
   },
   header: {
     backgroundColor: '#286DA6',
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    justifyContent: 'space-between',
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#fff',
+    color: '#FFFFFF',
   },
-  card: {
-    backgroundColor: '#fff',
+  placeholder: {
+    width: 40,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  titleCard: {
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
-    marginTop: 16,
+    marginTop: 20,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: '#E2E8F0',
   },
-  title: {
-    fontSize: 20,
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
+  },
+  reportTitle: {
+    flex: 1,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
-    marginBottom: 8,
+    color: '#1E293B',
+    lineHeight: 24,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 5,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'capitalize',
   },
   metaRow: {
     flexDirection: 'row',
+    gap: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  shiftTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#EBF5FF',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  shiftText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#286DA6',
+  },
+  workflowContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  workflowTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    marginBottom: 12,
+  },
+  workflowSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  meta: {
-    fontSize: 13,
-    color: '#6B7280',
+  workflowStep: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  workflowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  workflowIconCompleted: {
+    backgroundColor: '#059669',
+  },
+  workflowIconActive: {
+    backgroundColor: '#EBF5FF',
+    borderWidth: 2,
+    borderColor: '#286DA6',
+  },
+  workflowLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  workflowLabelCompleted: {
+    color: '#059669',
+    fontWeight: '600',
+  },
+  workflowLabelActive: {
+    color: '#286DA6',
+    fontWeight: '600',
+  },
+  workflowLine: {
+    height: 2,
+    flex: 1,
+    backgroundColor: '#E2E8F0',
+    marginHorizontal: 4,
+    marginBottom: 24,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: '#286DA6',
+    flex: 1,
+  },
+  editableBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EBF5FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  editableText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#286DA6',
+  },
+  infoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -6,
+  },
+  infoItem: {
+    width: '50%',
+    paddingHorizontal: 6,
     marginBottom: 12,
   },
-  textArea: {
-    borderWidth: 1,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#F8FBFE',
-    padding: 14,
-    borderRadius: 12,
-    minHeight: 100,
-    color: '#1F2937',
-  },
-  readOnly: {
-    backgroundColor: '#EEF4FA',
-    color: '#6B7280',
-  },
-  detailRow: {
-    marginBottom: 12,
-  },
-  detailLabel: {
+  infoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
     marginBottom: 4,
+    fontWeight: '500',
   },
-  detailValue: {
+  infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: '#1E293B',
   },
-  actionRow: {
+  descriptionBox: {
+    marginTop: 4,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  descLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 6,
+    fontWeight: '500',
+  },
+  descValue: {
+    fontSize: 14,
+    color: '#1E293B',
+    lineHeight: 20,
+  },
+  dimensionCard: {
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dimensionHeader: {
     flexDirection: 'row',
+    marginBottom: 12,
     gap: 12,
-    marginTop: 20,
+  },
+  dimensionNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#286DA6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dimensionNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  dimensionInfo: {
+    flex: 1,
+  },
+  dimensionDesc: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  dimensionSpec: {
+    fontSize: 13,
+    color: '#286DA6',
+    fontWeight: '500',
+  },
+  actualValues: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  actualLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  actualChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actualChip: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  actualChipLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  actualChipValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#286DA6',
+  },
+  noData: {
+    fontSize: 13,
+    color: '#94A3B8',
+    fontStyle: 'italic',
+  },
+  textBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  textContent: {
+    fontSize: 14,
+    color: '#1E293B',
+    lineHeight: 20,
+  },
+  textArea: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#286DA6',
+    padding: 14,
+    borderRadius: 12,
+    fontSize: 14,
+    color: '#1E293B',
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+  approvalsList: {
+    gap: 10,
+  },
+  approvalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  approvalIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#EBF5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  approvalContent: {
+    flex: 1,
+  },
+  approvalLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  approvalValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  actionContainer: {
     marginHorizontal: 20,
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#286DA6',
+    marginBottom: 6,
+  },
+  actionSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  actionButtons: {
+    gap: 12,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
   },
   approveBtn: {
-    flex: 1,
-    backgroundColor: '#1F7A8C',
-    padding: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    backgroundColor: '#059669',
   },
   rejectBtn: {
-    flex: 1,
-    backgroundColor: '#9B4D4D',
-    padding: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
+    backgroundColor: '#DC2626',
   },
-  actionText: {
-    color: '#fff',
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

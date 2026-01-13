@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -16,6 +17,11 @@ import { useNavigation } from '@react-navigation/native';
 const ReportsScreen = () => {
   const navigation = useNavigation();
   const [role, setRole] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   useEffect(() => {
     const getRole = async () => {
       const userRole = await AsyncStorage.getItem('role');
@@ -23,6 +29,34 @@ const ReportsScreen = () => {
     };
     getRole();
   }, []);
+
+  const fetchReports = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setReports(res.data);
+    } catch (err) {
+      console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchReports();
+  };
+
   const handleApprove = async (id, role) => {
     try {
       const token = await AsyncStorage.getItem('token');
@@ -59,79 +93,8 @@ const ReportsScreen = () => {
   };
 
   const handleViewReport = id => {
-    // navigation logic to view the report details
-    // for example:
-    // navigation.navigate('ReportDetail', { reportId: id });
-    // alert(`Open report #${id}`);
     navigation.navigate('ReportDetail', { reportId: id });
-
   };
-
-  // const [activeFilter, setActiveFilter] = useState('all');
-
-  // const filters = [
-  //   { id: 'all', label: 'All', count: 24 },
-  //   { id: 'pending', label: 'Pending', count: 5 },
-  //   { id: 'approved', label: 'Approved', count: 15 },
-  //   { id: 'rejected', label: 'Rejected', count: 4 },
-  // ];
-
-  // const reports = [
-  //   {
-  //     id: 1,
-  //     title: 'Cutting Inspection - Vestas',
-  //     partNo: '29314225-2',
-  //     date: '22/12/2024',
-  //     status: 'approved',
-  //     inspector: 'Rajesh Kumar',
-  //   },
-  //   {
-  //     id: 2,
-  //     title: 'Welding Quality Check',
-  //     partNo: '29314225-5',
-  //     date: '21/12/2024',
-  //     status: 'pending',
-  //     inspector: 'Rajesh Kumar',
-  //   },
-  //   {
-  //     id: 3,
-  //     title: 'Final Assembly Review',
-  //     partNo: '29314225-1',
-  //     date: '20/12/2024',
-  //     status: 'approved',
-  //     inspector: 'Rajesh Kumar',
-  //   },
-  //   {
-  //     id: 4,
-  //     title: 'Material Quality Report',
-  //     partNo: '29314225-6',
-  //     date: '19/12/2024',
-  //     status: 'rejected',
-  //     inspector: 'Rajesh Kumar',
-  //   },
-  // ];
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const fetchReports = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-
-      const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setReports(res.data);
-    } catch (err) {
-      console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-  useEffect(() => {
-    fetchReports();
-  }, []);
 
   const counts = {
     all: reports.length,
@@ -150,35 +113,58 @@ const ReportsScreen = () => {
   const getStatusColor = status => {
     switch (status) {
       case 'approved':
-        return { bg: '#D1FAE5', text: '#059669', icon: 'checkmark-circle' };
+        return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
       case 'pending':
-        return { bg: '#FEF3C7', text: '#D97706', icon: 'time' };
+        return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
       case 'rejected':
         return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
       case 'inspector_approved':
         return {
-          bg: '#DBEAFE',
-          text: '#1D4ED8',
+          bg: '#EFF6FF',
+          text: '#2563EB',
           icon: 'checkmark-done-circle',
         };
-
       default:
-        return { bg: '#E5E7EB', text: '#6B7280', icon: 'help-circle' };
+        return { bg: '#F3F4F6', text: '#6B7280', icon: 'help-circle' };
     }
   };
+
   const filteredReports =
     activeFilter === 'all'
       ? reports
       : reports.filter(r => (r.status || 'pending') === activeFilter);
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Reports</Text>
-          <Text style={styles.headerSubtitle}>
-            View and manage your reports
-          </Text>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.headerTitle}>Reports</Text>
+            <Text style={styles.headerSubtitle}>
+              {reports.length} {reports.length === 1 ? 'report' : 'reports'}{' '}
+              total
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.downloadNavBtn}
+              onPress={() => navigation.navigate('DownloadReports')}
+            >
+              <Ionicons name="download-outline" size={22} color="#286DA6" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.refreshBtn}
+              onPress={handleRefresh}
+              disabled={refreshing}
+            >
+              {refreshing ? (
+                <ActivityIndicator size="small" color="#286DA6" />
+              ) : (
+                <Ionicons name="refresh" size={22} color="#286DA6" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -186,11 +172,11 @@ const ReportsScreen = () => {
         {/* Search Bar */}
         <View style={styles.searchSection}>
           <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color="#6B7280" />
+            <Ionicons name="search-outline" size={18} color="#9CA3AF" />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search reports..."
-              placeholderTextColor="#B0C4D8"
+              placeholder="Search by part number or title..."
+              placeholderTextColor="#B0B7C3"
             />
           </View>
         </View>
@@ -243,13 +229,31 @@ const ReportsScreen = () => {
           {filteredReports.map(report => {
             const statusStyle = getStatusColor(report.status);
             return (
-              <TouchableOpacity key={report.id} style={styles.reportCard}>
-                <View style={styles.reportHeader}>
-                  <View style={styles.reportTitleSection}>
-                    <Text style={styles.reportTitle}>{report.title}</Text>
-                    <Text style={styles.reportPartNo}>
-                      Part No: {report.part_no}
+              <TouchableOpacity
+                key={report.id}
+                style={styles.reportCard}
+                onPress={() => handleViewReport(report.id)}
+                activeOpacity={0.7}
+              >
+                {/* Top Section */}
+                <View style={styles.cardTop}>
+                  <View style={styles.cardLeft}>
+                    <Text style={styles.reportTitle} numberOfLines={1}>
+                      {report.title}
                     </Text>
+                    <View style={styles.metaRow}>
+                      <Text style={styles.partNo}>Part: {report.part_no}</Text>
+                      <View style={styles.dotSeparator} />
+                      <Text style={styles.dateText}>
+                        {new Date(report.created_at).toLocaleDateString(
+                          'en-GB',
+                          {
+                            day: 'numeric',
+                            month: 'short',
+                          },
+                        )}
+                      </Text>
+                    </View>
                   </View>
                   <View
                     style={[
@@ -259,180 +263,80 @@ const ReportsScreen = () => {
                   >
                     <Ionicons
                       name={statusStyle.icon}
-                      size={14}
+                      size={12}
                       color={statusStyle.text}
                     />
                     <Text
                       style={[styles.statusText, { color: statusStyle.text }]}
                     >
-                      {report.status}
+                      {report.status === 'inspector_approved'
+                        ? 'Reviewed'
+                        : report.status}
                     </Text>
                   </View>
                 </View>
 
-                <View style={styles.reportFooter}>
-                  <View style={styles.reportInfo}>
-                    <Ionicons name="person-outline" size={14} color="#6B7280" />
-                    <Text style={styles.reportInfoText}>
-                      {/* {report.inspector} */}
-                      You
-                    </Text>
+                {/* Action Buttons */}
+                {((role === 'quality_inspector' &&
+                  (report.status === 'pending_inspector' ||
+                    report.status === 'pending')) ||
+                  (role === 'quality_manager' &&
+                    report.status === 'inspector_approved')) && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.approveBtn]}
+                      onPress={() =>
+                        handleApprove(
+                          report.id,
+                          role === 'quality_inspector'
+                            ? 'inspector'
+                            : 'manager',
+                        )
+                      }
+                    >
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={16}
+                        color="#059669"
+                      />
+                      <Text style={styles.approveBtnText}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.rejectBtn]}
+                      onPress={() => handleReject(report.id)}
+                    >
+                      <Ionicons name="close-circle" size={16} color="#DC2626" />
+                      <Text style={styles.rejectBtnText}>Reject</Text>
+                    </TouchableOpacity>
                   </View>
-                  <View style={styles.reportInfo}>
-                    <Ionicons
-                      name="calendar-outline"
-                      size={14}
-                      color="#6B7280"
-                    />
-                    <Text style={styles.reportInfoText}>
-                      {new Date(report.created_at).toLocaleDateString('en-GB')}
-                    </Text>
-                  </View>
-                </View>
-                {/* Role-based actions */}
-                <TouchableOpacity
-                  onPress={() => handleViewReport(report.id)}
-                  style={styles.viewRow}
-                >
-                  <Ionicons name="eye-outline" size={16} color="#286DA6" />
-                  <Text style={styles.viewText}>View Report</Text>
-                </TouchableOpacity>
-
-                {role === 'quality_inspector' &&
-                  report.status === 'pending_inspector' && (
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#059669' },
-                        ]}
-                        onPress={() => handleApprove(report.id, 'inspector')}
-                      >
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Approve</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#DC2626' },
-                        ]}
-                        onPress={() => handleReject(report.id)}
-                      >
-                        <Ionicons
-                          name="close-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Reject</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                {role === 'quality_inspector' &&
-                  report.status === 'pending' && (
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#1F7A8C' },
-                        ]}
-                        onPress={() => handleApprove(report.id, 'inspector')}
-                      >
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Approve</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#DC2626' },
-                        ]}
-                        onPress={() => handleReject(report.id)}
-                      >
-                        <Ionicons
-                          name="close-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Reject</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                {role === 'quality_manager' &&
-                  report.status === 'inspector_approved' && (
-                    <View style={styles.actionRow}>
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#059669' },
-                        ]}
-                        onPress={() => handleApprove(report.id, 'manager')}
-                      >
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Approve</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[
-                          styles.actionBtn,
-                          { backgroundColor: '#DC2626' },
-                        ]}
-                        onPress={() => handleReject(report.id)}
-                      >
-                        <Ionicons
-                          name="close-circle-outline"
-                          size={16}
-                          color="#fff"
-                        />
-                        <Text style={styles.actionBtnText}>Reject</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                )}
               </TouchableOpacity>
             );
           })}
         </View>
 
-        <View style={{ height: 20 }} />
+        {filteredReports.length === 0 && (
+          <View style={styles.emptyState}>
+            <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
+            <Text style={styles.emptyTitle}>No reports found</Text>
+            <Text style={styles.emptySubtitle}>
+              {activeFilter === 'all'
+                ? 'Create your first report to get started'
+                : `No ${activeFilter} reports available`}
+            </Text>
+          </View>
+        )}
+
+        <View style={{ height: 30 }} />
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  viewRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 6,
-  alignSelf: 'flex-end',
-  marginTop: 8,
-   backgroundColor: 'rgba(40, 109, 166, 0.1)',
-  paddingHorizontal: 8,
-  paddingVertical: 4,
-  borderRadius: 6,
-},
-
-viewText: {
-  fontSize: 13,
-  fontWeight: '600',
-  color: '#286DA6',
-},
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     backgroundColor: '#FFFFFF',
@@ -440,23 +344,48 @@ viewText: {
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    borderBottomColor: '#E2E8F0',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
     color: '#286DA6',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  refreshBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  downloadNavBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EBF5FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#286DA6',
   },
   content: {
     flex: 1,
   },
   searchSection: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
     paddingBottom: 12,
   },
   searchBar: {
@@ -464,16 +393,16 @@ viewText: {
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: '#E2E8F0',
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    color: '#1F2937',
+    fontSize: 14,
+    color: '#1E293B',
   },
   filtersContainer: {
     paddingLeft: 20,
@@ -489,29 +418,29 @@ viewText: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: 14,
+    gap: 6,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: '#E2E8F0',
   },
   filterChipActive: {
     backgroundColor: '#286DA6',
     borderColor: '#286DA6',
   },
   filterLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#64748B',
   },
   filterLabelActive: {
     color: '#FFFFFF',
   },
   filterBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     borderRadius: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 2,
-    minWidth: 24,
+    minWidth: 22,
     alignItems: 'center',
   },
   filterBadgeActive: {
@@ -520,91 +449,124 @@ viewText: {
   filterCount: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#64748B',
   },
   filterCountActive: {
     color: '#FFFFFF',
   },
   reportsSection: {
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 10,
   },
   reportCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: '#E2E8F0',
   },
-  reportHeader: {
+  cardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 10,
   },
-  reportTitleSection: {
+  cardLeft: {
     flex: 1,
   },
   reportTitle: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 4,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 6,
   },
-  reportPartNo: {
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  partNo: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  dotSeparator: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#CBD5E1',
+  },
+  dateText: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '500',
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
     gap: 4,
   },
   statusText: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textTransform: 'capitalize',
-  },
-  reportFooter: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  reportInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  reportInfoText: {
-    fontSize: 12,
-    color: '#6B7280',
   },
   actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    gap: 10,
-    width: '100%',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 8,
   },
-
   actionBtn: {
     flex: 1,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#286DA6',
-    paddingVertical: 10,
-    borderRadius: 40,
-    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 8,
+    gap: 5,
+    borderWidth: 1,
   },
-
-  actionBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  approveBtn: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+  },
+  approveBtnText: {
+    color: '#059669',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  rejectBtn: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+  },
+  rejectBtnText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#64748B',
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    textAlign: 'center',
   },
 });
 

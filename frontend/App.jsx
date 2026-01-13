@@ -14,6 +14,7 @@ import ProfileScreen from './screens/ProfileScreen';
 import EditProfileScreen from './screens/EditScreens/EditProfileScreen';
 import ChangePasswordScreen from './screens/EditScreens/ChangePasswordScreen';
 import ReportDetailScreen from './screens/ReportDetailScreen';
+import DownloadReportsScreen from './screens/DownloadReportsScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const Stack = createNativeStackNavigator();
@@ -114,8 +115,15 @@ function App() {
           <Stack.Screen name="Accordance" component={AccordanceScreen} />
           <Stack.Screen name="AddEntry" component={AddEntryScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-          <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
+          <Stack.Screen
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+          />
           <Stack.Screen name="ReportDetail" component={ReportDetailScreen} />
+          <Stack.Screen
+            name="DownloadReports"
+            component={DownloadReportsScreen}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </>

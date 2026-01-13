@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomAlert from '../components/CustomAlert';
+import BASE_URL from '../config/api';
 
 const ProfileScreen = ({ navigation }) => {
   const [reports, setReports] = useState([]);
@@ -97,50 +98,26 @@ const ProfileScreen = ({ navigation }) => {
     r => (r.status || 'pending') === 'pending',
   ).length;
 
-  // const stats = [
-  //   {
-  //     id: 1,
-  //     label: 'Reports',
-  //     value: '24',
-  //     icon: 'document-text-outline',
-  //     color: '#286DA6',
-  //   },
-  //   {
-  //     id: 2,
-  //     label: 'In process',
-  //     value: '156',
-  //     icon: 'time-outline',
-  //     color: '#10B981',
-  //   },
-  //   {
-  //     id: 3,
-  //     label: 'Approved',
-  //     value: '142',
-  //     icon: 'checkmark-circle-outline',
-  //     color: '#F59E0B',
-  //   },
-  // ];
-
   const stats = [
     {
       id: 1,
       label: 'Reports',
       value: loadingStats ? '-' : totalReports,
-      icon: 'document-text-outline',
+      icon: 'document-text',
       color: '#286DA6',
     },
     {
       id: 2,
       label: 'In process',
       value: loadingStats ? '-' : inProcessReports,
-      icon: 'time-outline',
+      icon: 'time',
       color: '#10B981',
     },
     {
       id: 3,
       label: 'Approved',
       value: loadingStats ? '-' : approvedReports,
-      icon: 'checkmark-circle-outline',
+      icon: 'checkmark-circle',
       color: '#F59E0B',
     },
   ];
@@ -165,20 +142,6 @@ const ProfileScreen = ({ navigation }) => {
     },
   ];
 
-  // const handleLogout = async () => {
-  //   Alert.alert('Logout', 'Are you sure you want to logout?', [
-  //     { text: 'Cancel', style: 'cancel' },
-  //     {
-  //       text: 'Logout',
-  //       style: 'destructive',
-  //       onPress: async () => {
-  //         await AsyncStorage.removeItem('user');
-  //         await AsyncStorage.removeItem('token');
-  //         navigation.replace('AuthScreen');
-  //       },
-  //     },
-  //   ]);
-  // };
   const handleLogout = async () => {
     showAlert('info', 'Logging out');
 
