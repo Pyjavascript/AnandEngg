@@ -39,3 +39,36 @@ exports.updateProfile = async (employeeId, name, email, phone) => {
     );
   });
 };
+
+
+exports.getAllUsers = async () => {
+  const [rows] = await db.query(
+    `SELECT id, name, employee_id, email, phone, role, status 
+     FROM users`
+  );
+  return rows;
+};
+
+exports.deleteUserById = async (id) => {
+  const [result] = await db.query(
+    `DELETE FROM users WHERE id = ?`,
+    [id]
+  );
+  return result;
+};
+
+exports.updateUserRole = async (id, role) => {
+  const [result] = await db.query(
+    `UPDATE users SET role = ? WHERE id = ?`,
+    [role, id]
+  );
+  return result;
+};
+
+exports.updateUserStatus = async (id, status) => {
+  const [result] = await db.query(
+    `UPDATE users SET status = ? WHERE id = ?`,
+    [status, id]
+  );
+  return result;
+};

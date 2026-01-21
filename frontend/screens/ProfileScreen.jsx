@@ -79,7 +79,13 @@ const ProfileScreen = ({ navigation }) => {
           });
 
           const data = await res.json();
-          setReports(data);
+          const reportsArray = Array.isArray(data)
+            ? data
+            : Array.isArray(data.reports)
+            ? data.reports
+            : [];
+
+          setReports(reportsArray);
         } catch (err) {
           console.log('Failed to load report stats', err);
         } finally {
@@ -248,6 +254,15 @@ const ProfileScreen = ({ navigation }) => {
             />
           </View>
         ))}
+        <View style={{ height: 20 }}>
+          <Text
+            onPress={() => {
+              navigation.navigate('AdminDashboard');
+            }}
+          >
+            Admin
+          </Text>
+        </View>
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>

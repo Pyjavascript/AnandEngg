@@ -16,6 +16,11 @@ import ChangePasswordScreen from './screens/EditScreens/ChangePasswordScreen';
 import ReportDetailScreen from './screens/ReportDetailScreen';
 import DownloadReportsScreen from './screens/DownloadReportsScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AdminDashboardScreen from './screens/AdminScreens/AdminDashboardScreen'
+import ManageUsersScreen from './screens/AdminScreens/ManageUsersScreen'
+import ManageRolesScreen from './screens/AdminScreens/ManageRolesScreen'
+import ManageReportsScreen from './screens/AdminScreens/ManageReportsScreen'
+import UserDetailScreen from './screens/AdminScreens/UserDetailScreen'
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -124,6 +129,11 @@ function App() {
             name="DownloadReports"
             component={DownloadReportsScreen}
           />
+          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+          <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
+          <Stack.Screen name="ManageRoles" component={ManageRolesScreen} />
+          <Stack.Screen name="ManageReports" component={ManageReportsScreen} />
+          <Stack.Screen name="UserDetail" component={UserDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </>
