@@ -40,12 +40,6 @@ export const updateUserStatus = async (id, status) => {
 };
 
 export const getUserByEmployeeId = async (employeeId) => {
-  const res = await fetch(`${BASE_URL}/api/users/${employeeId}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) throw new Error('User not found');
-  return res.json();
+  const res = await axios.get(`${BASE_URL}/api/users/${employeeId}`, await authHeader());
+  return res.data;
 };

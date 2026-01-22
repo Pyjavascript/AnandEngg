@@ -57,6 +57,15 @@ const UserDetailScreen = ({ navigation, route }) => {
     title: '',
     message: '',
   });
+   useEffect(() => {
+    if (!alert.visible) return;
+  
+    const t = setTimeout(() => {
+      setAlert(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  
+    return () => clearTimeout(t);
+  }, [alert.visible]);
   const [confirmDialog, setConfirmDialog] = useState({
     visible: false,
     isLoading: false,
@@ -68,35 +77,27 @@ const UserDetailScreen = ({ navigation, route }) => {
 
   // Load user and roles
   useFocusEffect(
-    React.useCallback(() => {
-      const loadData = async () => {
-        setLoading(true);
-        try {
-          // const [userData, rolesData] = await Promise.all([
-          //   // UserService.getUserById(userId),
-          //   UserService.getUserByEmployeeId(employeeId),
-          //   RoleService.getAllRoles(),
-          // ]);
-          const userData = await UserService.getUserByEmployeeId(employeeId);
+  React.useCallback(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const userData = await UserService.getUserByEmployeeId(employeeId);
 
-          setUser(userData);
-          setRoles(ROLES);
-          setSelectedRole(userData.role);
+        setUser(userData);
+        setRoles(ROLES);
+        setSelectedRole(userData.role);
+      } catch (err) {
+        console.log('Failed to load user', err);
+        showAlert('error', 'Failed to load user details');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-          setUser(userData);
-          setRoles(rolesData);
-          setSelectedRole(userData?.role);
-        } catch (err) {
-          showAlert('error', 'Failed to load user details');
-          console.log('Failed to load', err);
-        } finally {
-          setLoading(false);
-        }
-      };
+    loadData();
+  }, [employeeId])
+);
 
-      loadData();
-    }, [employeeId]),
-  );
 
   const handleRoleChange = async () => {
     if (!selectedRole || selectedRole === user.role) {
@@ -111,7 +112,7 @@ const UserDetailScreen = ({ navigation, route }) => {
     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
     try {
       // const result = await UserService.updateUserRole(userId, selectedRole);
-      const result = await UserService.updateUserRole(employeeId, selectedRole);
+      const result = await UserService.updateUserRole(user.id, selectedRole);
       if (result.success) {
         setUser(prev => ({ ...prev, role: selectedRole }));
         showAlert('success', 'Success', 'User role updated successfully');

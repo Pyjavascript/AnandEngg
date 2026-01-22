@@ -27,6 +27,16 @@ const ManageUsersScreen = ({ navigation }) => {
     title: '',
     message: '',
   });
+  useEffect(() => {
+  if (!alert.visible) return;
+
+  const t = setTimeout(() => {
+    setAlert(prev => ({ ...prev, visible: false }));
+  }, 2000);
+
+  return () => clearTimeout(t);
+}, [alert.visible]);
+
   const [confirmDialog, setConfirmDialog] = useState({
     visible: false,
     userId: null,
@@ -73,13 +83,19 @@ const filteredUsers = users.filter(user =>
     try {
       const result = await UserService.deleteUser(confirmDialog.userId);
       if (result.success) {
-        setUsers(users.filter(u => u.id !== confirmDialog.userId));
-        showAlert('success', 'Success', 'User deleted successfully');
+        setUsers(users.filter(u => u.employee_id  !== confirmDialog.userId));
+        setTimeout(() => {
+          showAlert('success', 'User deleted successfully');
+        }, 500);
       } else {
-        showAlert('error', 'Error', result.message || 'Failed to delete user');
+        setTimeout(() => {
+          showAlert('error', 'Error', 'Failed to delete user');
+        }, 500);
       }
     } catch (err) {
-      showAlert('error', 'Error', 'Failed to delete user');
+      setTimeout(() => {
+        showAlert('error', 'Error', 'An error occurred while deleting user');
+      }, 500);
       console.log('Delete error:', err);
     } finally {
       setConfirmDialog({
@@ -170,7 +186,7 @@ const filteredUsers = users.filter(user =>
               pressed && styles.actionButtonPressed,
             ]}
             onPress={() =>
-              navigation.navigate('UserDetail', { userId: item.id })
+              navigation.navigate('UserDetail', { employeeId: item.employee_id })
             }
           >
             <Ionicons name="pencil" size={18} color="#286DA6" />
@@ -182,7 +198,7 @@ const filteredUsers = users.filter(user =>
               styles.deleteButton,
               pressed && styles.actionButtonPressed,
             ]}
-            onPress={() => openDeleteConfirm(item.id, item.name)}
+            onPress={() => openDeleteConfirm(item.employee_id, item.name)}
           >
             <Ionicons name="trash" size={18} color="#EF4444" />
           </Pressable>
@@ -257,7 +273,7 @@ const filteredUsers = users.filter(user =>
       <FlatList
         data={filteredUsers}
         renderItem={renderUserItem}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item.employee_id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyState}>

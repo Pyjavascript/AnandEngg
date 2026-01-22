@@ -97,7 +97,12 @@ const AuthScreen = ({ navigation }) => {
         showAlert('success', 'Login Successful');
 
         setTimeout(() => {
-          navigation.replace('MainApp');
+          // Route based on user role
+          if (data.user.role === 'admin') {
+            navigation.replace('AdminDashboard');
+          } else {
+            navigation.replace('MainApp');
+          }
         }, 1500);
       } catch (err) {
         // Alert.alert('Error', 'Backend not reachable');
