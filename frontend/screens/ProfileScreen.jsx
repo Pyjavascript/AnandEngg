@@ -254,7 +254,7 @@ const ProfileScreen = ({ navigation }) => {
             />
           </View>
         ))}
-        <View style={{ height: 20 }}>
+        {/* <View style={{ height: 20 }}>
           <Text
             onPress={() => {
               navigation.navigate('AdminDashboard');
@@ -262,13 +262,24 @@ const ProfileScreen = ({ navigation }) => {
           >
             Admin
           </Text>
-        </View>
+        </View> */}
 
         {/* Logout */}
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
+        <View style={styles.container}>
+          <ScrollView>...</ScrollView>
+
+          <CustomAlert
+            visible={alert.visible}
+            type={alert.type}
+            title={alert.title}
+            message={alert.message}
+            onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
+          />
+        </View>
 
         <View style={{ height: 30 }} />
       </ScrollView>

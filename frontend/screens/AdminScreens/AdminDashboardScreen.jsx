@@ -7,15 +7,26 @@ import {
   Pressable,
   ActivityIndicator,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { AdminStatsService } from '../../utils/mockData';
+import CustomAlert from '../../components/CustomAlert';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ name: 'Admin' });
+  const [alert, setAlert] = useState({
+      visible: false,
+      type: 'info',
+      title: '',
+      message: '',
+    });
+    const showAlert = (type, title, message = '') => {
+      setAlert({ visible: true, type, title, message });
+    };
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -62,6 +73,16 @@ const AdminDashboardScreen = ({ navigation }) => {
       loadStats();
     }, []),
   );
+  
+  const handleLogout = async () => {
+    showAlert('info', 'Logging out');
+
+    setTimeout(async () => {
+      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('token');
+      navigation.replace('AuthScreen');
+    }, 1200);
+  };
 
   const adminModules = [
     {
@@ -130,9 +151,7 @@ const AdminDashboardScreen = ({ navigation }) => {
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Admin Panel</Text>
-            <Text style={styles.subtitle}>
-              Welcome, {userData.name}
-            </Text>
+            <Text style={styles.subtitle}>Welcome, {userData.name}</Text>
           </View>
           <View style={styles.headerIcon}>
             <Ionicons name="settings" size={32} color="#286DA6" />
@@ -190,7 +209,10 @@ const AdminDashboardScreen = ({ navigation }) => {
                 >
                   {/* Color accent bar */}
                   <View
-                    style={[styles.moduleAccent, { backgroundColor: module.color }]}
+                    style={[
+                      styles.moduleAccent,
+                      { backgroundColor: module.color },
+                    ]}
                   />
 
                   <View style={styles.moduleHeader}>
@@ -207,7 +229,11 @@ const AdminDashboardScreen = ({ navigation }) => {
                       />
                     </View>
                     <Pressable style={styles.moduleArrow}>
-                      <Ionicons name="arrow-forward" size={20} color="#B0C4D8" />
+                      <Ionicons
+                        name="arrow-forward"
+                        size={20}
+                        color="#B0C4D8"
+                      />
                     </Pressable>
                   </View>
 
@@ -223,7 +249,9 @@ const AdminDashboardScreen = ({ navigation }) => {
                       size={14}
                       color={module.color}
                     />
-                    <Text style={[styles.moduleStatText, { color: module.color }]}>
+                    <Text
+                      style={[styles.moduleStatText, { color: module.color }]}
+                    >
                       {module.stat} {module.statLabel}
                     </Text>
                   </View>
@@ -261,6 +289,10 @@ const AdminDashboardScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -472,4 +504,14 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     flex: 1,
   },
+  logoutBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    margin: 20,
+    padding: 14,
+    borderRadius: 12,
+    gap: 8,
+  },
+  logoutText: { fontSize: 16, fontWeight: '700', color: '#EF4444' },
 });

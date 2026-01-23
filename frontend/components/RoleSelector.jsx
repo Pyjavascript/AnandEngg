@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const roles = [
@@ -20,55 +21,79 @@ const roles = [
   },
 ];
 
-const RoleSelector = ({ value, onChange, error }) => {
+// const RoleSelector = ({ value, onChange, error }) => {
+//   return (
+//     <View style={{ marginBottom: 20 }}>
+//       {/* <Text style={styles.label}>Role</Text> */}
+
+//       {roles.map(role => {
+//         const selected = value === role.key;
+
+//         return (
+//           <Pressable
+//             key={role.key}
+//             onPress={() => onChange(role.key)}
+//             style={[
+//               styles.card,
+//               selected && styles.cardSelected,
+//               error && styles.cardError,
+//             ]}
+//           >
+//             <View style={styles.row}>
+//               <Ionicons
+//                 name={role.icon}
+//                 size={20}
+//                 color={selected ? '#286DA6' : '#00000053'}
+//               />
+//               <Text
+//                 style={[
+//                   styles.text,
+//                   selected && styles.textSelected,
+//                 ]}
+//               >
+//                 {role.label}
+//               </Text>
+//             </View>
+
+//             {selected && (
+//               <Ionicons
+//                 name="checkmark-circle"
+//                 size={20}
+//                 color="#286DA6"
+//               />
+//             )}
+//           </Pressable>
+//         );
+//       })}
+
+//       {error && <Text style={styles.error}>{error}</Text>}
+//     </View>
+//   );
+// };
+
+const RoleSelector = ({ value, onChange, roles = [] }) => {
   return (
-    <View style={{ marginBottom: 20 }}>
-      {/* <Text style={styles.label}>Role</Text> */}
+    <View>
+      <Picker
+        selectedValue={value}
+        onValueChange={itemValue => onChange(itemValue)}
+      >
+        <Picker.Item label="Select role" value="" />
 
-      {roles.map(role => {
-        const selected = value === role.key;
-
-        return (
-          <Pressable
-            key={role.key}
-            onPress={() => onChange(role.key)}
-            style={[
-              styles.card,
-              selected && styles.cardSelected,
-              error && styles.cardError,
-            ]}
-          >
-            <View style={styles.row}>
-              <Ionicons
-                name={role.icon}
-                size={20}
-                color={selected ? '#286DA6' : '#00000053'}
-              />
-              <Text
-                style={[
-                  styles.text,
-                  selected && styles.textSelected,
-                ]}
-              >
-                {role.label}
-              </Text>
-            </View>
-
-            {selected && (
-              <Ionicons
-                name="checkmark-circle"
-                size={20}
-                color="#286DA6"
-              />
-            )}
-          </Pressable>
-        );
-      })}
-
-      {error && <Text style={styles.error}>{error}</Text>}
+        {Array.isArray(roles) &&
+          roles.map(role => (
+            <Picker.Item
+              key={role.id}
+              label={role.display_name}
+              value={role.name}
+            />
+          ))}
+      </Picker>
     </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
 //   label: {

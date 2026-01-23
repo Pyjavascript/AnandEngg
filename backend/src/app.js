@@ -19,7 +19,8 @@ const fn = async() => {
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
-
+const roleRoutes = require('./routes/roleRoutes');
+app.use('/api/roles', roleRoutes);
 
 // app.use(cors({allowedHeaders: ['Content-Type', 'Authorization']}));
 app.use(cors({

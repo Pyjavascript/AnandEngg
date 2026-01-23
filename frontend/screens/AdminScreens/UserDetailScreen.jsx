@@ -57,13 +57,13 @@ const UserDetailScreen = ({ navigation, route }) => {
     title: '',
     message: '',
   });
-   useEffect(() => {
+  useEffect(() => {
     if (!alert.visible) return;
-  
+
     const t = setTimeout(() => {
       setAlert(prev => ({ ...prev, visible: false }));
     }, 2000);
-  
+
     return () => clearTimeout(t);
   }, [alert.visible]);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -77,27 +77,26 @@ const UserDetailScreen = ({ navigation, route }) => {
 
   // Load user and roles
   useFocusEffect(
-  React.useCallback(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const userData = await UserService.getUserByEmployeeId(employeeId);
+    React.useCallback(() => {
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const userData = await UserService.getUserByEmployeeId(employeeId);
 
-        setUser(userData);
-        setRoles(ROLES);
-        setSelectedRole(userData.role);
-      } catch (err) {
-        console.log('Failed to load user', err);
-        showAlert('error', 'Failed to load user details');
-      } finally {
-        setLoading(false);
-      }
-    };
+          setUser(userData);
+          setRoles(ROLES);
+          setSelectedRole(userData.role);
+        } catch (err) {
+          console.log('Failed to load user', err);
+          showAlert('error', 'Failed to load user details');
+        } finally {
+          setLoading(false);
+        }
+      };
 
-    loadData();
-  }, [employeeId])
-);
-
+      loadData();
+    }, [employeeId]),
+  );
 
   const handleRoleChange = async () => {
     if (!selectedRole || selectedRole === user.role) {
@@ -127,6 +126,30 @@ const UserDetailScreen = ({ navigation, route }) => {
     } finally {
       setConfirmDialog({ visible: false, isLoading: false });
       setShowRoleMenu(false);
+    }
+  };
+  const confirmStatusChange = async () => {
+    setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+
+    try {
+      const res = await UserService.updateUserStatus(user.id, newStatus);
+
+      if (res.success) {
+        setUser(prev => ({ ...prev, status: newStatus }));
+        showAlert(
+          'success',
+          'Success',
+          `User ${newStatus === 'active' ? 'activated' : 'deactivated'}`,
+        );
+      } else {
+        showAlert('error', 'Failed', 'Status update failed');
+      }
+    } catch (e) {
+      showAlert('error', 'Error', 'Server error');
+    } finally {
+      setConfirmDialog({ visible: false, isLoading: false });
     }
   };
 
@@ -387,6 +410,38 @@ const UserDetailScreen = ({ navigation, route }) => {
           )}
         </View>
 
+        <Pressable
+          style={({ pressed }) => [
+            styles.actionButton,
+            {
+              backgroundColor: user.status === 'active' ? '#FEF3C7' : '#DCFCE7',
+            },
+            pressed && styles.actionButtonPressed,
+          ]}
+          onPress={() =>
+            setConfirmDialog({
+              visible: true,
+              isLoading: false,
+              action: 'status',
+            })
+          }
+        >
+          <Ionicons
+            name={user.status === 'active' ? 'pause-circle' : 'play-circle'}
+            size={20}
+            color={user.status === 'active' ? '#F59E0B' : '#10B981'}
+          />
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: '600',
+              color: user.status === 'active' ? '#92400E' : '#065F46',
+            }}
+          >
+            {user.status === 'active' ? 'Deactivate User' : 'Activate User'}
+          </Text>
+        </Pressable>
+
         {/* Admin Actions */}
         <View style={styles.actionsCard}>
           <Text style={styles.cardTitle}>Admin Actions</Text>
@@ -408,7 +463,7 @@ const UserDetailScreen = ({ navigation, route }) => {
       </ScrollView>
 
       {/* Confirmation Dialog for Role Change */}
-      <ConfirmationDialog
+      {/* <ConfirmationDialog
         visible={confirmDialog.visible && selectedRole !== user.role}
         title="Change User Role?"
         message={`Are you sure you want to change this user's role from ${getRoleLabel(
@@ -423,6 +478,31 @@ const UserDetailScreen = ({ navigation, route }) => {
         }}
         isLoading={confirmDialog.isLoading}
         isDangerous={false}
+      /> */}
+      <ConfirmationDialog
+        visible={confirmDialog.visible}
+        title={
+          confirmDialog.action === 'status'
+            ? `${user.status === 'active' ? 'Deactivate' : 'Activate'} User?`
+            : 'Change User Role?'
+        }
+        message={
+          confirmDialog.action === 'status'
+            ? `Are you sure you want to ${
+                user.status === 'active' ? 'deactivate' : 'activate'
+              } this user?`
+            : `Are you sure you want to change role?`
+        }
+        confirmText="Confirm"
+        cancelText="Cancel"
+        onConfirm={
+          confirmDialog.action === 'status'
+            ? confirmStatusChange
+            : confirmRoleChange
+        }
+        onCancel={() => setConfirmDialog({ visible: false, isLoading: false })}
+        isLoading={confirmDialog.isLoading}
+        isDangerous={confirmDialog.action === 'status'}
       />
 
       {/* Alert */}
@@ -474,7 +554,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 50,
     paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

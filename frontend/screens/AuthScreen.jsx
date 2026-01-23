@@ -8,9 +8,9 @@ import {
   Platform,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
@@ -21,6 +21,8 @@ import RoleSelector from '../components/RoleSelector';
 import CustomAlert from '../components/CustomAlert';
 
 const AuthScreen = ({ navigation }) => {
+  const [roles, setRoles] = useState([]);
+
   const [alert, setAlert] = useState({
     visible: false,
     type: 'success',
@@ -60,7 +62,7 @@ const AuthScreen = ({ navigation }) => {
     if (isLogin) {
       if (!formData.employeeId || !formData.password) {
         // Alert.alert('Error', 'Please fill in all fields');
-         showAlert('error', 'Login Failed', 'Please fill in all fields');
+        showAlert('error', 'Login Failed', 'Please fill in all fields');
         setLoading(false);
         return;
       }
@@ -75,29 +77,61 @@ const AuthScreen = ({ navigation }) => {
           }),
         });
 
+        // const data = await res.json();
+        // console.log('LOGIN RESPONSE:', data);
+        // console.log('TOKEN TO SAVE:', data.token);
+
+        // if (!res.ok) {
+        //   // Alert.alert('Login Failed', data.message);
+        //   showAlert('error', 'Login Failed', data.message);
+
+        //   setLoading(false);
+        //   return;
+        // }
+
+        // await AsyncStorage.setItem('token', data.token);
+        // await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        // await AsyncStorage.setItem('role', data.user.role);
+
+        // // Alert.alert('Success', 'Login successful');
+        // // navigation.replace('MainApp');
+        // showAlert('success', 'Login Successful');
+
+        // setTimeout(() => {
+        //   // Route based on user role
+        //   if (data.user.role === 'admin') {
+        //     navigation.replace('AdminDashboard');
+        //   } else {
+        //     navigation.replace('MainApp');
+        //   }
+        // }, 1500);
         const data = await res.json();
-        console.log('LOGIN RESPONSE:', data);
-        console.log('TOKEN TO SAVE:', data.token);
 
         if (!res.ok) {
-          // Alert.alert('Login Failed', data.message);
           showAlert('error', 'Login Failed', data.message);
-
           setLoading(false);
           return;
         }
 
+        /* 🔒 STATUS CHECK — YAHIN */
+        if (data.user.status === 'inactive') {
+          showAlert(
+            'error',
+            'Account Deactivated',
+            'You are deactivated. Contact the admin.',
+          );
+          setLoading(false);
+          return;
+        }
+
+        /* ✅ ONLY ACTIVE USERS REACH HERE */
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
         await AsyncStorage.setItem('role', data.user.role);
 
-
-        // Alert.alert('Success', 'Login successful');
-        // navigation.replace('MainApp');
         showAlert('success', 'Login Successful');
 
         setTimeout(() => {
-          // Route based on user role
           if (data.user.role === 'admin') {
             navigation.replace('AdminDashboard');
           } else {
@@ -188,6 +222,36 @@ const AuthScreen = ({ navigation }) => {
       confirmPassword: '',
     });
   };
+
+  // useEffect(() => {
+  //   const loadRoles = async () => {
+  //     try {
+  //       const res = await fetch(`${BASE_URL}/api/roles`);
+  //       const data = await res.json();
+  //       setRoles(data);
+  //     } catch (err) {
+  //       console.log('Failed to load roles', err);
+  //     }
+  //   };
+
+  //   if (!isLogin) loadRoles();
+  // }, [isLogin]);
+  useEffect(() => {
+  const loadRoles = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/roles`);
+      const data = await res.json();
+
+      console.log('ROLES FROM API:', data); // 👈 must check once
+      setRoles(data);
+    } catch (err) {
+      console.log('Failed to load roles', err);
+    }
+  };
+
+  if (!isLogin) loadRoles();
+}, [isLogin]);
+
 
   return (
     <KeyboardAvoidingView
@@ -447,11 +511,12 @@ const AuthScreen = ({ navigation }) => {
               </Pressable>
             )}
             {!isLogin && (
-              <RoleSelector
-                value={role}
-                onChange={setRole}
-                error={!role ? 'Please select a role' : ''}
-              />
+              // <RoleSelector
+              //   value={role}
+              //   onChange={setRole}
+              //   error={!role ? 'Please select a role' : ''}
+              // />
+              <RoleSelector value={role} onChange={setRole} roles={roles} />
             )}
             {/* Submit Button */}
             {/* <Pressable
@@ -492,7 +557,6 @@ const AuthScreen = ({ navigation }) => {
               style={({ pressed }) => [
                 styles.submitButton,
                 (pressed || loading) && styles.submitButtonPressed,
-                
               ]}
             >
               {loading ? (

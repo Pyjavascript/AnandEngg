@@ -62,3 +62,14 @@ exports.updateStatus = async (req, res) => {
     res.status(500).json({ message: 'Update failed' });
   }
 };
+
+exports.getAllRoles = async (req, res) => {
+  try {
+    const [roles] = await db.query(
+      'SELECT id, name, display_name FROM roles'
+    );
+    res.json(roles);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to fetch roles' });
+  }
+};

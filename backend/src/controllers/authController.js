@@ -42,6 +42,54 @@ const register = async (req, res) => {
   }
 };
 
+// const login = async (req, res) => {
+//   try {
+//     const { employeeId, password } = req.body;
+
+//     if (!employeeId || !password)
+//       return res.status(400).json({ message: "All fields required" });
+
+//     const users = await User.findByEmployeeId(employeeId);
+//     if (users.length === 0)
+//       return res.status(401).json({ message: "Invalid credentials" });
+
+//     const user = users[0];
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch)
+//       return res.status(401).json({ message: "Invalid credentials" });
+
+//     // const token = jwt.sign(
+//     //   { id: user.id, role: user.role },
+//     //   process.env.JWT_SECRET,
+//     //   { expiresIn: "1d" }
+//     // );
+//     const token = jwt.sign(
+//       {
+//         id: user.id,
+//         employee_id: user.employee_id,
+//         role: user.role,
+//       },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "1d" }
+//     );
+
+//     return res.json({
+//       message: "Login successful",
+//       token,
+//       user: {
+//         id: user.id,
+//         name: user.name,
+//         role: user.role,
+//         email: user.email,
+//         phone: user.phone,
+//         employee_id: user.employee_id,
+//       },
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ message: "DB error" });
+//   }
+// };
 const login = async (req, res) => {
   try {
     const { employeeId, password } = req.body;
@@ -54,23 +102,28 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
 
     const user = users[0];
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
 
-    // const token = jwt.sign(
-    //   { id: user.id, role: user.role },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: "1d" }
-    // );
+    /* 🔒 ADD THIS BLOCK — THIS IS THE KEY */
+    if (user.status !== "active") {
+      return res.status(403).json({
+        message: "Account deactivated ! Please contact admin",
+        code: "ACCOUNT_INACTIVE",
+      });
+    }
+
+    /* ✅ ONLY ACTIVE USERS REACH HERE */
     const token = jwt.sign(
       {
-        id: user.id,    
+        id: user.id,
         employee_id: user.employee_id,
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "1d" },
     );
 
     return res.json({
@@ -83,6 +136,7 @@ const login = async (req, res) => {
         email: user.email,
         phone: user.phone,
         employee_id: user.employee_id,
+        status: user.status, // optional but useful
       },
     });
   } catch (err) {
@@ -114,34 +168,33 @@ const changePassword = async (req, res) => {
     const employeeId = req.user.employee_id; // from JWT
 
     if (!currentPassword || !newPassword || !confirmPassword) {
-      return res.status(400).json({ message: 'All fields required' });
+      return res.status(400).json({ message: "All fields required" });
     }
 
     if (newPassword !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match' });
+      return res.status(400).json({ message: "Passwords do not match" });
     }
 
     const users = await User.findByEmployeeId(employeeId);
     if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     const user = users[0];
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Current password is incorrect' });
+      return res.status(401).json({ message: "Current password is incorrect" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.updatePassword(employeeId, hashedPassword);
 
-    res.json({ message: 'Password changed successfully' });
+    res.json({ message: "Password changed successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-
-module.exports = { register, login, updateProfile,changePassword };
+module.exports = { register, login, updateProfile, changePassword };
