@@ -10,3 +10,4 @@ function validateAgainstTemplate(schema, data) {
   }
   return null;
 }
+module.exports = validateAgainstTemplate;
