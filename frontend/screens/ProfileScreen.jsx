@@ -269,7 +269,7 @@ const ProfileScreen = ({ navigation }) => {
           <Ionicons name="log-out-outline" size={22} color="#EF4444" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
-        <View style={styles.container}>
+        {/* <View style={styles.container}>
           <ScrollView>...</ScrollView>
 
           <CustomAlert
@@ -279,7 +279,7 @@ const ProfileScreen = ({ navigation }) => {
             message={alert.message}
             onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
           />
-        </View>
+        </View> */}
 
         <View style={{ height: 30 }} />
       </ScrollView>

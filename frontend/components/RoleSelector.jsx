@@ -73,15 +73,17 @@ const roles = [
 
 const RoleSelector = ({ value, onChange, roles = [] }) => {
   return (
-    <View>
+    <View style={styles.pickerWrapper}>
       <Picker
         selectedValue={value}
         onValueChange={itemValue => onChange(itemValue)}
+        style={styles.picker}
+        dropdownIconColor="#286DA6"
       >
         <Picker.Item label="Select role" value="" />
-
-        {Array.isArray(roles) &&
-          roles.map(role => (
+        {roles
+          .filter(role => role.name !== 'admin')
+          .map(role => (
             <Picker.Item
               key={role.id}
               label={role.display_name}
@@ -96,50 +98,67 @@ const RoleSelector = ({ value, onChange, roles = [] }) => {
 
 
 const styles = StyleSheet.create({
-//   label: {
-//     fontSize: 20,
-//     fontWeight: '600',
-//     color: '#286DA6',
-//     marginBottom: 8,
+pickerWrapper: {
+  borderWidth: 1,
+  borderColor: '#00000053',
+  borderRadius: 16,
+  marginBottom: 20,
+  overflow: 'hidden',
+},
+picker: {
+  height: 55,          // 🔥 THIS IS THE KEY
+  color: '#286DA6',
+},
+
+  
+})
+
+
+// const styles = StyleSheet.create({
+// //   label: {
+// //     fontSize: 20,
+// //     fontWeight: '600',
+// //     color: '#286DA6',
+// //     marginBottom: 8,
+// //   },
+//   card: {
+//     borderWidth: 1,
+//     borderColor: '#00000053',
+//     borderRadius: 16,
+//     padding: 16,
+//     marginBottom: 10,
+//     backgroundColor: '#FFFFFF',
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     justifyContent: 'space-between',
 //   },
-  card: {
-    borderWidth: 1,
-    borderColor: '#00000053',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardSelected: {
-    borderColor: '#286DA6',
-    backgroundColor: '#EAF3FF',
-  },
-  cardError: {
-    borderColor: '#FF6B6B',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  text: {
-    fontSize: 16,
-    color: '#00000099',
-    fontWeight: '500',
-  },
-  textSelected: {
-    color: '#286DA6',
-    fontWeight: '700',
-  },
-  error: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    marginTop: 4,
-    marginLeft: 4,
-  },
-});
+//   cardSelected: {
+//     borderColor: '#286DA6',
+//     backgroundColor: '#EAF3FF',
+//   },
+//   cardError: {
+//     borderColor: '#FF6B6B',
+//   },
+//   row: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     gap: 12,
+//   },
+//   text: {
+//     fontSize: 16,
+//     color: '#00000099',
+//     fontWeight: '500',
+//   },
+//   textSelected: {
+//     color: '#286DA6',
+//     fontWeight: '700',
+//   },
+//   error: {
+//     fontSize: 12,
+//     color: '#FF6B6B',
+//     marginTop: 4,
+//     marginLeft: 4,
+//   },
+// });
 
 export default RoleSelector;

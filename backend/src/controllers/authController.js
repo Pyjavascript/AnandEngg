@@ -18,6 +18,17 @@ const register = async (req, res) => {
     )
       return res.status(400).json({ message: "All fields required" });
 
+         // 🔒 BLOCK ADMIN REGISTRATION
+    const allowedRoles = [
+      'machine_operator',
+      'quality_inspector',
+      'quality_manager'
+    ];
+
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 

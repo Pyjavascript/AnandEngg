@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const db = require('../config/db');
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -71,5 +72,41 @@ exports.getAllRoles = async (req, res) => {
     res.json(roles);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch roles' });
+  }
+};
+
+exports.getAdminStats = async (req, res) => {
+  try {
+    const [[{ totalUsers }]] = await db.query(
+      'SELECT COUNT(*) AS totalUsers FROM users'
+    );
+
+    const [[{ activeUsers }]] = await db.query(
+      "SELECT COUNT(*) AS activeUsers FROM users WHERE status = 'active'"
+    );
+
+    const [[{ totalRoles }]] = await db.query(
+      'SELECT COUNT(*) AS totalRoles FROM roles'
+    );
+
+    const [[{ totalSubmittedReports }]] = await db.query(
+      'SELECT COUNT(*) AS totalSubmittedReports FROM reports'
+    );
+
+    const [[{ totalReportTypes }]] = await db.query(
+      'SELECT COUNT(DISTINCT report_type) AS totalReportTypes FROM reports'
+    );
+
+    res.json({
+      totalUsers,
+      activeUsers,
+      totalRoles,
+      totalReportTypes,
+      totalSubmittedReports,
+      systemHealth: 'Healthy',
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to load admin stats' });
   }
 };

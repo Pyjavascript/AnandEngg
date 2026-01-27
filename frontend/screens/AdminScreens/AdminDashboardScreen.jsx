@@ -12,21 +12,23 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { AdminStatsService } from '../../utils/mockData';
+// import { AdminStatsService } from '../../utils/mockData';
+import { getAdminStats } from '../../utils/adminApi';
+
 import CustomAlert from '../../components/CustomAlert';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ name: 'Admin' });
   const [alert, setAlert] = useState({
-      visible: false,
-      type: 'info',
-      title: '',
-      message: '',
-    });
-    const showAlert = (type, title, message = '') => {
-      setAlert({ visible: true, type, title, message });
-    };
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+  const showAlert = (type, title, message = '') => {
+    setAlert({ visible: true, type, title, message });
+  };
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -61,7 +63,8 @@ const AdminDashboardScreen = ({ navigation }) => {
       const loadStats = async () => {
         setLoading(true);
         try {
-          const data = await AdminStatsService.getOverviewStats();
+          // const data = await AdminStatsService.getOverviewStats();
+          const data = await getAdminStats();
           setStats(data);
         } catch (err) {
           console.log('Failed to load stats', err);
@@ -73,7 +76,7 @@ const AdminDashboardScreen = ({ navigation }) => {
       loadStats();
     }, []),
   );
-  
+
   const handleLogout = async () => {
     showAlert('info', 'Logging out');
 

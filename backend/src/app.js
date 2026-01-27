@@ -8,6 +8,8 @@ const PORT = process.env.PORT || 5000;
 const authRoutes = require('./routes/authRoutes');
 const reportRoutes = require('./routes/reportRoutes')
 const adminRoutes = require('./routes/adminRoutes');
+const reportTemplateRoutes = require('./routes/reportTemplate.routes')
+const reportSubmissionRoutes = require('./routes/reportSubmission.routes');
 const db = require('./config/db');
 
 const app = express();
@@ -34,6 +36,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/',reportTemplateRoutes)
+app.use('/api/reports', reportSubmissionRoutes);
 
 app.get('/', (req, res) => {
   res.send('Backend is live');
