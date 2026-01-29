@@ -10,11 +10,11 @@ import {
   Modal,
   TextInput,
   Dimensions,
-  
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import { ReportTypeService } from '../../utils/mockData';
+import { ReportTypeService } from '../../utils/ReportTypeService';
+import { ReportSubmissionService } from '../../utils/ReportSubmissionService';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
 
@@ -56,12 +56,15 @@ const ManageReportsScreen = ({ navigation }) => {
       const loadData = async () => {
         setLoading(true);
         try {
-          const [typesData, reportsData] = await Promise.all([
-            ReportTypeService.getAllReportTypes(),
-            ReportTypeService.getAllReports(),
-          ]);
+          // const [typesData, reportsData] = await Promise.all([
+          //   ReportTypeService.getAllReportTypes(),
+          //   ReportTypeService.getAllReports(),
+          // ]);
+          // setReportTypes(typesData);
+          // setAllReports(reportsData);
+          const typesData = await ReportTypeService.getAllReportTypes();
           setReportTypes(typesData);
-          setAllReports(reportsData);
+          setAllReports([]); // temporary
         } catch (err) {
           showAlert('error', 'Failed to load data');
           console.log('Failed to load', err);
@@ -116,9 +119,13 @@ const ManageReportsScreen = ({ navigation }) => {
 
     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      const result = await ReportTypeService.deleteReportType(confirmDialog.reportId);
+      const result = await ReportTypeService.deleteReportType(
+        confirmDialog.reportId,
+      );
       if (result.success) {
-        setReportTypes(reportTypes.filter(r => r.id !== confirmDialog.reportId));
+        setReportTypes(
+          reportTypes.filter(r => r.id !== confirmDialog.reportId),
+        );
         showAlert('success', 'Success', 'Report type deleted successfully');
       } else {
         showAlert('error', 'Error', result.message || 'Failed to delete');
@@ -175,7 +182,8 @@ const ManageReportsScreen = ({ navigation }) => {
             style={[
               styles.statusTag,
               {
-                backgroundColor: item.status === 'active' ? '#DCFCE7' : '#F3F4F6',
+                backgroundColor:
+                  item.status === 'active' ? '#DCFCE7' : '#F3F4F6',
               },
             ]}
           >
@@ -253,9 +261,7 @@ const ManageReportsScreen = ({ navigation }) => {
             </Text>
           </View>
           {item.approvedBy && (
-            <Text style={styles.approvedByText}>
-              by {item.approvedBy}
-            </Text>
+            <Text style={styles.approvedByText}>by {item.approvedBy}</Text>
           )}
         </View>
       </View>
@@ -294,7 +300,9 @@ const ManageReportsScreen = ({ navigation }) => {
               styles.addButton,
               pressed && styles.addButtonPressed,
             ]}
-            onPress={() => setAddReportModal({ ...addReportModal, visible: true })}
+            onPress={() =>
+              setAddReportModal({ ...addReportModal, visible: true })
+            }
           >
             <Ionicons name="add" size={20} color="#FFFFFF" />
           </Pressable>
@@ -451,7 +459,7 @@ const ManageReportsScreen = ({ navigation }) => {
                   placeholder="e.g., Daily Production Report"
                   placeholderTextColor="#B0C4D8"
                   value={addReportModal.name}
-                  onChangeText={(text) =>
+                  onChangeText={text =>
                     setAddReportModal({ ...addReportModal, name: text })
                   }
                   editable={!addReportModal.isLoading}
@@ -466,7 +474,7 @@ const ManageReportsScreen = ({ navigation }) => {
                   placeholder="e.g., RPT_PROD_001"
                   placeholderTextColor="#B0C4D8"
                   value={addReportModal.code}
-                  onChangeText={(text) =>
+                  onChangeText={text =>
                     setAddReportModal({ ...addReportModal, code: text })
                   }
                   editable={!addReportModal.isLoading}
@@ -484,7 +492,7 @@ const ManageReportsScreen = ({ navigation }) => {
                   placeholder="Enter report description..."
                   placeholderTextColor="#B0C4D8"
                   value={addReportModal.description}
-                  onChangeText={(text) =>
+                  onChangeText={text =>
                     setAddReportModal({ ...addReportModal, description: text })
                   }
                   multiline={true}

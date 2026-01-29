@@ -11,6 +11,10 @@ const adminRoutes = require('./routes/adminRoutes');
 const reportTemplateRoutes = require('./routes/reportTemplate.routes')
 const reportSubmissionRoutes = require('./routes/reportSubmission.routes');
 const publicReportTemplateRoutes = require('./routes/publicReportTemplates.routes')
+const reportPartRoutes = require('./routes/reportPart.routes');
+const reportTemplatePartsRoutes = require('./routes/reportTemplateParts.routes');
+
+
 const db = require('./config/db');
 
 const app = express();
@@ -35,11 +39,14 @@ app.use(cors({
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
-app.use('/api/report', reportRoutes);
+// app.use('/api/report', reportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/',reportTemplateRoutes)
 app.use('/api/reports', reportSubmissionRoutes);
 app.use('/api/report-templates', publicReportTemplateRoutes);
+
+app.use('/api/report-templates', reportTemplatePartsRoutes);
+// app.use('/api/report', reportPartRoutes);
 
 
 app.get('/', (req, res) => {

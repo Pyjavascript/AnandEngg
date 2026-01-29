@@ -315,87 +315,87 @@ export const RoleService = {
   },
 };
 
-/**
- * Simulate report type management
- */
-export const ReportTypeService = {
-  // Get all report types
-  getAllReportTypes: async () => {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(mockReportTypes), 300);
-    });
-  },
+// /**
+//  * Simulate report type management
+//  */
+// export const ReportTypeService = {
+//   // Get all report types
+//   getAllReportTypes: async () => {
+//     return new Promise(resolve => {
+//       setTimeout(() => resolve(mockReportTypes), 300);
+//     });
+//   },
 
-  // Get all submitted reports
-  getAllReports: async () => {
-    return new Promise(resolve => {
-      setTimeout(() => resolve(mockAllReports), 500);
-    });
-  },
+//   // Get all submitted reports
+//   getAllReports: async () => {
+//     return new Promise(resolve => {
+//       setTimeout(() => resolve(mockAllReports), 500);
+//     });
+//   },
 
-  // Add new report type
-  addReportType: async (reportData) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const newReport = {
-          id: mockReportTypes.length + 1,
-          ...reportData,
-          submittedCount: 0,
-        };
-        mockReportTypes.push(newReport);
-        resolve({ success: true, data: newReport });
-      }, 300);
-    });
-  },
+//   // Add new report type
+//   addReportType: async (reportData) => {
+//     return new Promise((resolve) => {
+//       setTimeout(() => {
+//         const newReport = {
+//           id: mockReportTypes.length + 1,
+//           ...reportData,
+//           submittedCount: 0,
+//         };
+//         mockReportTypes.push(newReport);
+//         resolve({ success: true, data: newReport });
+//       }, 300);
+//     });
+//   },
 
-  // Delete report type
-  deleteReportType: async (id) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const index = mockReportTypes.findIndex(r => r.id === id);
-        if (index > -1) {
-          mockReportTypes.splice(index, 1);
-          resolve({
-            success: true,
-            message: 'Report type deleted successfully',
-          });
-        } else {
-          resolve({ success: false, message: 'Report type not found' });
-        }
-      }, 300);
-    });
-  },
+//   // Delete report type
+//   deleteReportType: async (id) => {
+//     return new Promise((resolve) => {
+//       setTimeout(() => {
+//         const index = mockReportTypes.findIndex(r => r.id === id);
+//         if (index > -1) {
+//           mockReportTypes.splice(index, 1);
+//           resolve({
+//             success: true,
+//             message: 'Report type deleted successfully',
+//           });
+//         } else {
+//           resolve({ success: false, message: 'Report type not found' });
+//         }
+//       }, 300);
+//     });
+//   },
 
-  // Update report type
-  updateReportType: async (id, updates) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const reportType = mockReportTypes.find(r => r.id === id);
-        if (reportType) {
-          Object.assign(reportType, updates);
-          resolve({ success: true, data: reportType });
-        } else {
-          resolve({ success: false, message: 'Report type not found' });
-        }
-      }, 300);
-    });
-  },
-};
+//   // Update report type
+//   updateReportType: async (id, updates) => {
+//     return new Promise((resolve) => {
+//       setTimeout(() => {
+//         const reportType = mockReportTypes.find(r => r.id === id);
+//         if (reportType) {
+//           Object.assign(reportType, updates);
+//           resolve({ success: true, data: reportType });
+//         } else {
+//           resolve({ success: false, message: 'Report type not found' });
+//         }
+//       }, 300);
+//     });
+//   },
+// };
 
-// Statistics helper
-export const AdminStatsService = {
-  getOverviewStats: async () => {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          totalUsers: mockUsers.length,
-          activeUsers: mockUsers.filter(u => u.status === 'active').length,
-          totalRoles: mockRoles.length,
-          totalReportTypes: mockReportTypes.length,
-          totalSubmittedReports: mockAllReports.length,
-          systemHealth: 'Healthy',
-        });
-      }, 300);
-    });
-  },
-};
+// // Statistics helper
+// export const AdminStatsService = {
+//   getOverviewStats: async () => {
+//     return new Promise(resolve => {
+//       setTimeout(() => {
+//         resolve({
+//           totalUsers: mockUsers.length,
+//           activeUsers: mockUsers.filter(u => u.status === 'active').length,
+//           totalRoles: mockRoles.length,
+//           totalReportTypes: mockReportTypes.length,
+//           totalSubmittedReports: mockAllReports.length,
+//           systemHealth: 'Healthy',
+//         });
+//       }, 300);
+//     });
+//   },
+// };

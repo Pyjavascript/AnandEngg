@@ -53,3 +53,24 @@ exports.submitReport = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.getAllSubmissions = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT 
+        rs.id,
+        rt.name AS title,
+        u.name AS submittedBy,
+        rs.status,
+        rs.created_at AS submittedDate
+      FROM report_submissions rs
+      JOIN report_templates rt ON rt.id = rs.template_id
+      JOIN users u ON u.id = rs.submitted_by
+      ORDER BY rs.created_at DESC
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load submissions' });
+  }
+};

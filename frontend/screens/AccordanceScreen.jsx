@@ -10,176 +10,184 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-// const reportsData = {
-//   'Cutting Inspection Report': {
-//     customers: {
-//       Vestas: [
-//         {
-//           partNo: '29314225-2',
-//           img: require('../assets/diagrams/1.png'),
-//           description: 'DOOR PLATE BOTTOM RH',
-//           docNo: 'AE – QA-IR-FCG- SC02',
-//           revNo: '00',
-//           date: '27-09-2024',
-//           dimensions: [
-//             { slNo: 1, desc: 'Total Length', spec: '647', actual: '' },
-//             { slNo: 2, desc: 'Width 1', spec: '56-1', actual: '' },
-//             { slNo: 3, desc: 'Width 2', spec: '115-1', actual: '' },
-//           ],
-//         },
-//         {
-//           partNo: '29314225-3',
-//           img: require('../assets/diagrams/2.png'),
-//           description: 'DOOR PLATE TOP RH',
-//           docNo: 'AE – QA-IR-FCG-DF05',
-//           revNo: '00',
-//           date: '27-09-2024',
-//           dimensions: [
-//             { slNo: 1, desc: 'Total Length', spec: '789', actual: '' },
-//             { slNo: 2, desc: 'Width 1', spec: '42-1', actual: '' },
-//             { slNo: 3, desc: 'Width 2', spec: '115-1', actual: '' },
-//           ],
-//         },
-//         {
-//           partNo: '29314225-5',
-//           img: require('../assets/diagrams/3.png'),
-//           description: 'DOOR WELD SUPPORT TOP',
-//           docNo: 'AE – QA-IR-FCG-DF05',
-//           revNo: '00',
-//           date: '27-09-2024',
-//           dimensions: [
-//             { slNo: 1, desc: 'Overall Length', spec: '1180-2', actual: '' },
-//             { slNo: 2, desc: 'Width', spec: '50±1', actual: '' },
-//             { slNo: 3, desc: 'Thickness', spec: '5', actual: '' },
-//             { slNo: 4, desc: 'Angle', spec: '2x45°', actual: '' },
-//             { slNo: 5, desc: 'Distance', spec: '2x10', actual: '' },
-//           ],
-//         },
-//         {
-//           partNo: '29314225-1',
-//           img: require('../assets/diagrams/4.png'),
-//           description: 'DOOR ACCESS MAIN PLATE',
-//           docNo: 'AE – QA-IR-FCG- DF1',
-//           revNo: '00',
-//           date: '27-09-2024',
-//           dimensions: [
-//             { slNo: 1, desc: 'Length', spec: '2284±2', actual: '' },
-//             { slNo: 2, desc: 'Width', spec: '1190±2', actual: '' },
-//             { slNo: 3, desc: '7mm hole distance 1', spec: '905', actual: '' },
-//             { slNo: 4, desc: '11mm hole distance 1', spec: '845', actual: '' },
-//             { slNo: 5, desc: '7mm hole distance 2', spec: '792', actual: '' },
-//             { slNo: 6, desc: '7mm hole distance 3', spec: '678', actual: '' },
-//             { slNo: 7, desc: '7mm hole distance 4', spec: '565', actual: '' },
-//             { slNo: 8, desc: '11mm hole distance 2', spec: '345', actual: '' },
-//             { slNo: 9, desc: '40mm hole distance', spec: '234', actual: '' },
-//             { slNo: 10, desc: 'Width', spec: '1180', actual: '' },
-//             { slNo: 11, desc: 'Folding Distance', spec: '120', actual: '' },
-//             {
-//               slNo: 12,
-//               desc: '11 mm hole distance 1',
-//               spec: '164',
-//               actual: '',
-//             },
-//             {
-//               slNo: 13,
-//               desc: '11 mm hole distance 2',
-//               spec: '404',
-//               actual: '',
-//             },
-//             {
-//               slNo: 14,
-//               desc: '11 mm hole distance 3',
-//               spec: '644',
-//               actual: '',
-//             },
-//             {
-//               slNo: 15,
-//               desc: '40mm Hole distance 1',
-//               spec: '1097',
-//               actual: '',
-//             },
-//             {
-//               slNo: 16,
-//               desc: '40mm Hole distance 2',
-//               spec: '1208',
-//               actual: '',
-//             },
-//             { slNo: 17, desc: '7mm hole distance', spec: '1516.5', actual: '' },
-//             {
-//               slNo: 18,
-//               desc: '11 mm hole distance 4',
-//               spec: '1574',
-//               actual: '',
-//             },
-//             {
-//               slNo: 19,
-//               desc: '11 mm hole distance 5',
-//               spec: '1814',
-//               actual: '',
-//             },
-//             {
-//               slNo: 20,
-//               desc: '11 mm hole distance 6',
-//               spec: '2045',
-//               actual: '',
-//             },
-//             { slNo: 21, desc: 'Diameter Ø', spec: '11', actual: '' },
-//             { slNo: 22, desc: 'Diameter Ø', spec: '7', actual: '' },
-//             { slNo: 23, desc: 'Diameter Ø', spec: '40', actual: '' },
-//             { slNo: 24, desc: 'Elliptical', spec: '590', actual: '' },
-//             { slNo: 25, desc: 'Elliptical', spec: '590', actual: '' },
-//           ],
-//         },
-//         {
-//           partNo: '29314225-6',
-//           img: require('../assets/diagrams/5.png'),
-//           description: 'DOOR WELD SUPPORT BOTTOM',
-//           docNo: 'AE – QA-IR-FCG- DF02',
-//           revNo: '00',
-//           date: '27-09-2024',
-//           dimensions: [
-//             { slNo: 1, desc: 'Overall Length', spec: '1180-2', actual: '' },
-//             { slNo: 2, desc: 'Width 1', spec: '50±1', actual: '' },
-//             { slNo: 3, desc: 'Width 2', spec: '34-1', actual: '' },
-//             { slNo: 4, desc: 'Distance 1', spec: '370-1', actual: '' },
-//             { slNo: 5, desc: 'Distance 2', spec: '440+1', actual: '' },
-//             { slNo: 6, desc: 'Distance 3', spec: '170±1', actual: '' },
-//             { slNo: 7, desc: 'Hole Diameter Ø', spec: '7±0.5', actual: '' },
-//             { slNo: 8, desc: 'Hole Distance', spec: '25±1', actual: '' },
-//             { slNo: 9, desc: 'Radius', spec: '2xR4', actual: '' },
-//             { slNo: 10, desc: 'Angle', spec: '45°', actual: '' },
-//             { slNo: 11, desc: 'Distance 4', spec: '2x10', actual: '' },
-//             { slNo: 12, desc: 'Thickness', spec: '5', actual: '' },
-//           ],
-//         },
-//       ],
-//     },
-//   },
-// };
+const reportsData = {
+  'Cutting Inspection Report': {
+    customers: {
+      Vestas: [
+        {
+          partNo: '29314225-2',
+          img: require('../assets/diagrams/1.png'),
+          description: 'DOOR PLATE BOTTOM RH',
+          docNo: 'AE – QA-IR-FCG- SC02',
+          revNo: '00',
+          date: '27-09-2024',
+          dimensions: [
+            { slNo: 1, desc: 'Total Length', spec: '647', actual: '' },
+            { slNo: 2, desc: 'Width 1', spec: '56-1', actual: '' },
+            { slNo: 3, desc: 'Width 2', spec: '115-1', actual: '' },
+          ],
+        },
+        {
+          partNo: '29314225-3',
+          img: require('../assets/diagrams/2.png'),
+          description: 'DOOR PLATE TOP RH',
+          docNo: 'AE – QA-IR-FCG-DF05',
+          revNo: '00',
+          date: '27-09-2024',
+          dimensions: [
+            { slNo: 1, desc: 'Total Length', spec: '789', actual: '' },
+            { slNo: 2, desc: 'Width 1', spec: '42-1', actual: '' },
+            { slNo: 3, desc: 'Width 2', spec: '115-1', actual: '' },
+          ],
+        },
+        {
+          partNo: '29314225-5',
+          img: require('../assets/diagrams/3.png'),
+          description: 'DOOR WELD SUPPORT TOP',
+          docNo: 'AE – QA-IR-FCG-DF05',
+          revNo: '00',
+          date: '27-09-2024',
+          dimensions: [
+            { slNo: 1, desc: 'Overall Length', spec: '1180-2', actual: '' },
+            { slNo: 2, desc: 'Width', spec: '50±1', actual: '' },
+            { slNo: 3, desc: 'Thickness', spec: '5', actual: '' },
+            { slNo: 4, desc: 'Angle', spec: '2x45°', actual: '' },
+            { slNo: 5, desc: 'Distance', spec: '2x10', actual: '' },
+          ],
+        },
+        {
+          partNo: '29314225-1',
+          img: require('../assets/diagrams/4.png'),
+          description: 'DOOR ACCESS MAIN PLATE',
+          docNo: 'AE – QA-IR-FCG- DF1',
+          revNo: '00',
+          date: '27-09-2024',
+          dimensions: [
+            { slNo: 1, desc: 'Length', spec: '2284±2', actual: '' },
+            { slNo: 2, desc: 'Width', spec: '1190±2', actual: '' },
+            { slNo: 3, desc: '7mm hole distance 1', spec: '905', actual: '' },
+            { slNo: 4, desc: '11mm hole distance 1', spec: '845', actual: '' },
+            { slNo: 5, desc: '7mm hole distance 2', spec: '792', actual: '' },
+            { slNo: 6, desc: '7mm hole distance 3', spec: '678', actual: '' },
+            { slNo: 7, desc: '7mm hole distance 4', spec: '565', actual: '' },
+            { slNo: 8, desc: '11mm hole distance 2', spec: '345', actual: '' },
+            { slNo: 9, desc: '40mm hole distance', spec: '234', actual: '' },
+            { slNo: 10, desc: 'Width', spec: '1180', actual: '' },
+            { slNo: 11, desc: 'Folding Distance', spec: '120', actual: '' },
+            {
+              slNo: 12,
+              desc: '11 mm hole distance 1',
+              spec: '164',
+              actual: '',
+            },
+            {
+              slNo: 13,
+              desc: '11 mm hole distance 2',
+              spec: '404',
+              actual: '',
+            },
+            {
+              slNo: 14,
+              desc: '11 mm hole distance 3',
+              spec: '644',
+              actual: '',
+            },
+            {
+              slNo: 15,
+              desc: '40mm Hole distance 1',
+              spec: '1097',
+              actual: '',
+            },
+            {
+              slNo: 16,
+              desc: '40mm Hole distance 2',
+              spec: '1208',
+              actual: '',
+            },
+            { slNo: 17, desc: '7mm hole distance', spec: '1516.5', actual: '' },
+            {
+              slNo: 18,
+              desc: '11 mm hole distance 4',
+              spec: '1574',
+              actual: '',
+            },
+            {
+              slNo: 19,
+              desc: '11 mm hole distance 5',
+              spec: '1814',
+              actual: '',
+            },
+            {
+              slNo: 20,
+              desc: '11 mm hole distance 6',
+              spec: '2045',
+              actual: '',
+            },
+            { slNo: 21, desc: 'Diameter Ø', spec: '11', actual: '' },
+            { slNo: 22, desc: 'Diameter Ø', spec: '7', actual: '' },
+            { slNo: 23, desc: 'Diameter Ø', spec: '40', actual: '' },
+            { slNo: 24, desc: 'Elliptical', spec: '590', actual: '' },
+            { slNo: 25, desc: 'Elliptical', spec: '590', actual: '' },
+          ],
+        },
+        {
+          partNo: '29314225-6',
+          img: require('../assets/diagrams/5.png'),
+          description: 'DOOR WELD SUPPORT BOTTOM',
+          docNo: 'AE – QA-IR-FCG- DF02',
+          revNo: '00',
+          date: '27-09-2024',
+          dimensions: [
+            { slNo: 1, desc: 'Overall Length', spec: '1180-2', actual: '' },
+            { slNo: 2, desc: 'Width 1', spec: '50±1', actual: '' },
+            { slNo: 3, desc: 'Width 2', spec: '34-1', actual: '' },
+            { slNo: 4, desc: 'Distance 1', spec: '370-1', actual: '' },
+            { slNo: 5, desc: 'Distance 2', spec: '440+1', actual: '' },
+            { slNo: 6, desc: 'Distance 3', spec: '170±1', actual: '' },
+            { slNo: 7, desc: 'Hole Diameter Ø', spec: '7±0.5', actual: '' },
+            { slNo: 8, desc: 'Hole Distance', spec: '25±1', actual: '' },
+            { slNo: 9, desc: 'Radius', spec: '2xR4', actual: '' },
+            { slNo: 10, desc: 'Angle', spec: '45°', actual: '' },
+            { slNo: 11, desc: 'Distance 4', spec: '2x10', actual: '' },
+            { slNo: 12, desc: 'Thickness', spec: '5', actual: '' },
+          ],
+        },
+      ],
+    },
+  },
+};
 
 const AccordanceScreen = ({ navigation }) => {
   const [reportType, setReportType] = useState('');
   const [customer, setCustomer] = useState('');
   const [part, setPart] = useState(null);
-  const [templates, setTemplates] = useState([]);
-  useEffect(() => {
-    const loadTemplates = async () => {
-      const token = await AsyncStorage.getItem('token');
-      const res = await axios.get(`${BASE_URL}/api/admin/report-templates`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTemplates(res.data);
-    };
-    loadTemplates();
-  }, []);
+  // const [templates, setTemplates] = useState([]);
+  // useEffect(() => {
+  //   const loadTemplates = async () => {
+  //     const token = await AsyncStorage.getItem('token');
+  //     const res = await axios.get(`${BASE_URL}/api/admin/report-templates`, {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  //     setTemplates(res.data);
+  //   };
+  //   loadTemplates();
+  // }, []);
 
   const handleGoToReport = () => {
-    const selectedTemplate = templates.find(t => t.id === reportType);
+     if (!reportType || !customer || !part) {
+      alert('Please select all fields!');
+      return;
+     }
+
+    // const selectedTemplate = templates.find(t => t.id === reportType);
 
     navigation.navigate('AddEntry', {
-      templateId: selectedTemplate.id,
-      templateSchema: selectedTemplate.template_schema,
-      templateName: selectedTemplate.name,
+      // templateId: selectedTemplate.id,
+      // templateSchema: selectedTemplate.template_schema,
+      // templateName: selectedTemplate.name,
+      reportType,
+      customer,
+      part,
     });
     // if (!reportType || !customer || !part) {
     //   alert('Please select all fields!');
@@ -244,18 +252,18 @@ const AccordanceScreen = ({ navigation }) => {
               dropdownIconColor="#286DA6"
             >
               <Picker.Item label="-- Select Report Type --" value="" />
-              {/* {Object.keys(reportsData).map(r => (
+              {Object.keys(reportsData).map(r => (
                 <Picker.Item key={r} label={r} value={r} />
-              ))} */}
-              {templates.map(t => (
-                <Picker.Item key={t.id} label={t.name} value={t.id} />
               ))}
+              {/* {templates.map(t => (
+                <Picker.Item key={t.id} label={t.name} value={t.id} />
+              ))} */}
             </Picker>
           </View>
         </View>
 
         {/* Step 2: Customer */}
-        {/* {reportType ? (
+        {reportType ? (
           <View style={styles.stepContainer}>
             <View style={styles.stepHeader}>
               <View style={styles.stepNumber}>
@@ -287,10 +295,10 @@ const AccordanceScreen = ({ navigation }) => {
               </Picker>
             </View>
           </View>
-        ) : null} */}
+        ) : null} 
 
         {/* Step 3: Part */}
-        {/* {customer ? (
+        {customer ? (
           <View style={styles.stepContainer}>
             <View style={styles.stepHeader}>
               <View style={styles.stepNumber}>
@@ -328,7 +336,7 @@ const AccordanceScreen = ({ navigation }) => {
               </Picker>
             </View>
           </View>
-        ) : null} */}
+        ) : null} 
 
         {/* Part Preview */}
         {part ? (
