@@ -27,3 +27,19 @@ exports.createTemplate = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.getActiveTemplates = async (req, res) => {
+  try {
+    console.log('HIT: getActiveTemplates');
+    const [rows] = await db.query(`
+      SELECT id, name, code, template_schema
+      FROM report_templates
+      WHERE status = 'active'
+    `);
+
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load templates' });
+  }
+};
+

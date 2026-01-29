@@ -10,6 +10,7 @@ const reportRoutes = require('./routes/reportRoutes')
 const adminRoutes = require('./routes/adminRoutes');
 const reportTemplateRoutes = require('./routes/reportTemplate.routes')
 const reportSubmissionRoutes = require('./routes/reportSubmission.routes');
+const publicReportTemplateRoutes = require('./routes/publicReportTemplates.routes')
 const db = require('./config/db');
 
 const app = express();
@@ -38,6 +39,8 @@ app.use('/api/report', reportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/',reportTemplateRoutes)
 app.use('/api/reports', reportSubmissionRoutes);
+app.use('/api/report-templates', publicReportTemplateRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('Backend is live');
