@@ -1,4 +1,5 @@
 const User = require('../models/userModel');
+const db = require('../config/db')
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -71,5 +72,31 @@ exports.getAllRoles = async (req, res) => {
     res.json(roles);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch roles' });
+  }
+};
+
+exports.getStats = async (req, res) => {
+  try {
+    const [[user]] = await db.query(
+      'SELECT COUNT(*) AS total FROM users'
+    );
+
+    const [[reports]] = await db.query(
+      'SELECT COUNT(*) AS total FROM reports'
+    );
+
+    const [[roles]] = await db.query(
+      'SELECT COUNT(DISTINCT role) AS total FROM users;'
+    );
+
+    res.json({
+        users: user.total,
+        reports: reports.total,
+        roles:roles.total
+        
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch stats' });
   }
 };
