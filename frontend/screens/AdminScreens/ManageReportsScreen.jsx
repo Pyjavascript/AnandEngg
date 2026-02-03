@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import { ReportTypeService } from '../../utils/mockData';
+import reportApi from '../../utils/reportApi';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
 
@@ -56,12 +56,22 @@ const ManageReportsScreen = ({ navigation }) => {
       const loadData = async () => {
         setLoading(true);
         try {
-          const [typesData, reportsData] = await Promise.all([
-            ReportTypeService.getAllReportTypes(),
-            ReportTypeService.getAllReports(),
+          const [typesData, submissionsData] = await Promise.all([
+            reportApi.getCategories(),
+            reportApi.getAllSubmissions().catch(() => []),
           ]);
-          setReportTypes(typesData);
-          setAllReports(reportsData);
+          // map categories to UI shape expected previously
+          const mapped = typesData.map(c => ({
+            id: c.id,
+            name: c.name,
+            code: c.code || '',
+            description: '',
+            frequency: 'Custom',
+            status: 'active',
+            submittedCount: 0,
+          }));
+          setReportTypes(mapped);
+          setAllReports(submissionsData || []);
         } catch (err) {
           showAlert('error', 'Failed to load data');
           console.log('Failed to load', err);
@@ -83,26 +93,41 @@ const ManageReportsScreen = ({ navigation }) => {
     setAddReportModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const result = await ReportTypeService.addReportType({
-        name: addReportModal.name,
-        code: addReportModal.code.toUpperCase(),
-        description: addReportModal.description,
-        frequency: addReportModal.frequency,
-        status: 'active',
+      // create category first
+      const catRes = await reportApi.createCategory(addReportModal.name);
+      const categoryId = catRes.id || catRes.insertId;
+
+      // create template referencing the new category
+      const tplRes = await reportApi.createTemplate({
+        category_id: categoryId,
+        doc_no: addReportModal.code.toUpperCase(),
+        customer: '',
+        part_no: '',
+        part_description: addReportModal.description,
+        rev_no: '',
       });
 
-      if (result.success) {
-        setReportTypes([...reportTypes, result.data]);
-        showAlert('success', 'Success', 'Report type added successfully');
-        setAddReportModal({
-          visible: false,
-          name: '',
-          code: '',
-          description: '',
-          frequency: 'Daily',
-          isLoading: false,
-        });
-      }
+      // update UI list by reloading categories
+      const typesData = await reportApi.getCategories();
+      const mapped = typesData.map(c => ({
+        id: c.id,
+        name: c.name,
+        code: c.code || '',
+        description: '',
+        frequency: 'Custom',
+        status: 'active',
+        submittedCount: 0,
+      }));
+      setReportTypes(mapped);
+      showAlert('success', 'Success', 'Report template created');
+      setAddReportModal({
+        visible: false,
+        name: '',
+        code: '',
+        description: '',
+        frequency: 'Daily',
+        isLoading: false,
+      });
     } catch (err) {
       showAlert('error', 'Error', 'Failed to add report type');
       console.log('Error:', err);
@@ -116,13 +141,9 @@ const ManageReportsScreen = ({ navigation }) => {
 
     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      const result = await ReportTypeService.deleteReportType(confirmDialog.reportId);
-      if (result.success) {
-        setReportTypes(reportTypes.filter(r => r.id !== confirmDialog.reportId));
-        showAlert('success', 'Success', 'Report type deleted successfully');
-      } else {
-        showAlert('error', 'Error', result.message || 'Failed to delete');
-      }
+      await reportApi.deleteCategory(confirmDialog.reportId);
+      setReportTypes(reportTypes.filter(r => r.id !== confirmDialog.reportId));
+      showAlert('success', 'Success', 'Report type deleted successfully');
     } catch (err) {
       showAlert('error', 'Error', 'Failed to delete');
       console.log('Error:', err);

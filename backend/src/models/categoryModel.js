@@ -14,3 +14,11 @@ exports.getAll = async () => {
   );
   return rows;
 };
+
+exports.delete = async (id) => {
+  const [result] = await db.query(
+    'DELETE FROM report_categories WHERE id = ?',
+    [id]
+  );
+  return result;
+};

@@ -166,3 +166,7 @@ SELECT * FROM report_templates;
  SELECT id, name, code, template_schema
       FROM report_templates
       WHERE status = 'active';
+
+-- Ensure diagram_url exists on report_templates (safe for incremental migrations)
+ALTER TABLE report_templates
+ADD COLUMN IF NOT EXISTS diagram_url TEXT;
