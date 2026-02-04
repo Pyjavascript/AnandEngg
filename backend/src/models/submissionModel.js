@@ -54,12 +54,19 @@ exports.updateManagerReview = async (submissionId, managerId, remarks, approved)
 
 exports.listAll = async () => {
   const [rows] = await db.query(
-    `SELECT rs.id, rs.template_id, rs.submitted_by, rs.status, rs.created_at,
-            u.name as submitted_by_name, rt.name as template_name
-     FROM report_submissions rs
-     LEFT JOIN users u ON u.id = rs.submitted_by
-     LEFT JOIN report_templates rt ON rt.id = rs.template_id
-     ORDER BY rs.created_at DESC`
+    `SELECT
+  rs.id,
+  rs.template_id,
+  rs.employee_id AS submitted_by,
+  rs.status,
+  rs.created_at,
+  u.name AS submitted_by_name,
+  COALESCE(rt.part_description, rt.doc_no, rt.part_no) AS template_label
+FROM report_submissions rs
+LEFT JOIN users u ON u.id = rs.employee_id
+LEFT JOIN report_templates rt ON rt.id = rs.template_id
+ORDER BY rs.created_at DESC;
+`
   );
   return rows;
 };
