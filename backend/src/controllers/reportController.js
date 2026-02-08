@@ -1,6 +1,7 @@
 const categoryModel = require('../models/categoryModel');
 const templateModel = require('../models/templateModel');
 const submissionModel = require('../models/submissionModel');
+const db = require('../config/db');
 const path = require('path');
 
 function requireRole(user, roleName) {
@@ -174,5 +175,180 @@ exports.ListSubmissions = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.CreateInspectionReport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const data = req.body;
+
+    if (!data.dimensions || !Array.isArray(data.dimensions)) {
+      return res.status(400).json({ message: 'Dimensions array is required' });
+    }
+
+    // Transform frontend data into submission format
+    const submissionData = {
+      template_id: data.templateId || 'unknown',
+      employee_id: userId,
+      inspection_date: data.inspectionDate,
+      shift: data.shift,
+      customer: data.customer,
+      part_no: data.partNumber,
+      doc_no: data.docNo,
+      rev_no: data.revNo,
+      visual_observation: data.visualObservation || '',
+      remarks: data.remarks || '',
+      report_data: JSON.stringify({
+        dimensions: data.dimensions,
+        visualObservation: data.visualObservation,
+        remarks: data.remarks,
+      }),
+      status: 'submitted',
+    };
+
+    // Create submission directly with JSON data
+    const [result] = await db.query(
+      `INSERT INTO reports (user_id, title, part_no, report_type, report_data, status)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        userId,
+        `Inspection Report - ${data.partNumber}`,
+        data.partNumber,
+        data.reportType,
+        submissionData.report_data,
+        'pending'
+      ]
+    );
+
+    res.status(201).json({ 
+      message: 'Inspection report submitted successfully', 
+      id: result.insertId 
+    });
+  } catch (err) {
+    console.log('Error creating inspection report:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.GetAllInjectionReports = async (req, res) => {
+  try {
+    const [reports] = await db.query(
+      `SELECT 
+        r.id,
+        r.user_id,
+        r.title,
+        r.part_no,
+        r.report_type,
+        r.report_data,
+        r.status,
+        r.created_at,
+        u.name as submitted_by,
+        u.employee_id
+       FROM reports r
+       LEFT JOIN users u ON r.user_id = u.id
+       ORDER BY r.created_at DESC`
+    );
+    res.json(reports || []);
+  } catch (err) {
+    console.log('Error fetching reports:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.GetReportTypesWithStats = async (req, res) => {
+  try {
+    // Get all unique report types with submission count
+    const [stats] = await db.query(
+      `SELECT 
+        report_type,
+        COUNT(*) as submission_count,
+        MIN(created_at) as first_created,
+        MAX(created_at) as last_created
+       FROM reports
+       GROUP BY report_type
+       ORDER BY report_type`
+    );
+
+    res.json(stats || []);
+  } catch (err) {
+    console.log('Error fetching report stats:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.GetAllTemplatesWithParts = async (req, res) => {
+  try {
+    const templates = await templateModel.getAllTemplatesWithDimensions();
+    
+    // Get the base URL for images
+    const protocol = req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3001';
+    const baseImageUrl = `${protocol}://${host}`;
+    
+    // Structure data similar to the frontend format
+    const result = {};
+    
+    for (const template of templates) {
+      // Use template name or a default if not available
+      const templateName = template.name || 'Inspection Report';
+      
+      // Initialize template structure if not exists
+      if (!result[templateName]) {
+        result[templateName] = { customers: {} };
+      }
+      
+      // Get customer from template
+      const customer = template.customer || 'General';
+      
+      // Initialize customer array if not exists
+      if (!result[templateName].customers[customer]) {
+        result[templateName].customers[customer] = [];
+      }
+      
+      // Fetch actual fields from template_fields table
+      let dimensions = [];
+      try {
+        const fields = await templateModel.getFields(template.id);
+        dimensions = fields.map((field, idx) => ({
+          slNo: field.position || idx + 1,
+          desc: field.label || '',
+          spec: field.specification || '',
+          unit: field.unit || 'mm',
+          actual: '',
+        }));
+      } catch (e) {
+        console.log('Error fetching fields:', e);
+        dimensions = [];
+      }
+      
+      // Construct full image URL
+      let imageUrl = '';
+      if (template.diagram_url) {
+        imageUrl = template.diagram_url.startsWith('http') 
+          ? template.diagram_url 
+          : `${baseImageUrl}/${template.diagram_url}`;
+      }
+      
+      // Add template as a part entry
+      const partEntry = {
+        partNo: template.part_no || template.code || `PART-${template.id}`,
+        img: { uri: imageUrl },
+        description: template.part_description || template.description || '',
+        docNo: template.doc_no || '',
+        revNo: template.rev_no || '00',
+        date: template.created_at ? new Date(template.created_at).toLocaleDateString('en-GB') : '',
+        dimensions: dimensions,
+        templateId: template.id,
+      };
+      
+      result[templateName].customers[customer].push(partEntry);
+    }
+    
+    res.json(result);
+  } catch (err) {
+    console.log('Error in GetAllTemplatesWithParts:', err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
 
 

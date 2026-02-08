@@ -50,4 +50,26 @@ exports.getFields = async (templateId) => {
   return rows;
 };
 
+exports.getAllTemplates = async () => {
+  const [rows] = await db.query(
+    `SELECT * FROM report_templates WHERE status = 'active' ORDER BY created_at DESC`
+  );
+  return rows;
+};
+
+exports.getPartsForTemplate = async (templateId) => {
+  const [rows] = await db.query(
+    `SELECT * FROM report_parts WHERE template_id = ? ORDER BY created_at DESC`,
+    [templateId]
+  );
+  return rows;
+};
+
+exports.getAllTemplatesWithDimensions = async () => {
+  const [rows] = await db.query(
+    `SELECT * FROM report_templates ORDER BY created_at DESC`
+  );
+  return rows;
+};
+
 module.exports = exports;

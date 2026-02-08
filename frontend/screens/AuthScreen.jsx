@@ -237,21 +237,20 @@ const AuthScreen = ({ navigation }) => {
   //   if (!isLogin) loadRoles();
   // }, [isLogin]);
   useEffect(() => {
-  const loadRoles = async () => {
-    try {
-      const res = await fetch(`${BASE_URL}/api/roles`);
-      const data = await res.json();
+    const loadRoles = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/roles`);
+        const data = await res.json();
 
-      console.log('ROLES FROM API:', data); // 👈 must check once
-      setRoles(data);
-    } catch (err) {
-      console.log('Failed to load roles', err);
-    }
-  };
+        console.log('ROLES FROM API:', data); // 👈 must check once
+        setRoles(data);
+      } catch (err) {
+        console.log('Failed to load roles', err);
+      }
+    };
 
-  if (!isLogin) loadRoles();
-}, [isLogin]);
-
+    if (!isLogin) loadRoles();
+  }, [isLogin]);
 
   return (
     <KeyboardAvoidingView
@@ -597,6 +596,13 @@ const AuthScreen = ({ navigation }) => {
             </View>
           </View>
         </View>
+        {/* <CustomAlert
+          visible={alert.visible}
+          type={alert.type}
+          title={alert.title}
+          message={alert.message}
+          onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
+        /> */}
         <CustomAlert
           visible={alert.visible}
           type={alert.type}

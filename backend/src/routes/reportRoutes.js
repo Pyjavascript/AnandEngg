@@ -26,11 +26,16 @@ router.post('/templates', auth, ReportController.CreateTemplate);
 router.post('/templates/:id/diagram', auth, upload.single('diagram'), ReportController.UploadDiagram);
 router.post('/templates/:id/fields', auth, ReportController.CreateField);
 router.get('/templates/:id', auth, ReportController.GetTemplateById);
+router.get('/templates-with-parts', auth, ReportController.GetAllTemplatesWithParts);
+
 
 // Submissions (employee)
 router.post('/submissions', auth, ReportController.CreateSubmission);
+router.post('/create', auth, ReportController.CreateInspectionReport);
 router.get('/submissions', auth, ReportController.ListSubmissions);
 router.get('/submissions/:id', auth, ReportController.GetSubmissionById);
+router.get('/reports-all', auth, ReportController.GetAllInjectionReports);
+router.get('/reports-stats', auth, ReportController.GetReportTypesWithStats);
 
 // Reviewer actions
 router.put('/submissions/:id/inspect', auth, ReportController.InspectorReview);

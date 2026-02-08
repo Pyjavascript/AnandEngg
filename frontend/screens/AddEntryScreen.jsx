@@ -283,7 +283,7 @@ export default function AddEntryScreen({ route, navigation }) {
                 <View style={styles.dimensionInfo}>
                   <Text style={styles.dimensionDesc}>{d.desc}</Text>
                   <Text style={styles.dimensionSpec}>
-                    Specification: {d.spec}
+                    Specification: {d.spec} {d.unit ? `(${d.unit})` : ''}
                   </Text>
                 </View>
               </View>
