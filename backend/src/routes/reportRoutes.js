@@ -31,11 +31,11 @@ router.get('/templates-with-parts', auth, ReportController.GetAllTemplatesWithPa
 
 // Submissions (employee)
 router.post('/submissions', auth, ReportController.CreateSubmission);
-router.post('/create', auth, ReportController.CreateInspectionReport);
+// router.post('/create', auth, ReportController.CreateInspectionReport);
 router.get('/submissions', auth, ReportController.ListSubmissions);
 router.get('/submissions/:id', auth, ReportController.GetSubmissionById);
-router.get('/reports-all', auth, ReportController.GetAllInjectionReports);
-router.get('/reports-stats', auth, ReportController.GetReportTypesWithStats);
+// router.get('/reports-all', auth, ReportController.GetAllInjectionReports);
+// router.get('/reports-stats', auth, ReportController.GetReportTypesWithStats);
 
 // Reviewer actions
 router.put('/submissions/:id/inspect', auth, ReportController.InspectorReview);

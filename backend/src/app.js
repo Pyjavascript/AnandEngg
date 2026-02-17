@@ -32,7 +32,7 @@ app.use('/api/report', reportRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
-app.use('/api', categoryRoutes);
+// app.use('/api', categoryRoutes);
 
 /* ───── Health Checks ───── */
 app.get('/', (req, res) => {

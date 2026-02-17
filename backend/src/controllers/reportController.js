@@ -176,104 +176,104 @@ exports.ListSubmissions = async (req, res) => {
   }
 };
 
-exports.CreateInspectionReport = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const data = req.body;
+// exports.CreateInspectionReport = async (req, res) => {
+//   try {
+//     const userId = req.user.id;
+//     const data = req.body;
 
-    if (!data.dimensions || !Array.isArray(data.dimensions)) {
-      return res.status(400).json({ message: 'Dimensions array is required' });
-    }
+//     if (!data.dimensions || !Array.isArray(data.dimensions)) {
+//       return res.status(400).json({ message: 'Dimensions array is required' });
+//     }
 
-    // Transform frontend data into submission format
-    const submissionData = {
-      template_id: data.templateId || 'unknown',
-      employee_id: userId,
-      inspection_date: data.inspectionDate,
-      shift: data.shift,
-      customer: data.customer,
-      part_no: data.partNumber,
-      doc_no: data.docNo,
-      rev_no: data.revNo,
-      visual_observation: data.visualObservation || '',
-      remarks: data.remarks || '',
-      report_data: JSON.stringify({
-        dimensions: data.dimensions,
-        visualObservation: data.visualObservation,
-        remarks: data.remarks,
-      }),
-      status: 'submitted',
-    };
+//     // Transform frontend data into submission format
+//     const submissionData = {
+//       template_id: data.templateId || 'unknown',
+//       employee_id: userId,
+//       inspection_date: data.inspectionDate,
+//       shift: data.shift,
+//       customer: data.customer,
+//       part_no: data.partNumber,
+//       doc_no: data.docNo,
+//       rev_no: data.revNo,
+//       visual_observation: data.visualObservation || '',
+//       remarks: data.remarks || '',
+//       report_data: JSON.stringify({
+//         dimensions: data.dimensions,
+//         visualObservation: data.visualObservation,
+//         remarks: data.remarks,
+//       }),
+//       status: 'submitted',
+//     };
 
-    // Create submission directly with JSON data
-    const [result] = await db.query(
-      `INSERT INTO reports (user_id, title, part_no, report_type, report_data, status)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        `Inspection Report - ${data.partNumber}`,
-        data.partNumber,
-        data.reportType,
-        submissionData.report_data,
-        'pending'
-      ]
-    );
+//     // Create submission directly with JSON data
+//     const [result] = await db.query(
+//       `INSERT INTO reports (user_id, title, part_no, report_type, report_data, status)
+//        VALUES (?, ?, ?, ?, ?, ?)`,
+//       [
+//         userId,
+//         `Inspection Report - ${data.partNumber}`,
+//         data.partNumber,
+//         data.reportType,
+//         submissionData.report_data,
+//         'pending'
+//       ]
+//     );
 
-    res.status(201).json({ 
-      message: 'Inspection report submitted successfully', 
-      id: result.insertId 
-    });
-  } catch (err) {
-    console.log('Error creating inspection report:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
+//     res.status(201).json({ 
+//       message: 'Inspection report submitted successfully', 
+//       id: result.insertId 
+//     });
+//   } catch (err) {
+//     console.log('Error creating inspection report:', err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
-exports.GetAllInjectionReports = async (req, res) => {
-  try {
-    const [reports] = await db.query(
-      `SELECT 
-        r.id,
-        r.user_id,
-        r.title,
-        r.part_no,
-        r.report_type,
-        r.report_data,
-        r.status,
-        r.created_at,
-        u.name as submitted_by,
-        u.employee_id
-       FROM reports r
-       LEFT JOIN users u ON r.user_id = u.id
-       ORDER BY r.created_at DESC`
-    );
-    res.json(reports || []);
-  } catch (err) {
-    console.log('Error fetching reports:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
+// exports.GetAllInjectionReports = async (req, res) => {
+//   try {
+//     const [reports] = await db.query(
+//       `SELECT 
+//         r.id,
+//         r.user_id,
+//         r.title,
+//         r.part_no,
+//         r.report_type,
+//         r.report_data,
+//         r.status,
+//         r.created_at,
+//         u.name as submitted_by,
+//         u.employee_id
+//        FROM reports r
+//        LEFT JOIN users u ON r.user_id = u.id
+//        ORDER BY r.created_at DESC`
+//     );
+//     res.json(reports || []);
+//   } catch (err) {
+//     console.log('Error fetching reports:', err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
-exports.GetReportTypesWithStats = async (req, res) => {
-  try {
-    // Get all unique report types with submission count
-    const [stats] = await db.query(
-      `SELECT 
-        report_type,
-        COUNT(*) as submission_count,
-        MIN(created_at) as first_created,
-        MAX(created_at) as last_created
-       FROM reports
-       GROUP BY report_type
-       ORDER BY report_type`
-    );
+// exports.GetReportTypesWithStats = async (req, res) => {
+//   try {
+//     // Get all unique report types with submission count
+//     const [stats] = await db.query(
+//       `SELECT 
+//         report_type,
+//         COUNT(*) as submission_count,
+//         MIN(created_at) as first_created,
+//         MAX(created_at) as last_created
+//        FROM reports
+//        GROUP BY report_type
+//        ORDER BY report_type`
+//     );
 
-    res.json(stats || []);
-  } catch (err) {
-    console.log('Error fetching report stats:', err);
-    res.status(500).json({ message: err.message });
-  }
-};
+//     res.json(stats || []);
+//   } catch (err) {
+//     console.log('Error fetching report stats:', err);
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 exports.GetAllTemplatesWithParts = async (req, res) => {
   try {
