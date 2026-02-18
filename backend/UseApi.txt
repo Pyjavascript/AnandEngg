@@ -1,0 +1,531 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                       BACKEND API DOCUMENTATION                            ║
+║                         All Endpoints & Demo Inputs                        ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+BASE URL: http://localhost:5000/api
+AUTHENTICATION: Include authorization token in header: Authorization: Bearer <token>
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                               AUTHENTICATION
+═══════════════════════════════════════════════════════════════════════════════
+
+1. REGISTER USER
+   Method: POST
+   Endpoint: /auth/register
+   Auth Required: NO
+   Description: Create a new user account with employee details
+
+   Demo Input (JSON Body):
+   {
+     "name": "John Doe",
+     "employeeId": "EMP001",
+     "email": "john.doe@company.com",
+     "phone": "9876543210",
+     "role": "machine_operator",
+     "password": "securePassword123",
+     "confirmPassword": "securePassword123"
+   }
+
+   Valid Roles: machine_operator, quality_inspector, quality_manager, admin
+   Status Codes: 201 (Success), 400 (Validation Error), 500 (Server Error)
+
+
+2. LOGIN USER
+   Method: POST
+   Endpoint: /auth/login
+   Auth Required: NO
+   Description: Authenticate user and receive JWT token for subsequent requests
+
+   Demo Input (JSON Body):
+   {
+     "employeeId": "EMP001",
+     "password": "securePassword123"
+   }
+
+   Response: { "message": "Login successful", "token": "jwt....", "user": {...} }
+   Status Codes: 200 (Success), 401 (Invalid Credentials), 403 (Account Inactive)
+
+
+3. GET CURRENT USER PROFILE
+   Method: GET
+   Endpoint: /auth/me
+   Auth Required: YES
+   Description: Retrieve logged-in user's profile information
+
+   Demo Input: No body required. Token in Authorization header.
+
+   Response: { "user": { "id": 1, "name": "John Doe", "role": "machine_operator", ... } }
+   Status Codes: 200 (Success), 401 (Unauthorized)
+
+
+4. UPDATE PROFILE
+   Method: PUT
+   Endpoint: /auth/profile
+   Auth Required: YES
+   Description: Update user's personal information (name, email, phone)
+
+   Demo Input (JSON Body):
+   {
+     "name": "John Smith",
+     "email": "john.smith@company.com",
+     "phone": "9988776655"
+   }
+
+   Response: { "message": "Profile updated successfully" }
+   Status Codes: 200 (Success), 400 (Missing Fields), 401 (Unauthorized), 500 (Error)
+
+
+5. CHANGE PASSWORD
+   Method: PUT
+   Endpoint: /auth/change-password
+   Auth Required: YES
+   Description: Change user password after verifying current password
+
+   Demo Input (JSON Body):
+   {
+     "currentPassword": "oldPassword123",
+     "newPassword": "newPassword456",
+     "confirmPassword": "newPassword456"
+   }
+
+   Response: { "message": "Password changed successfully" }
+   Status Codes: 200 (Success), 400 (Mismatch/Missing), 401 (Wrong Current), 500 (Error)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              USER MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+6. GET USER BY EMPLOYEE ID
+   Method: GET
+   Endpoint: /users/:employeeId
+   Auth Required: YES
+   Description: Fetch specific user details by employee ID (password excluded)
+
+   Demo Request: GET /users/EMP001
+
+   Response: { "id": 1, "name": "John Doe", "employeeId": "EMP001", "email": ..., "role": ... }
+   Status Codes: 200 (Success), 404 (Not Found), 500 (Error)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                           REPORTS & TEMPLATES
+═══════════════════════════════════════════════════════════════════════════════
+
+7. CREATE CATEGORY
+   Method: POST
+   Endpoint: /report/categories
+   Auth Required: YES (Admin Only)
+   Description: Create a new category for organizing reports
+
+   Demo Input (JSON Body):
+   {
+     "name": "Injection Molding"
+   }
+
+   Response: { "message": "Category created", "id": 5 }
+   Status Codes: 201 (Created), 400 (Missing Name), 403 (Not Admin), 500 (Error)
+
+
+8. GET ALL CATEGORIES
+   Method: GET
+   Endpoint: /report/categories
+   Auth Required: YES
+   Description: Retrieve all available report categories
+
+   Demo Request: GET /report/categories
+
+   Response: [ { "id": 1, "name": "Category 1" }, { "id": 2, "name": "Category 2" } ]
+   Status Codes: 200 (Success), 500 (Error)
+
+
+9. DELETE CATEGORY
+   Method: DELETE
+   Endpoint: /report/categories/:id
+   Auth Required: YES (Admin Only)
+   Description: Remove a category by ID
+
+   Demo Request: DELETE /report/categories/5
+
+   Response: { "message": "Category deleted" }
+   Status Codes: 200 (Success), 403 (Not Admin), 500 (Error)
+
+
+10. CREATE TEMPLATE
+    Method: POST
+    Endpoint: /report/templates
+    Auth Required: YES (Admin Only)
+    Description: Create a new inspection report template with metadata
+
+    Demo Input (JSON Body):
+    {
+      "name": "Gear Inspection",
+      "category_id": 1,
+      "part_no": "GEAR-001",
+      "part_description": "Stainless Steel Gear",
+      "doc_no": "DOC-2024-001",
+      "rev_no": "01",
+      "customer": "Client A",
+      "description": "Standard gear inspection template"
+    }
+
+    Response: { "message": "Template created", "id": 10 }
+    Status Codes: 201 (Created), 403 (Not Admin), 500 (Error)
+
+
+11. UPLOAD DIAGRAM FOR TEMPLATE
+    Method: POST
+    Endpoint: /report/templates/:id/diagram
+    Auth Required: YES (Admin Only)
+    Content-Type: multipart/form-data
+    Description: Upload a diagram/image file for template reference
+
+    Demo Request: 
+    - URL: /report/templates/10/diagram
+    - Form Data: diagram (file field - JPG/PNG image)
+
+    Response: { "message": "Uploaded", "url": "/uploads/diagrams/1708123456-diagram.jpg" }
+    Status Codes: 200 (Success), 400 (No File), 403 (Not Admin), 500 (Error)
+
+
+12. CREATE TEMPLATE FIELD
+    Method: POST
+    Endpoint: /report/templates/:id/fields
+    Auth Required: YES (Admin Only)
+    Description: Add a measurement field/dimension to a template
+
+    Demo Input (JSON Body):
+    {
+      "label": "Outer Diameter",
+      "specification": "50 ± 0.5",
+      "unit": "mm",
+      "position": 1,
+      "type": "measurement"
+    }
+
+    Response: { "message": "Field added", "id": 45 }
+    Status Codes: 201 (Created), 403 (Not Admin), 500 (Error)
+
+
+13. GET TEMPLATE BY ID
+    Method: GET
+    Endpoint: /report/templates/:id
+    Auth Required: YES
+    Description: Fetch complete template with all fields and metadata
+
+    Demo Request: GET /report/templates/10
+
+    Response: { "template": {...}, "fields": [{...}, {...}] }
+    Status Codes: 200 (Success), 404 (Not Found), 500 (Error)
+
+
+14. GET ALL TEMPLATES WITH PARTS
+    Method: GET
+    Endpoint: /report/templates-with-parts
+    Auth Required: YES
+    Description: Retrieve all templates organized by category and customer with full details
+
+    Demo Request: GET /report/templates-with-parts
+
+    Response: 
+    {
+      "Gear Inspection": {
+        "customers": {
+          "Client A": [
+            {
+              "partNo": "GEAR-001",
+              "img": { "uri": "http://...../uploads/diagrams/..." },
+              "description": "...",
+              "docNo": "DOC-2024-001",
+              "revNo": "01",
+              "date": "17/02/2026",
+              "dimensions": [
+                { "slNo": 1, "desc": "Outer Diameter", "spec": "50 ± 0.5", "unit": "mm", "actual": "" }
+              ],
+              "templateId": 10
+            }
+          ]
+        }
+      }
+    }
+    Status Codes: 200 (Success), 500 (Error)
+
+
+15. CREATE SUBMISSION
+    Method: POST
+    Endpoint: /report/submissions
+    Auth Required: YES (Machine Operator/Employee)
+    Description: Submit completed inspection report with all measurement values
+
+    Demo Input (JSON Body):
+    {
+      "template_id": 10,
+      "inspection_date": "2026-02-17",
+      "shift": "Morning",
+      "values": [
+        {
+          "field_id": 45,
+          "value": "50.2"
+        },
+        {
+          "field_id": 46,
+          "value": "25.1"
+        }
+      ]
+    }
+
+    Response: { "message": "Submitted", "id": 120 }
+    Status Codes: 201 (Created), 400 (Missing Data), 500 (Error)
+
+
+16. GET ALL SUBMISSIONS
+    Method: GET
+    Endpoint: /report/submissions
+    Auth Required: YES
+    Description: List all submitted inspection reports
+
+    Demo Request: GET /report/submissions
+
+    Response: [ { "id": 120, "template_id": 10, "employee_id": 1, "status": "submitted", ... }, ... ]
+    Status Codes: 200 (Success), 500 (Error)
+
+
+17. GET SUBMISSION BY ID
+    Method: GET
+    Endpoint: /report/submissions/:id
+    Auth Required: YES
+    Description: Retrieve complete submission details with all values and reviews
+
+    Demo Request: GET /report/submissions/120
+
+    Response: { "submission": {...}, "values": [{...}, {...}] }
+    Status Codes: 200 (Success), 404 (Not Found), 500 (Error)
+
+
+18. INSPECTOR REVIEW SUBMISSION
+    Method: PUT
+    Endpoint: /report/submissions/:id/inspect
+    Auth Required: YES (Quality Inspector Only)
+    Description: Inspector reviews and approves/rejects submission with observations
+
+    Demo Input (JSON Body):
+    {
+      "observation": "All dimensions within tolerance",
+      "remarks": "Approved - good quality observed"
+    }
+
+    Response: { "message": "Marked as inspector_reviewed" }
+    Status Codes: 200 (Success), 403 (Not Inspector), 500 (Error)
+
+
+19. MANAGER REVIEW SUBMISSION
+    Method: PUT
+    Endpoint: /report/submissions/:id/manager
+    Auth Required: YES (Quality Manager Only)
+    Description: Manager final review and approval/rejection of submission
+
+    Demo Input (JSON Body):
+    {
+      "remarks": "Final approval - all checks passed",
+      "approved": true
+    }
+
+    Alternative (Rejection):
+    {
+      "remarks": "Rejected - further inspection needed",
+      "approved": false
+    }
+
+    Response: { "message": "Manager approved" } or { "message": "Manager rejected" }
+    Status Codes: 200 (Success), 403 (Not Manager), 500 (Error)
+
+
+20. REJECT SUBMISSION
+    Method: PUT
+    Endpoint: /report/submissions/:id/reject
+    Auth Required: YES (Inspector or Manager Only)
+    Description: Reject a submission at any stage (Inspector or Manager role)
+
+    Demo Input (JSON Body): No specific body required, role determines rejection source
+
+    Response: { "message": "Rejected by inspector" } or { "message": "Rejected by manager" }
+    Status Codes: 200 (Success), 403 (Not Authorized), 500 (Error)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                          ADMIN MANAGEMENT
+═══════════════════════════════════════════════════════════════════════════════
+
+21. GET ALL USERS (Admin Only)
+    Method: GET
+    Endpoint: /admin/users
+    Auth Required: YES (Admin Only)
+    Description: Retrieve list of all users in system with complete profiles
+
+    Demo Request: GET /admin/users
+
+    Response: [ { "id": 1, "name": "John Doe", "employeeId": "EMP001", "role": "machine_operator", ... }, ... ]
+    Status Codes: 200 (Success), 403 (Not Admin), 500 (Error)
+
+
+22. DELETE USER (Admin Only)
+    Method: DELETE
+    Endpoint: /admin/users/:id
+    Auth Required: YES (Admin Only)
+    Description: Remove a user account from system (cannot delete self)
+
+    Demo Request: DELETE /admin/users/5
+
+    Response: { "success": true }
+    Status Codes: 200 (Success), 400 (Cannot Delete Self), 403 (Not Admin), 500 (Error)
+
+
+23. UPDATE USER ROLE (Admin Only)
+    Method: PUT
+    Endpoint: /admin/users/:id/role
+    Auth Required: YES (Admin Only)
+    Description: Change user's role assignment
+
+    Demo Input (JSON Body):
+    {
+      "role": "quality_inspector"
+    }
+
+    Valid Roles: machine_operator, quality_inspector, quality_manager, admin
+    Response: { "success": true }
+    Status Codes: 200 (Success), 400 (Invalid Role), 403 (Not Admin), 500 (Error)
+
+
+24. UPDATE USER STATUS (Admin Only)
+    Method: PUT
+    Endpoint: /admin/users/:id/status
+    Auth Required: YES (Admin Only)
+    Description: Activate or deactivate user account access
+
+    Demo Input (JSON Body):
+    {
+      "status": "active"
+    }
+
+    Valid Status: active, inactive
+    Response: { "success": true }
+    Status Codes: 200 (Success), 400 (Invalid Status), 403 (Not Admin), 500 (Error)
+
+
+25. GET ALL ROLES
+    Method: GET
+    Endpoint: /admin/roles
+    Auth Required: YES (Admin Only)
+    Description: List all available system roles with IDs and display names
+
+    Demo Request: GET /admin/roles
+
+    Response: [ { "id": 1, "name": "machine_operator", "display_name": "Machine Operator" }, ... ]
+    Status Codes: 200 (Success), 403 (Not Admin), 500 (Error)
+
+
+26. GET SYSTEM STATISTICS
+    Method: GET
+    Endpoint: /admin/getStats
+    Auth Required: YES (Admin Only)
+    Description: Retrieve key system metrics (total users, reports, roles)
+
+    Demo Request: GET /admin/getStats
+
+    Response: { "users": 15, "reports": 42, "roles": 4 }
+    Status Codes: 200 (Success), 403 (Not Admin), 500 (Error)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                            ROLES ENDPOINT
+═══════════════════════════════════════════════════════════════════════════════
+
+27. GET AVAILABLE ROLES
+    Method: GET
+    Endpoint: /roles
+    Auth Required: NO
+    Description: Public endpoint to retrieve all role options for registration/selection
+
+    Demo Request: GET /roles
+
+    Response: [ { "id": 1, "name": "machine_operator", "display_name": "Machine Operator" }, ... ]
+    Status Codes: 200 (Success), 500 (Error)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                        COMMON RESPONSE CODES
+═══════════════════════════════════════════════════════════════════════════════
+
+200 OK              - Request successful
+201 CREATED         - Resource created successfully
+400 BAD REQUEST     - Invalid/missing required fields
+401 UNAUTHORIZED    - Missing or invalid authentication token
+403 FORBIDDEN       - Authenticated but lacks required permissions/role
+404 NOT FOUND       - Resource doesn't exist
+500 SERVER ERROR    - Internal server error
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                       POSTMAN SETUP INSTRUCTIONS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. CREATE ENVIRONMENT VARIABLES in Postman:
+   - Set variable: baseUrl = http://localhost:5000/api
+   - Set variable: token = (paste token received after login)
+
+2. USE IN REQUESTS:
+   - URL: {{baseUrl}}/auth/login
+   - Authorization Header: Bearer {{token}}
+
+3. AUTHORIZATION HEADER SETUP:
+   - Type: Bearer Token
+   - Token: {{token}} (from environment variable)
+
+4. WORKFLOW:
+   Step 1: Call /roles endpoint to see available roles
+   Step 2: Call /auth/register to create user account
+   Step 3: Call /auth/login to get JWT token
+   Step 4: Save token in environment variable {{token}}
+   Step 5: Use token for all subsequent authenticated requests
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                        USER FLOW EXAMPLES
+═══════════════════════════════════════════════════════════════════════════════
+
+EMPLOYEE INSPECTION WORKFLOW:
+1. Login (/auth/login) → Get Token
+2. Get User Profile (/auth/me) → Verify Identity
+3. Get Templates (/report/templates-with-parts) → Browse Available Templates
+4. Submit Inspection (/report/submissions) → Submit Measured Values
+5. View Submission Status (/report/submissions/:id) → Track Review Progress
+
+INSPECTOR WORKFLOW:
+1. Login as quality_inspector (/auth/login)
+2. Get All Submissions (/report/submissions) → List Pending Reviews
+3. Review Submission (/report/submissions/:id/inspect) → Add Observations
+4. Can Reject Submission (/report/submissions/:id/reject) → If Issues Found
+
+MANAGER WORKFLOW:
+1. Login as quality_manager (/auth/login)
+2. Get All Submissions (/report/submissions) → List Inspector-Reviewed Items
+3. Final Approval (/report/submissions/:id/manager) → Approve or Reject
+4. Can Reject Submission (/report/submissions/:id/reject) → Last Stage Rejection
+
+ADMIN WORKFLOW:
+1. Login as admin (/auth/login)
+2. Manage Templates (/report/templates) → Create/Update Inspection Templates
+3. Manage Users (/admin/users) → Add, Delete, Update User Roles/Status
+4. View Statistics (/admin/getStats) → Monitor System Metrics
+5. Manage Categories (/report/categories) → Organize Reports
+
+
+═══════════════════════════════════════════════════════════════════════════════
+
+END OF API DOCUMENTATION
+Generated: 17/02/2026
+Version: 1.0
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -1,25 +1,3 @@
-// const jwt = require('jsonwebtoken');
-
-// module.exports = (req, res, next) => {
-//   const authHeader = req.headers.authorization;
-//   if (!authHeader) {
-//     return res.status(401).json({ message: 'No token' });
-//   }
-
-//   const token = authHeader.split(' ')[1];
-
-//   try {
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-//     // decoded = { employee_id, role, iat, exp }
-//     req.user = decoded;
-
-//     next();
-//   } catch (err) {
-//     return res.status(401).json({ message: 'Invalid token' });
-//   }
-// };
-
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 
@@ -50,19 +28,10 @@ module.exports = async (req, res, next) => {
         code: "ACCOUNT_INACTIVE",
       });
     }
-
-    // attach trusted, fresh data
-    // req.user = {
-    //   id: user.id,
-    //   employee_id: user.employee_id,
-    //   status: user.status,
-    //   role: role.name,
-    //   permissions: ["create_report", "approve_manager"],
-    // };
     req.user = {
       id: user.id,
       employee_id: user.employee_id,
-      role: user.role, // jo DB me hai
+      role: user.role,
       status: user.status,
     };
 

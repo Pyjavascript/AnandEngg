@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { getAdminStats } from '../../utils/adminApi';
 
 import CustomAlert from '../../components/CustomAlert';
+import BASE_URL from '../../config/api';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -29,14 +30,7 @@ const AdminDashboardScreen = ({ navigation }) => {
   const showAlert = (type, title, message = '') => {
     setAlert({ visible: true, type, title, message });
   };
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    activeUsers: 0,
-    totalRoles: 0,
-    totalReportTypes: 0,
-    totalSubmittedReports: 0,
-    systemHealth: 'Loading...',
-  });
+  const [stats, setStats] = useState({});
 
   // Load user data
   useFocusEffect(
@@ -63,9 +57,29 @@ const AdminDashboardScreen = ({ navigation }) => {
       const loadStats = async () => {
         setLoading(true);
         try {
-          // const data = await AdminStatsService.getOverviewStats();
-          const data = await getAdminStats();
-          setStats(data);
+          // const data = await AdminStatsService.getverviewStats();
+          // setStats(data);
+          const token = await AsyncStorage.getItem('token');
+
+          const res = await fetch(`${BASE_URL}/api/admin/getStats`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (!res.ok) {
+            throw new Error('Failed to fetch admin stats');
+          }
+          const data = await res.json();
+          setStats({
+            totalUsers: data.users,
+            totalSubmittedReports: data.reports,
+            totalRoles:data.roles,
+            systemHealth: 'Good',
+          });
+          console.log('Admin stats loaded', data);
+          console.log(stats);
         } catch (err) {
           console.log('Failed to load stats', err);
         } finally {
@@ -124,7 +138,7 @@ const AdminDashboardScreen = ({ navigation }) => {
     {
       id: 1,
       label: 'Active Users',
-      value: stats.activeUsers,
+      value: stats.totalUsers,
       icon: 'checkmark-circle',
       color: '#10B981',
     },
