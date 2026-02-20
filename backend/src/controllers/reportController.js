@@ -756,6 +756,141 @@ exports.GetAllTemplatesWithParts = async (req, res) => {
   }
 };
 
+function escapeCsv(value) {
+  const s = value == null ? '' : String(value);
+  if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function toCsv(rows) {
+  const header = [
+    'ID',
+    'Category',
+    'Report Type',
+    'Doc No',
+    'Part No',
+    'Status',
+    'Inspection Date',
+    'Shift',
+    'Submitted By',
+    'Inspector',
+    'Manager',
+    'Created At',
+    'Actual Values',
+  ];
+
+  const lines = [header.join(',')];
+  rows.forEach((r) => {
+    lines.push([
+      r.id,
+      r.category_name || '',
+      r.template_label || '',
+      r.doc_no || '',
+      r.part_no || '',
+      r.status || '',
+      r.inspection_date ? new Date(r.inspection_date).toISOString().slice(0, 10) : '',
+      r.shift || '',
+      r.submitted_by_name || '',
+      r.inspector_name || '',
+      r.manager_name || '',
+      r.created_at ? new Date(r.created_at).toISOString() : '',
+      r.actual_values || '',
+    ].map(escapeCsv).join(','));
+  });
+  return lines.join('\n');
+}
+
+function escapePdfText(text) {
+  return String(text || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
+function buildSimplePdf(lines) {
+  const maxLines = 44;
+  const pageLines = lines.slice(0, maxLines);
+  let content = 'BT\n/F1 10 Tf\n50 790 Td\n';
+  pageLines.forEach((line, idx) => {
+    if (idx > 0) content += '0 -16 Td\n';
+    content += `(${escapePdfText(line)}) Tj\n`;
+  });
+  content += 'ET';
+
+  const objects = [];
+  objects.push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+  objects.push('2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n');
+  objects.push('3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n');
+  objects.push('4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n');
+  objects.push(`5 0 obj\n<< /Length ${Buffer.byteLength(content, 'utf8')} >>\nstream\n${content}\nendstream\nendobj\n`);
+
+  let pdf = '%PDF-1.4\n';
+  const offsets = [0];
+  objects.forEach((obj) => {
+    offsets.push(Buffer.byteLength(pdf, 'utf8'));
+    pdf += obj;
+  });
+
+  const xrefStart = Buffer.byteLength(pdf, 'utf8');
+  pdf += `xref\n0 ${objects.length + 1}\n`;
+  pdf += '0000000000 65535 f \n';
+  for (let i = 1; i <= objects.length; i += 1) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
+  return Buffer.from(pdf, 'utf8');
+}
+
+exports.DownloadSubmissions = async (req, res) => {
+  try {
+    const format = String(req.query.format || 'csv').toLowerCase();
+    if (!['csv', 'pdf'].includes(format)) {
+      return res.status(400).json({ message: 'format must be csv or pdf' });
+    }
+
+    const filters = {
+      submissionId: req.query.submissionId || null,
+      reportType: req.query.reportType || 'all',
+      status: req.query.status || 'all',
+      fromDate: req.query.fromDate || null,
+      toDate: req.query.toDate || null,
+    };
+
+    const rows = await submissionModel.listForExport(filters, req.user);
+    const now = new Date().toISOString().replace(/[:.]/g, '-');
+
+    if (format === 'csv') {
+      const csv = toCsv(rows);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="report-export-${now}.csv"`);
+      return res.status(200).send(csv);
+    }
+
+    const lines = [];
+    lines.push('Inspection Report Export');
+    lines.push(`Generated: ${new Date().toLocaleString('en-GB')}`);
+    lines.push(`Filters -> Report ID: ${filters.submissionId || 'all'}, Type: ${filters.reportType}, Status: ${filters.status}, From: ${filters.fromDate || '-'}, To: ${filters.toDate || '-'}`);
+    lines.push('--------------------------------------------------------------------');
+    rows.forEach((r) => {
+      lines.push(
+        `#${r.id} | ${r.template_label || 'Report'} | ${r.status || ''} | ${r.submitted_by_name || ''} | ${r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : ''}`
+      );
+    });
+    if (rows.length === 0) {
+      lines.push('No submissions found for selected filters.');
+    }
+
+    const pdfBuffer = buildSimplePdf(lines);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="report-export-${now}.pdf"`);
+    return res.status(200).send(pdfBuffer);
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 
 
 

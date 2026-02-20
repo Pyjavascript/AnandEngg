@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
 
 const ReportsScreen = () => {
@@ -48,9 +48,15 @@ const ReportsScreen = () => {
     }
   };
 
-  useEffect(() => {
-    fetchReports();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchReports();
+      const id = setInterval(() => {
+        fetchReports();
+      }, 12000);
+      return () => clearInterval(id);
+    }, []),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);

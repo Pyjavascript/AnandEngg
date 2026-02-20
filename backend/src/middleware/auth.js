@@ -69,12 +69,13 @@ const User = require("../models/userModel");
 
 module.exports = async (req, res, next) => {
   const authHeader = req.headers.authorization;
+  const tokenFromQuery = req.query && req.query.token ? String(req.query.token) : null;
 
-  if (!authHeader) {
+  if (!authHeader && !tokenFromQuery) {
     return res.status(401).json({ message: "No token" });
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader ? authHeader.split(" ")[1] : tokenFromQuery;
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

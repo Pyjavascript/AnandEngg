@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,17 +8,20 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import reportApi from '../utils/reportApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import BASE_URL from '../config/api';
 
 const DownloadReportsScreen = () => {
   const navigation = useNavigation();
 
   // State
-  const [reportType, setReportType] = useState('summary');
+  const [reportType, setReportType] = useState('all');
   const [status, setStatus] = useState('all');
   const [fromDate, setFromDate] = useState(new Date());
   const [toDate, setToDate] = useState(new Date());
@@ -27,37 +30,44 @@ const DownloadReportsScreen = () => {
   const [downloading, setDownloading] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
-  const [allSubmissions, setAllSubmissions] = useState([]);
 
   // Dropdown states
   const [showReportTypeDropdown, setShowReportTypeDropdown] = useState(false);
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const [showReportDropdown, setShowReportDropdown] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState('all');
+  const [reportOptions, setReportOptions] = useState([
+    { value: 'all', label: 'All Reports' },
+  ]);
 
-  const reportTypes = [
-    { value: 'summary', label: 'Summary Report' },
-    { value: 'detailed', label: 'Detailed Report' },
-    { value: 'inspection', label: 'Inspection Report' },
-    { value: 'defect', label: 'Defect Analysis' },
-  ];
+  const [reportTypes, setReportTypes] = useState([
+    { value: 'all', label: 'All Types' },
+  ]);
 
   const statuses = [
     { value: 'all', label: 'All Statuses' },
-    { value: 'approved', label: 'Approved' },
-    { value: 'pending', label: 'Pending' },
+    { value: 'submitted', label: 'Submitted' },
+    { value: 'inspector_reviewed', label: 'Inspector Reviewed' },
+    { value: 'manager_approved', label: 'Manager Approved' },
     { value: 'rejected', label: 'Rejected' },
-    { value: 'inspector_approved', label: 'Inspector Approved' },
   ];
 
-  useEffect(() => {
-    fetchMetrics();
-  }, [fromDate, toDate, status]);
-
-  const fetchMetrics = async () => {
+  const fetchMetrics = useCallback(async () => {
     setLoadingMetrics(true);
     try {
       const submissions = await reportApi.getAllSubmissions();
       const items = Array.isArray(submissions) ? submissions : [];
-      setAllSubmissions(items);
+      const typeMap = new Map();
+      items.forEach((item) => {
+        const label = item.template_label || 'Unknown';
+        if (!typeMap.has(label)) {
+          typeMap.set(label, { value: label, label });
+        }
+      });
+      setReportTypes([
+        { value: 'all', label: 'All Types' },
+        ...Array.from(typeMap.values()),
+      ]);
 
       const from = new Date(fromDate);
       from.setHours(0, 0, 0, 0);
@@ -68,8 +78,20 @@ const DownloadReportsScreen = () => {
         const created = item.created_at ? new Date(item.created_at) : null;
         const inRange = created ? created >= from && created <= to : true;
         const byStatus = status === 'all' ? true : item.status === status;
-        return inRange && byStatus;
+        const byType = reportType === 'all'
+          ? true
+          : (item.template_label || 'Unknown') === reportType;
+        return inRange && byStatus && byType;
       });
+
+      const options = filtered.map((item) => ({
+        value: String(item.id),
+        label: `#${item.id} - ${item.template_label || 'Inspection Report'} (${new Date(item.created_at).toLocaleDateString('en-GB')})`,
+      }));
+      setReportOptions([{ value: 'all', label: 'All Reports' }, ...options]);
+      if (selectedReportId !== 'all' && !options.find(o => o.value === selectedReportId)) {
+        setSelectedReportId('all');
+      }
 
       const total = filtered.length;
       const approved = filtered.filter(f => f.status === 'manager_approved').length;
@@ -86,16 +108,32 @@ const DownloadReportsScreen = () => {
     } finally {
       setLoadingMetrics(false);
     }
-  };
+  }, [fromDate, toDate, status, reportType, selectedReportId]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   const handleDownload = async (format) => {
     setDownloading(true);
     try {
-      Alert.alert(
-        'Export Not Available',
-        `Backend export endpoint is not available. ${allSubmissions.length} submissions are loaded in app for viewing/filtering.`,
-        [{ text: 'OK' }]
-      );
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Session Expired', 'Please login again.');
+        return;
+      }
+
+      const query = [
+        `format=${encodeURIComponent(format)}`,
+        `reportType=${encodeURIComponent(reportType)}`,
+        `status=${encodeURIComponent(status)}`,
+        `fromDate=${encodeURIComponent(fromDate.toISOString().split('T')[0])}`,
+        `toDate=${encodeURIComponent(toDate.toISOString().split('T')[0])}`,
+        `submissionId=${encodeURIComponent(selectedReportId)}`,
+        `token=${encodeURIComponent(token)}`,
+      ].join('&');
+      const url = `${BASE_URL}/api/report/download?${query}`;
+      await Linking.openURL(url);
     } catch (err) {
       console.log('Download error:', err);
       Alert.alert('Error', 'Failed to download report. Please try again.');
@@ -123,21 +161,6 @@ const DownloadReportsScreen = () => {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
-  };
-
-  const getStatusColor = (statusValue) => {
-    switch (statusValue) {
-      case 'approved':
-        return '#059669';
-      case 'pending':
-        return '#D97706';
-      case 'rejected':
-        return '#DC2626';
-      case 'inspector_approved':
-        return '#2563EB';
-      default:
-        return '#6B7280';
-    }
   };
 
   return (
@@ -282,6 +305,51 @@ const DownloadReportsScreen = () => {
               </View>
             )}
           </View>
+
+          {/* Manual Report Selection */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.label}>Select Report (Manual)</Text>
+            <TouchableOpacity
+              style={styles.dropdown}
+              onPress={() => setShowReportDropdown(!showReportDropdown)}
+            >
+              <Text style={styles.dropdownText}>
+                {reportOptions.find(r => r.value === selectedReportId)?.label}
+              </Text>
+              <Ionicons
+                name={showReportDropdown ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#64748B"
+              />
+            </TouchableOpacity>
+            {showReportDropdown && (
+              <View style={styles.dropdownMenu}>
+                {reportOptions.map((report) => (
+                  <TouchableOpacity
+                    key={report.value}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setSelectedReportId(report.value);
+                      setShowReportDropdown(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownItemText,
+                        selectedReportId === report.value && styles.dropdownItemTextActive,
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {report.label}
+                    </Text>
+                    {selectedReportId === report.value && (
+                      <Ionicons name="checkmark" size={18} color="#286DA6" />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Download Buttons */}
@@ -316,30 +384,18 @@ const DownloadReportsScreen = () => {
               <Text style={styles.downloadBtnText}>Download CSV</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.downloadBtn, styles.excelBtn]}
-              onPress={() => handleDownload('excel')}
-              disabled={downloading}
-            >
-              <Ionicons name="grid" size={20} color="#FFFFFF" />
-              <Text style={styles.downloadBtnText}>Download Excel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.downloadBtn, styles.printBtn]}
-              onPress={() => handleDownload('print')}
-              disabled={downloading}
-            >
-              <Ionicons name="print" size={20} color="#FFFFFF" />
-              <Text style={styles.downloadBtnText}>Print Report</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
         {/* Quality Metrics */}
         {metrics && (
           <View style={styles.metricsCard}>
-            <Text style={styles.metricsTitle}>Quality Metrics</Text>
+            <View style={styles.metricsHeader}>
+              <Text style={styles.metricsTitle}>Quality Metrics</Text>
+              {loadingMetrics ? (
+                <ActivityIndicator size="small" color="#286DA6" />
+              ) : null}
+            </View>
 
             <View style={styles.metricsGrid}>
               <View style={styles.metricItem}>
@@ -583,12 +639,6 @@ const styles = StyleSheet.create({
   csvBtn: {
     backgroundColor: '#059669',
   },
-  excelBtn: {
-    backgroundColor: '#2563EB',
-  },
-  printBtn: {
-    backgroundColor: '#64748B',
-  },
   downloadBtnText: {
     fontSize: 15,
     fontWeight: '700',
@@ -606,6 +656,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#1E293B',
+    marginBottom: 16,
+  },
+  metricsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
   metricsGrid: {
