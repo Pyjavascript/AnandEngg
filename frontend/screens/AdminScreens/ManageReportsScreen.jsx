@@ -1596,7 +1596,9 @@ const ManageReportsScreen = ({ navigation }) => {
         const baseCats = Array.isArray(cats) ? cats.slice() : [];
 
         // Map existing category names for quick lookup
-        const nameSet = new Set(baseCats.map(c => (c.name || String(c.id)).toString()));
+        const nameSet = new Set(
+          baseCats.map(c => (c.name || String(c.id)).toString()),
+        );
 
         // Attach stats to existing categories where names match
         const merged = baseCats.map(cat => {
@@ -1604,7 +1606,9 @@ const ManageReportsScreen = ({ navigation }) => {
           const s = statMap[key];
           return {
             ...cat,
-            submission_count: s ? s.submission_count : cat.submission_count || 0,
+            submission_count: s
+              ? s.submission_count
+              : cat.submission_count || 0,
             first_created: s ? s.first_created : cat.first_created || null,
             last_created: s ? s.last_created : cat.last_created || null,
           };
@@ -1760,38 +1764,105 @@ const ManageReportsScreen = ({ navigation }) => {
   //     </View>
   //   </View>
   // );
-  const renderCategoryItem = ({ item }) => (
-    <Pressable
-      style={[
-        styles.card,
-        selectedCategory?.id === item.id && {
-          borderColor: '#286DA6',
-          borderWidth: 2,
-        },
-      ]}
-      onPress={() => handleCategoryPress(item)}
-    >
-      <View style={styles.cardHeader}>
-        <View style={styles.iconContainer}>
-          <Ionicons name="layers" size={20} color="#286DA6" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.cardTitle}>{item.name}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 }}>
+  // const renderCategoryItem = ({ item }) => (
+  //   <Pressable
+  //     style={[
+  //       styles.card,
+  //       selectedCategory?.id === item.id && {
+  //         borderColor: '#286DA6',
+  //         borderWidth: 2,
+  //       },
+  //     ]}
+  //     onPress={() => handleCategoryPress(item)}
+  //   >
+  //     <View style={styles.cardHeader}>
+  //       <View style={styles.iconContainer}>
+  //         <Ionicons name="layers" size={20} color="#286DA6" />
+  //       </View>
+  //       <View style={{ flex: 1 }}>
+  //         <Text style={styles.cardTitle}>{item.name}</Text>
+  //         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 }}>
+  //           <Text style={styles.cardSubtitle}>
+  //             📊 {item.submission_count || 0} submissions
+  //           </Text>
+  //           {item.first_created && (
+  //             <Text style={styles.cardSubtitle}>
+  //               📅 {new Date(item.first_created).toLocaleDateString()}
+  //             </Text>
+  //           )}
+  //         </View>
+  //       </View>
+  //       <Ionicons name="chevron-forward" size={18} color="#B0C4D8" />
+  //     </View>
+  //   </Pressable>
+  // );
+  const renderCategoryItem = ({ item }) => {
+    const isExpanded = selectedCategory?.id === item.id;
+
+    return (
+      <View style={styles.card}>
+        <Pressable
+          style={styles.cardHeader}
+          onPress={() => {
+            if (isExpanded) {
+              setSelectedCategory(null);
+              setTemplates([]);
+            } else {
+              handleCategoryPress(item);
+            }
+          }}
+        >
+          <View style={styles.iconContainer}>
+            <Ionicons name="layers" size={20} color="#286DA6" />
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>{item.name}</Text>
             <Text style={styles.cardSubtitle}>
-              📊 {item.submission_count || 0} submissions
+              Report Type • {item.submission_count || 0} submissions
             </Text>
-            {item.first_created && (
-              <Text style={styles.cardSubtitle}>
-                📅 {new Date(item.first_created).toLocaleDateString()}
+          </View>
+
+          <Ionicons
+            name={isExpanded ? 'chevron-down' : 'chevron-forward'}
+            size={20}
+            color="#9CA3AF"
+          />
+        </Pressable>
+
+        {isExpanded && (
+          <View style={{ marginTop: 12 }}>
+            {loadingTemplates ? (
+              <ActivityIndicator color="#286DA6" />
+            ) : templates.length === 0 ? (
+              <Text style={{ color: '#9CA3AF', paddingLeft: 10 }}>
+                No reports created yet
               </Text>
+            ) : (
+              templates.map(tpl => (
+                <Pressable
+                  key={tpl.id}
+                  style={styles.templateItem}
+                  onPress={() => {
+                    navigation.navigate('TemplatePreview', { id: tpl.id });
+                  }}
+                >
+                  <Ionicons
+                    name="document-text-outline"
+                    size={16}
+                    color="#6B7280"
+                  />
+                  <Text style={styles.templateText}>
+                    {tpl.doc_no} — {tpl.part_description}
+                  </Text>
+                </Pressable>
+              ))
             )}
           </View>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#B0C4D8" />
+        )}
       </View>
-    </Pressable>
-  );
+    );
+  };
 
   const renderSubmissionItem = ({ item }) => {
     const isApproved = item.status === 'approved';
@@ -1932,7 +2003,7 @@ const ManageReportsScreen = ({ navigation }) => {
         />
       )}
 
-      {activeTab === 'types' && selectedCategory && (
+      {/* {activeTab === 'types' && selectedCategory && (
         <View style={{ paddingHorizontal: 16 }}>
           <Text
             style={[styles.headerTitle, { fontSize: 16, marginBottom: 12 }]}
@@ -1960,7 +2031,7 @@ const ManageReportsScreen = ({ navigation }) => {
             ))
           )}
         </View>
-      )}
+      )} */}
 
       {/* STEPPED CREATION MODAL */}
       {/* <Modal
@@ -1991,7 +2062,7 @@ const ManageReportsScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={{ padding: 20 }}>
-              {step === 1 && (
+              {/* {step === 1 && (
                 <View>
                   <Text style={styles.label}>Category Name</Text>
                   <TextInput
@@ -2000,6 +2071,39 @@ const ManageReportsScreen = ({ navigation }) => {
                     value={newCatName}
                     onChangeText={setNewCatName}
                   />
+                  <Pressable
+                    style={styles.primaryBtn}
+                    onPress={handleCreateCategory}
+                  >
+                    <Text style={styles.primaryBtnText}>
+                      Next: Template Info
+                    </Text>
+                  </Pressable>
+                </View>
+              )} */}
+              {step === 1 && (
+                <View>
+                  <Text style={styles.label}>Report Type Name</Text>
+
+                  <Text
+                    style={{
+                      color: '#6B7280',
+                      fontSize: 12,
+                      marginBottom: 10,
+                      marginLeft: 2,
+                    }}
+                  >
+                    This creates a report category. Example: Cutting, Welding,
+                    Assembly.
+                  </Text>
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g. Cutting"
+                    value={newCatName}
+                    onChangeText={setNewCatName}
+                  />
+
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={handleCreateCategory}
@@ -2270,4 +2374,19 @@ const styles = StyleSheet.create({
   fieldBadgeText: { color: '#1E40AF', fontWeight: '600', fontSize: 13 },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
   emptyText: { color: '#9CA3AF', marginTop: 12, fontWeight: '600' },
+  templateItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingLeft: 10,
+    borderLeftWidth: 2,
+    borderLeftColor: '#E5E7EB',
+  },
+
+  templateText: {
+    fontSize: 13,
+    color: '#374151',
+    fontWeight: '500',
+  },
 });

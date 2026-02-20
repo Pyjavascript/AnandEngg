@@ -83,7 +83,7 @@ const filteredUsers = users.filter(user =>
     try {
       const result = await UserService.deleteUser(confirmDialog.userId);
       if (result.success) {
-        setUsers(users.filter(u => u.employee_id  !== confirmDialog.userId));
+        setUsers(users.filter(u => u.id !== confirmDialog.userId));
         setTimeout(() => {
           showAlert('success', 'User deleted successfully');
         }, 500);
@@ -198,7 +198,7 @@ const filteredUsers = users.filter(user =>
               styles.deleteButton,
               pressed && styles.actionButtonPressed,
             ]}
-            onPress={() => openDeleteConfirm(item.employee_id, item.name)}
+            onPress={() => openDeleteConfirm(item.id, item.name)}
           >
             <Ionicons name="trash" size={18} color="#EF4444" />
           </Pressable>

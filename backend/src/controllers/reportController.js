@@ -381,14 +381,68 @@ exports.GetCategories = async (req, res) => {
   }
 };
 
+// exports.DeleteCategory = async (req, res) => {
+//   if (!requireRole(req.user, 'admin')) return res.status(403).json({ message: 'Admin only' });
+//   try {
+//     const id = req.params.id;
+//     await categoryModel.delete(id);
+//     res.json({ message: 'Category deleted' });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 exports.DeleteCategory = async (req, res) => {
-  if (!requireRole(req.user, 'admin')) return res.status(403).json({ message: 'Admin only' });
+  if (!requireRole(req.user, 'admin')) {
+    return res.status(403).json({ message: 'Admin only' });
+  }
+
+  const id = req.params.id;
+
+  const connection = await db.getConnection();
+
   try {
-    const id = req.params.id;
-    await categoryModel.delete(id);
-    res.json({ message: 'Category deleted' });
+    await connection.beginTransaction();
+
+    const [templates] = await connection.query(
+      'SELECT id FROM report_templates WHERE category_id = ?',
+      [id]
+    );
+
+    const templateIds = templates.map(t => t.id);
+
+    if (templateIds.length > 0) {
+
+      await connection.query(
+        'DELETE FROM report_submissions WHERE template_id IN (?)',
+        [templateIds]
+      );
+
+      await connection.query(
+        'DELETE FROM template_fields WHERE template_id IN (?)',
+        [templateIds]
+      );
+
+      await connection.query(
+        'DELETE FROM report_templates WHERE category_id = ?',
+        [id]
+      );
+    }
+
+    await connection.query(
+      'DELETE FROM report_categories WHERE id = ?',
+      [id]
+    );
+
+    await connection.commit();
+
+    return res.json({ message: 'Category and related data deleted successfully' });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    await connection.rollback();
+    console.error(err);
+    return res.status(500).json({ message: err.message });
+  } finally {
+    connection.release();
   }
 };
 

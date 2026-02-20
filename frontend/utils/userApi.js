@@ -16,8 +16,16 @@ export const getAllUsers = async () => {
   return res.data;
 };
 
+// /admin/users/:id
+
+// export const deleteUser = async (id) => {
+//   const res = await axios.delete(`${API}/users/${id}`, await authHeader());
+//   return res.data;
+// };
 export const deleteUser = async (id) => {
+  console.log("Deleting ID:", id);
   const res = await axios.delete(`${API}/users/${id}`, await authHeader());
+  console.log(`${API}/users/${id}`)
   return res.data;
 };
 
