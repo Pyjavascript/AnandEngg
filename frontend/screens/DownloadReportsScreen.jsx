@@ -10,11 +10,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import BASE_URL from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import reportApi from '../utils/reportApi';
 
 const DownloadReportsScreen = () => {
   const navigation = useNavigation();
@@ -29,6 +27,7 @@ const DownloadReportsScreen = () => {
   const [downloading, setDownloading] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [loadingMetrics, setLoadingMetrics] = useState(false);
+  const [allSubmissions, setAllSubmissions] = useState([]);
 
   // Dropdown states
   const [showReportTypeDropdown, setShowReportTypeDropdown] = useState(false);
@@ -56,16 +55,32 @@ const DownloadReportsScreen = () => {
   const fetchMetrics = async () => {
     setLoadingMetrics(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      const res = await axios.get(`${BASE_URL}/api/report/metrics`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          from: fromDate.toISOString().split('T')[0],
-          to: toDate.toISOString().split('T')[0],
-          status: status === 'all' ? undefined : status,
-        },
+      const submissions = await reportApi.getAllSubmissions();
+      const items = Array.isArray(submissions) ? submissions : [];
+      setAllSubmissions(items);
+
+      const from = new Date(fromDate);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(toDate);
+      to.setHours(23, 59, 59, 999);
+
+      const filtered = items.filter(item => {
+        const created = item.created_at ? new Date(item.created_at) : null;
+        const inRange = created ? created >= from && created <= to : true;
+        const byStatus = status === 'all' ? true : item.status === status;
+        return inRange && byStatus;
       });
-      setMetrics(res.data);
+
+      const total = filtered.length;
+      const approved = filtered.filter(f => f.status === 'manager_approved').length;
+      const rejected = filtered.filter(f => f.status === 'rejected').length;
+
+      setMetrics({
+        passRate: total ? `${Math.round((approved / total) * 100)}%` : '0%',
+        totalInspections: total,
+        avgTime: 'N/A',
+        rejectionRate: total ? `${Math.round((rejected / total) * 100)}%` : '0%',
+      });
     } catch (err) {
       console.log('Metrics error:', err);
     } finally {
@@ -76,26 +91,9 @@ const DownloadReportsScreen = () => {
   const handleDownload = async (format) => {
     setDownloading(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      const params = {
-        reportType,
-        status: status === 'all' ? undefined : status,
-        fromDate: fromDate.toISOString().split('T')[0],
-        toDate: toDate.toISOString().split('T')[0],
-        format,
-      };
-
-      const res = await axios.get(`${BASE_URL}/api/report/download`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params,
-        responseType: 'blob',
-      });
-
-      // In React Native, you would use react-native-fs or similar to save the file
       Alert.alert(
-        'Download Started',
-        `Your ${format.toUpperCase()} report is being prepared. You will be notified when it's ready.`,
+        'Export Not Available',
+        `Backend export endpoint is not available. ${allSubmissions.length} submissions are loaded in app for viewing/filtering.`,
         [{ text: 'OK' }]
       );
     } catch (err) {

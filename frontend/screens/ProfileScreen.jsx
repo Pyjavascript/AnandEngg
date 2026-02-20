@@ -12,7 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomAlert from '../components/CustomAlert';
-import BASE_URL from '../config/api';
+import reportApi from '../utils/reportApi';
 
 const ProfileScreen = ({ navigation }) => {
   const [reports, setReports] = useState([]);
@@ -69,23 +69,12 @@ const ProfileScreen = ({ navigation }) => {
     React.useCallback(() => {
       const fetchMyReports = async () => {
         try {
-          const token = await AsyncStorage.getItem('token');
-          if (!token) return;
-
-          const res = await fetch(`${BASE_URL}/api/report/my-reports`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const data = await res.json();
-          const reportsArray = Array.isArray(data)
-            ? data
-            : Array.isArray(data.reports)
-            ? data.reports
+          const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
+          const all = await reportApi.getAllSubmissions();
+          const mine = Array.isArray(all)
+            ? all.filter(r => Number(r.submitted_by) === Number(user.id))
             : [];
-
-          setReports(reportsArray);
+          setReports(mine);
         } catch (err) {
           console.log('Failed to load report stats', err);
         } finally {
@@ -98,10 +87,10 @@ const ProfileScreen = ({ navigation }) => {
   );
   const totalReports = reports.length;
 
-  const approvedReports = reports.filter(r => r.status === 'approved').length;
+  const approvedReports = reports.filter(r => r.status === 'manager_approved').length;
 
   const inProcessReports = reports.filter(
-    r => (r.status || 'pending') === 'pending',
+    r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
   ).length;
 
   const stats = [

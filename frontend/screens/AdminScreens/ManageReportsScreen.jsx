@@ -1553,6 +1553,7 @@ const ManageReportsScreen = ({ navigation }) => {
     label: '',
     specification: '',
     unit: 'mm',
+    type: 'measurement',
   });
 
   const [alert, setAlert] = useState({
@@ -1576,31 +1577,38 @@ const ManageReportsScreen = ({ navigation }) => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [cats, subs, stats] = await Promise.all([
+      const [cats, subs] = await Promise.all([
         reportApi.getCategories(),
-        reportApi.getAllInspectionReports().catch(() => []),
-        reportApi.getReportTypesWithStats().catch(() => []),
+        reportApi.getAllSubmissions().catch(() => []),
       ]);
       setCategories(cats || []);
       setSubmissions(subs || []);
 
-      // Merge stats into categories (keep original category list if present)
-      if (Array.isArray(stats) && stats.length > 0) {
-        // create a lookup from report_type -> stat
-        const statMap = stats.reduce((acc, s) => {
-          acc[s.report_type] = s;
+      if (Array.isArray(subs) && subs.length > 0) {
+        const statMap = subs.reduce((acc, s) => {
+          const key = s.template_label || 'Unknown';
+          if (!acc[key]) {
+            acc[key] = {
+              submission_count: 0,
+              first_created: s.created_at,
+              last_created: s.created_at,
+            };
+          }
+          acc[key].submission_count += 1;
+          if (s.created_at && s.created_at < acc[key].first_created) {
+            acc[key].first_created = s.created_at;
+          }
+          if (s.created_at && s.created_at > acc[key].last_created) {
+            acc[key].last_created = s.created_at;
+          }
           return acc;
         }, {});
 
-        // Start with original categories if available
         const baseCats = Array.isArray(cats) ? cats.slice() : [];
-
-        // Map existing category names for quick lookup
         const nameSet = new Set(
           baseCats.map(c => (c.name || String(c.id)).toString()),
         );
 
-        // Attach stats to existing categories where names match
         const merged = baseCats.map(cat => {
           const key = cat.name || cat.code || String(cat.id);
           const s = statMap[key];
@@ -1614,18 +1622,17 @@ const ManageReportsScreen = ({ navigation }) => {
           };
         });
 
-        // Add stats-only report types that don't exist as categories yet
-        for (const s of stats) {
-          if (!nameSet.has(s.report_type)) {
+        Object.entries(statMap).forEach(([reportType, s]) => {
+          if (!nameSet.has(reportType)) {
             merged.push({
-              id: s.report_type,
-              name: s.report_type,
+              id: reportType,
+              name: reportType,
               submission_count: s.submission_count || 0,
               first_created: s.first_created,
               last_created: s.last_created,
             });
           }
-        }
+        });
 
         setCategories(merged);
       }
@@ -1683,7 +1690,10 @@ const ManageReportsScreen = ({ navigation }) => {
         category_id: selectedCatId,
         ...templateForm,
       });
-      const tid = res.id || res.insertId;
+      const tid = res.id || res.insertId || res.template_id || res.templateId;
+      if (!tid) {
+        throw new Error('Template created but template id not returned from API');
+      }
       setCreatedTemplateId(tid);
 
       // Upload diagram if selected
@@ -1699,13 +1709,43 @@ const ManageReportsScreen = ({ navigation }) => {
   const handleAddField = async () => {
     if (!fieldInput.label)
       return showAlert('error', 'Field Label', 'Label is required');
+    if (!createdTemplateId) {
+      return showAlert(
+        'error',
+        'Template Missing',
+        'Template ID is missing. Please recreate template and try again.',
+      );
+    }
     try {
-      const payload = { ...fieldInput, position: fields.length + 1 };
-      await reportApi.createField(createdTemplateId, payload);
-      setFields([...fields, payload]);
-      setFieldInput({ label: '', specification: '', unit: 'mm' });
+      const payload = {
+        label: fieldInput.label.trim(),
+        specification: fieldInput.specification?.trim() || '',
+        unit: fieldInput.unit || 'mm',
+        position: Number(fields.length + 1),
+        type: fieldInput.type || 'measurement',
+      };
+
+      const res = await reportApi.createField(createdTemplateId, payload);
+      const createdId = res?.id || res?.insertId;
+
+      setFields([
+        ...fields,
+        {
+          ...payload,
+          id: createdId || `${createdTemplateId}-${payload.position}`,
+        },
+      ]);
+      setFieldInput({
+        label: '',
+        specification: '',
+        unit: 'mm',
+        type: 'measurement',
+      });
+      showAlert('success', 'Field Added', `${payload.label} added successfully`);
     } catch (err) {
-      showAlert('error', 'Error', 'Failed to add field');
+      const apiMessage =
+        err?.response?.data?.message || err?.message || 'Failed to add field';
+      showAlert('error', 'Error', apiMessage);
     }
   };
 
@@ -1742,6 +1782,14 @@ const ManageReportsScreen = ({ navigation }) => {
       part_description: '',
     });
     setFields([]);
+    setSelectedCatId(null);
+    setCreatedTemplateId(null);
+    setFieldInput({
+      label: '',
+      specification: '',
+      unit: 'mm',
+      type: 'measurement',
+    });
     setDiagramFile(null);
     loadAll(); // Refresh main list
   };

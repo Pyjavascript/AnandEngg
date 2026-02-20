@@ -9,10 +9,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BASE_URL from '../config/api';
 import { useNavigation } from '@react-navigation/native';
+import reportApi from '../utils/reportApi';
 
 const ReportsScreen = () => {
   const navigation = useNavigation();
@@ -24,24 +23,25 @@ const ReportsScreen = () => {
 
   useEffect(() => {
     const getRole = async () => {
-      const userRole = await AsyncStorage.getItem('role');
-      setRole(userRole);
+      const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
+      setRole(user?.role || null);
     };
     getRole();
   }, []);
 
   const fetchReports = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
+      const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
+      const res = await reportApi.getAllSubmissions();
+      const data = Array.isArray(res) ? res : [];
 
-      const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setReports(res.data);
+      if (user?.role === 'machine_operator' && user?.id) {
+        setReports(data.filter(r => Number(r.submitted_by) === Number(user.id)));
+      } else {
+        setReports(data);
+      }
     } catch (err) {
-      console.log('FETCH REPORTS ERROR:', err.response?.data || err.message);
+      console.log('FETCH SUBMISSIONS ERROR:', err.response?.data || err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -57,20 +57,20 @@ const ReportsScreen = () => {
     fetchReports();
   };
 
-  const handleApprove = async (id, role) => {
+  const handleApprove = async (id, roleType) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const endpoint =
-        role === 'inspector'
-          ? `${BASE_URL}/api/report/approve/inspector/${id}`
-          : `${BASE_URL}/api/report/approve/manager/${id}`;
-
-      await axios.put(
-        endpoint,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      alert('Report approved successfully');
+      if (roleType === 'inspector') {
+        await reportApi.inspectorReviewSubmission(id, {
+          observation: '',
+          remarks: '',
+        });
+      } else {
+        await reportApi.managerReviewSubmission(id, {
+          approved: true,
+          remarks: '',
+        });
+      }
+      alert('Submission approved successfully');
       fetchReports();
     } catch (err) {
       console.log('APPROVE ERROR:', err.response?.data || err.message);
@@ -79,13 +79,8 @@ const ReportsScreen = () => {
 
   const handleReject = async id => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      await axios.put(
-        `${BASE_URL}/api/report/reject/${id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-      alert('Report rejected');
+      await reportApi.rejectSubmission(id, {});
+      alert('Submission rejected');
       fetchReports();
     } catch (err) {
       console.log('REJECT ERROR:', err.response?.data || err.message);
@@ -98,8 +93,8 @@ const ReportsScreen = () => {
 
   const counts = {
     all: reports.length,
-    pending: reports.filter(r => (r.status || 'pending') === 'pending').length,
-    approved: reports.filter(r => r.status === 'approved').length,
+    pending: reports.filter(r => (r.status || 'submitted') === 'submitted').length,
+    approved: reports.filter(r => r.status === 'manager_approved').length,
     rejected: reports.filter(r => r.status === 'rejected').length,
   };
 
@@ -113,12 +108,15 @@ const ReportsScreen = () => {
   const getStatusColor = status => {
     switch (status) {
       case 'approved':
+      case 'manager_approved':
         return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
       case 'pending':
+      case 'submitted':
         return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
       case 'rejected':
         return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
       case 'inspector_approved':
+      case 'inspector_reviewed':
         return {
           bg: '#EFF6FF',
           text: '#2563EB',
@@ -132,7 +130,12 @@ const ReportsScreen = () => {
   const filteredReports =
     activeFilter === 'all'
       ? reports
-      : reports.filter(r => (r.status || 'pending') === activeFilter);
+      : reports.filter(r => {
+          const status = r.status || 'submitted';
+          if (activeFilter === 'pending') return status === 'submitted';
+          if (activeFilter === 'approved') return status === 'manager_approved';
+          return status === activeFilter;
+        });
 
   return (
     <View style={styles.container}>
@@ -239,10 +242,10 @@ const ReportsScreen = () => {
                 <View style={styles.cardTop}>
                   <View style={styles.cardLeft}>
                     <Text style={styles.reportTitle} numberOfLines={1}>
-                      {report.title}
+                      {report.template_label || 'Inspection Submission'}
                     </Text>
                     <View style={styles.metaRow}>
-                      <Text style={styles.partNo}>Part: {report.part_no}</Text>
+                      <Text style={styles.partNo}>Template ID: {report.template_id}</Text>
                       <View style={styles.dotSeparator} />
                       <Text style={styles.dateText}>
                         {new Date(report.created_at).toLocaleDateString(
@@ -269,8 +272,10 @@ const ReportsScreen = () => {
                     <Text
                       style={[styles.statusText, { color: statusStyle.text }]}
                     >
-                      {report.status === 'inspector_approved'
+                      {report.status === 'inspector_reviewed'
                         ? 'Reviewed'
+                        : report.status === 'manager_approved'
+                        ? 'Approved'
                         : report.status}
                     </Text>
                   </View>
@@ -279,9 +284,11 @@ const ReportsScreen = () => {
                 {/* Action Buttons */}
                 {((role === 'quality_inspector' &&
                   (report.status === 'pending_inspector' ||
-                    report.status === 'pending')) ||
+                    report.status === 'pending' ||
+                    report.status === 'submitted')) ||
                   (role === 'quality_manager' &&
-                    report.status === 'inspector_approved')) && (
+                    (report.status === 'inspector_approved' ||
+                      report.status === 'inspector_reviewed'))) && (
                   <View style={styles.actionRow}>
                     <TouchableOpacity
                       style={[styles.actionBtn, styles.approveBtn]}

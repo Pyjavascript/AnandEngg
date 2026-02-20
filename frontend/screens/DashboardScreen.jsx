@@ -12,8 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import axios from 'axios';
-import BASE_URL from '../config/api';
+import reportApi from '../utils/reportApi';
 
 const DashboardScreen = ({ navigation }) => {
   const [userData, setUserData] = useState({
@@ -59,14 +58,12 @@ const DashboardScreen = ({ navigation }) => {
       const fetchReports = async () => {
         setLoadingStats(true);
         try {
-          const token = await AsyncStorage.getItem('token');
-          if (!token) return;
-
-          const res = await axios.get(`${BASE_URL}/api/report/my-reports`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          setReports(res.data);
+          const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
+          const all = await reportApi.getAllSubmissions();
+          const mine = Array.isArray(all)
+            ? all.filter(r => Number(r.submitted_by) === Number(user.id))
+            : [];
+          setReports(mine);
         } catch (err) {
           console.log('Failed to fetch reports', err);
         } finally {
@@ -80,9 +77,9 @@ const DashboardScreen = ({ navigation }) => {
 
   // Calculate stats from reports
   const totalReports = reports.length;
-  const approvedReports = reports.filter(r => r.status === 'approved').length;
+  const approvedReports = reports.filter(r => r.status === 'manager_approved').length;
   const pendingReports = reports.filter(
-    r => (r.status || 'pending') === 'pending' || r.status === 'inspector_approved',
+    r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
   ).length;
   const rejectedReports = reports.filter(r => r.status === 'rejected').length;
 
@@ -236,20 +233,20 @@ const DashboardScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.reportContent}>
                     <Text style={styles.reportTitle} numberOfLines={1}>
-                      {report.title}
+                      {report.template_label || 'Inspection Submission'}
                     </Text>
                     <Text style={styles.reportMeta}>
-                      Part: {report.part_no}
+                      Template ID: {report.template_id}
                     </Text>
                   </View>
                 </View>
                 <View
                   style={[
                     styles.statusDot,
-                    report.status === 'approved' && styles.statusDotApproved,
-                    report.status === 'pending' && styles.statusDotPending,
+                    report.status === 'manager_approved' && styles.statusDotApproved,
+                    report.status === 'submitted' && styles.statusDotPending,
                     report.status === 'rejected' && styles.statusDotRejected,
-                    report.status === 'inspector_approved' &&
+                    report.status === 'inspector_reviewed' &&
                       styles.statusDotReviewed,
                   ]}
                 />

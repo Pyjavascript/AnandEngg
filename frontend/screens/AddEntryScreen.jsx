@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import CustomAlert from '../components/CustomAlert';
+import reportApi from '../utils/reportApi';
 
 export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType } = route.params;
@@ -70,7 +71,7 @@ export default function AddEntryScreen({ route, navigation }) {
     docNo: part.docNo,
     revNo: part.revNo,
     reportType: reportType,
-    inspectionDate: new Date().toLocaleDateString('en-GB'), // Current date
+    inspectionDate: new Date().toISOString().split('T')[0],
     shift: '',
     dimensions: initDimensions,
     visualObservation: '',
@@ -81,7 +82,49 @@ export default function AddEntryScreen({ route, navigation }) {
   });
 
   const [loading, setLoading] = useState(false);
-  // const base = `${BASE_URL}/api/report/create`;
+
+  const buildSubmissionValues = async () => {
+    const templateRes = await reportApi.getTemplatesByCategory(part.templateId);
+    const templateFields = Array.isArray(templateRes?.fields)
+      ? templateRes.fields
+      : [];
+
+    const byPosition = new Map();
+    const byLabel = new Map();
+
+    templateFields.forEach(f => {
+      if (f.position !== null && f.position !== undefined) {
+        byPosition.set(Number(f.position), f);
+      }
+      if (f.label) {
+        byLabel.set(String(f.label).trim().toLowerCase(), f);
+      }
+    });
+
+    const values = [];
+    form.dimensions.forEach((d, index) => {
+      const matchByPos = byPosition.get(Number(d.slNo));
+      const matchByLabel = d.desc
+        ? byLabel.get(String(d.desc).trim().toLowerCase())
+        : null;
+      const fallbackByIndex = templateFields[index];
+      const field = matchByPos || matchByLabel || fallbackByIndex;
+
+      if (!field?.id || !Array.isArray(d.actual)) return;
+
+      d.actual
+        .map(v => (v ?? '').toString().trim())
+        .filter(Boolean)
+        .forEach(actualValue => {
+          values.push({
+            field_id: field.id,
+            value: actualValue,
+          });
+        });
+    });
+
+    return values;
+  };
 
   const handleSubmit = async () => {
     console.log(form);
@@ -110,7 +153,33 @@ export default function AddEntryScreen({ route, navigation }) {
         return;
       }
 
-      await axios.post(`${BASE_URL}/api/report/create`, form, {
+      const values = await buildSubmissionValues();
+      if (!part?.templateId) {
+        showAlert({
+          type: 'error',
+          title: 'Submission Failed',
+          message: 'Missing template selection. Please reselect the part and try again.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (values.length === 0) {
+        showAlert({
+          type: 'error',
+          title: 'Missing Measurements',
+          message: 'Please enter at least one measurement value before submitting.',
+        });
+        setLoading(false);
+        return;
+      }
+
+      await axios.post(`${BASE_URL}/api/report/submissions`, {
+        template_id: part.templateId,
+        inspection_date: form.inspectionDate,
+        shift: form.shift,
+        values,
+      }, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

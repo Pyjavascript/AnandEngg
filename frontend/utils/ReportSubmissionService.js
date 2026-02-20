@@ -9,7 +9,7 @@ const authHeader = async () => {
 
 export const ReportSubmissionService = {
   async getAllSubmissions() {
-    const res = await axios.get(`${BASE_URL}/api/reports`, {
+    const res = await axios.get(`${BASE_URL}/api/report/submissions`, {
       headers: await authHeader(),
     });
     return res.data;

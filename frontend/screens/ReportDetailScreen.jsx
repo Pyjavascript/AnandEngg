@@ -11,9 +11,8 @@ import {
   Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BASE_URL from '../config/api';
+import reportApi from '../utils/reportApi';
 
 export default function ReportDetailScreen({ route, navigation }) {
   const { reportId } = route.params;
@@ -33,18 +32,61 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const load = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
-      const user = JSON.parse(await AsyncStorage.getItem('user'));
+      const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
 
       setRole(user.role);
 
-      const res = await axios.get(`${BASE_URL}/api/report/${reportId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await reportApi.getSubmissionById(reportId);
+      const submission = res?.submission;
+      const values = Array.isArray(res?.values) ? res.values : [];
+      if (!submission) throw new Error('Submission not found');
 
-      setReport(res.data);
-      setVisualObservation(res.data.report_data.visualObservation || '');
-      setRemarks(res.data.report_data.remarks || '');
+      let templateData = null;
+      try {
+        const tplRes = await reportApi.getTemplatesByCategory(submission.template_id);
+        templateData = tplRes?.template || null;
+      } catch (e) {
+        templateData = null;
+      }
+
+      const grouped = values.reduce((acc, v, idx) => {
+        const key = v.field_id || `${v.label || 'field'}-${idx}`;
+        if (!acc[key]) {
+          acc[key] = {
+            slNo: idx + 1,
+            desc: v.label || '',
+            spec: v.specification || '',
+            unit: v.unit || '',
+            actual: [],
+          };
+        }
+        acc[key].actual.push(v.actual_value);
+        return acc;
+      }, {});
+
+      const reportData = {
+        ...submission,
+        title: templateData?.part_description || 'Inspection Submission',
+        part_no: templateData?.part_no || '',
+        report_data: {
+          customer: templateData?.customer || '',
+          partNumber: templateData?.part_no || '',
+          docNo: templateData?.doc_no || '',
+          revNo: templateData?.rev_no || '',
+          partDescription: templateData?.part_description || '',
+          dimensions: Object.values(grouped),
+          shift: submission.shift,
+          visualObservation: submission.inspector_observation || '',
+          remarks: submission.inspector_remarks || submission.manager_remarks || '',
+          qa: '',
+          reviewedBy: '',
+          approvedBy: '',
+        },
+      };
+
+      setReport(reportData);
+      setVisualObservation(submission.inspector_observation || '');
+      setRemarks(submission.inspector_remarks || submission.manager_remarks || '');
     } catch (error) {
       console.log('Load error:', error);
       Alert.alert('Error', 'Failed to load report');
@@ -56,24 +98,17 @@ export default function ReportDetailScreen({ route, navigation }) {
   const handleApprove = async () => {
     setSubmitting(true);
     try {
-      const token = await AsyncStorage.getItem('token');
-      
-      // Update observations/remarks before approving
-      const updateData = {
-        visualObservation,
-        remarks,
-      };
-
-      const endpoint =
-        role === 'quality_inspector'
-          ? `${BASE_URL}/api/report/approve/inspector/${reportId}`
-          : `${BASE_URL}/api/report/approve/manager/${reportId}`;
-
-      await axios.put(
-        endpoint,
-        updateData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      if (role === 'quality_inspector') {
+        await reportApi.inspectorReviewSubmission(reportId, {
+          observation: visualObservation,
+          remarks,
+        });
+      } else {
+        await reportApi.managerReviewSubmission(reportId, {
+          approved: true,
+          remarks,
+        });
+      }
 
       Alert.alert('Success', 'Report approved successfully', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -103,12 +138,7 @@ export default function ReportDetailScreen({ route, navigation }) {
 
             setSubmitting(true);
             try {
-              const token = await AsyncStorage.getItem('token');
-              await axios.put(
-                `${BASE_URL}/api/report/reject/${reportId}`,
-                { remarks },
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
+              await reportApi.rejectSubmission(reportId, { remarks });
 
               Alert.alert('Success', 'Report rejected', [
                 { text: 'OK', onPress: () => navigation.goBack() },
@@ -128,12 +158,15 @@ export default function ReportDetailScreen({ route, navigation }) {
   const getStatusStyle = status => {
     switch (status) {
       case 'approved':
+      case 'manager_approved':
         return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
       case 'pending':
+      case 'submitted':
         return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
       case 'rejected':
         return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
       case 'inspector_approved':
+      case 'inspector_reviewed':
         return {
           bg: '#EFF6FF',
           text: '#2563EB',
@@ -148,13 +181,13 @@ export default function ReportDetailScreen({ route, navigation }) {
   const canEdit = () => {
     if (!report || !role) return false;
 
-    // Inspector can edit when status is pending
-    if (role === 'quality_inspector' && report.status === 'pending') {
+    // Inspector can edit when status is submitted
+    if (role === 'quality_inspector' && report.status === 'submitted') {
       return true;
     }
 
-    // Manager can edit when status is inspector_approved
-    if (role === 'quality_manager' && report.status === 'inspector_approved') {
+    // Manager can edit when status is inspector reviewed
+    if (role === 'quality_manager' && report.status === 'inspector_reviewed') {
       return true;
     }
 
@@ -165,13 +198,13 @@ export default function ReportDetailScreen({ route, navigation }) {
   const canTakeAction = () => {
     if (!report || !role) return false;
 
-    // Inspector can approve/reject when pending
-    if (role === 'quality_inspector' && report.status === 'pending') {
+    // Inspector can approve/reject when submitted
+    if (role === 'quality_inspector' && report.status === 'submitted') {
       return true;
     }
 
-    // Manager can approve/reject when inspector approved
-    if (role === 'quality_manager' && report.status === 'inspector_approved') {
+    // Manager can approve/reject when inspector reviewed
+    if (role === 'quality_manager' && report.status === 'inspector_reviewed') {
       return true;
     }
 
@@ -225,8 +258,10 @@ export default function ReportDetailScreen({ route, navigation }) {
                 color={statusStyle.text}
               />
               <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                {report.status === 'inspector_approved'
+                {report.status === 'inspector_reviewed'
                   ? 'Reviewed'
+                  : report.status === 'manager_approved'
+                  ? 'Approved'
                   : report.status}
               </Text>
             </View>
@@ -277,17 +312,17 @@ export default function ReportDetailScreen({ route, navigation }) {
                 label="Inspector"
                 icon="search-outline"
                 completed={
-                  report.status === 'inspector_approved' ||
-                  report.status === 'approved'
+                  report.status === 'inspector_reviewed' ||
+                  report.status === 'manager_approved'
                 }
-                active={report.status === 'pending'}
+                active={report.status === 'submitted'}
               />
               <View style={styles.workflowLine} />
               <WorkflowStep
                 label="Manager"
                 icon="checkmark-done-outline"
-                completed={report.status === 'approved'}
-                active={report.status === 'inspector_approved'}
+                completed={report.status === 'manager_approved'}
+                active={report.status === 'inspector_reviewed'}
               />
             </View>
           </View>
