@@ -14,7 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
 
 const AccordanceScreen = ({ navigation }) => {
-  const [reportType, setReportType] = useState('');
+  const [category, setCategory] = useState('');
   const [customer, setCustomer] = useState('');
   const [part, setPart] = useState(null);
   const [reportsData, setReportsData] = useState({});
@@ -44,7 +44,7 @@ const AccordanceScreen = ({ navigation }) => {
   };
 
   const handleGoToReport = () => {
-     if (!reportType || !customer || !part) {
+     if (!category || !customer || !part) {
       alert('Please select all fields!');
       return;
      }
@@ -55,7 +55,7 @@ const AccordanceScreen = ({ navigation }) => {
       // templateId: selectedTemplate.id,
       // templateSchema: selectedTemplate.template_schema,
       // templateName: selectedTemplate.name,
-      reportType,
+      reportType: category,
       customer,
       part,
     });
@@ -130,7 +130,7 @@ const AccordanceScreen = ({ navigation }) => {
                 <View style={styles.stepNumber}>
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
-                <Text style={styles.stepTitle}>Select Report Type</Text>
+                <Text style={styles.stepTitle}>Select Category</Text>
               </View>
 
               <View style={styles.pickerWrapper}>
@@ -141,16 +141,16 @@ const AccordanceScreen = ({ navigation }) => {
                   style={styles.pickerIcon}
                 />
                 <Picker
-                  selectedValue={reportType}
+                  selectedValue={category}
                   onValueChange={value => {
-                    setReportType(value);
+                    setCategory(value);
                     setCustomer('');
                     setPart(null);
                   }}
                   style={styles.picker}
                   dropdownIconColor="#286DA6"
                 >
-                  <Picker.Item label="-- Select Report Type --" value="" />
+                  <Picker.Item label="-- Select Category --" value="" />
                   {Object.keys(reportsData).map(r => (
                     <Picker.Item key={r} label={r} value={r} />
                   ))}
@@ -159,7 +159,7 @@ const AccordanceScreen = ({ navigation }) => {
             </View>
 
             {/* Step 2: Customer */}
-            {reportType ? (
+            {category ? (
               <View style={styles.stepContainer}>
                 <View style={styles.stepHeader}>
                   <View style={styles.stepNumber}>
@@ -185,7 +185,7 @@ const AccordanceScreen = ({ navigation }) => {
                     dropdownIconColor="#286DA6"
                   >
                     <Picker.Item label="-- Select Customer --" value="" />
-                    {Object.keys(reportsData[reportType].customers).map(c => (
+                    {Object.keys(reportsData[category].customers).map(c => (
                       <Picker.Item key={c} label={c} value={c} />
                     ))}
                   </Picker>
@@ -200,7 +200,7 @@ const AccordanceScreen = ({ navigation }) => {
                   <View style={styles.stepNumber}>
                     <Text style={styles.stepNumberText}>3</Text>
                   </View>
-                  <Text style={styles.stepTitle}>Select Part</Text>
+                  <Text style={styles.stepTitle}>Select Report</Text>
                 </View>
 
                 <View style={styles.pickerWrapper}>
@@ -213,7 +213,7 @@ const AccordanceScreen = ({ navigation }) => {
                   <Picker
                     selectedValue={part?.partNo || ''}
                     onValueChange={value => {
-                      const selected = reportsData[reportType].customers[
+                      const selected = reportsData[category].customers[
                         customer
                       ].find(p => p.partNo === value);
                       setPart(selected);
@@ -221,8 +221,8 @@ const AccordanceScreen = ({ navigation }) => {
                     style={styles.picker}
                     dropdownIconColor="#286DA6"
                   >
-                    <Picker.Item label="-- Select Part --" value="" />
-                    {reportsData[reportType].customers[customer].map(p => (
+                    <Picker.Item label="-- Select Report --" value="" />
+                    {reportsData[category].customers[customer].map(p => (
                       <Picker.Item
                         key={p.partNo}
                         label={`${p.partNo} — ${p.description}`}
@@ -240,9 +240,9 @@ const AccordanceScreen = ({ navigation }) => {
                 {/* <Text style={styles.previewTitle}>Selected Part Preview</Text> */}
                 <Image
                   source={
-                    typeof part.img === 'string' || part.img?.uri
-                      ? { uri: part.img?.uri || part.img }
-                      : part.img
+                    part?.img?.uri
+                      ? { uri: part.img.uri }
+                      : require('../assets/pictures/AppLogo.png')
                   }
                   style={styles.previewImage}
                 />
@@ -275,8 +275,8 @@ const AccordanceScreen = ({ navigation }) => {
       {/* Continue Button */}
       {part ? (
         <TouchableOpacity style={styles.submitBtn} onPress={handleGoToReport}>
-          <Text style={styles.submitBtnText}>Continue to Inspection Form</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+          <Ionicons name="add-circle" size={22} color="#FFFFFF" />
+          <Text style={styles.submitBtnText}>Create Report</Text>
         </TouchableOpacity>
       ) : null}
 

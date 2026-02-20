@@ -285,7 +285,14 @@ export default function AddEntryScreen({ route, navigation }) {
         {/* Part Info Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Part Information</Text>
-          <Image source={part.img} style={styles.partImage} />
+          <Image
+            source={
+              part?.img?.uri
+                ? { uri: part.img.uri }
+                : require('../assets/pictures/AppLogo.png')
+            }
+            style={styles.partImage}
+          />
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>

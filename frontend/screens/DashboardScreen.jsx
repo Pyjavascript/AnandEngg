@@ -15,11 +15,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
 
 const DashboardScreen = ({ navigation }) => {
+  const defaultAvatar =
+    'https://ui-avatars.com/api/?name=User&background=286DA6&color=fff&size=200';
+
   const [userData, setUserData] = useState({
     name: '',
     role: '',
     employeeId: '',
-    avatar: '',
+    avatar: defaultAvatar,
   });
 
   const [reports, setReports] = useState([]);
@@ -139,7 +142,10 @@ const DashboardScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('Profile')}
               style={styles.avatarContainer}
             >
-              <Image source={{ uri: userData.avatar }} style={styles.avatar} />
+              <Image
+                source={{ uri: userData.avatar || defaultAvatar }}
+                style={styles.avatar}
+              />
               <View style={styles.editBadge}>
                 <Ionicons name="pencil" size={12} color="#FFFFFF" />
               </View>

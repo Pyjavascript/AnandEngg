@@ -144,7 +144,12 @@ exports.getPartsForTemplate = async (templateId) => {
 
 exports.getAllTemplatesWithDimensions = async () => {
   const [rows] = await db.query(
-    `SELECT * FROM report_templates ORDER BY created_at DESC`
+    `SELECT 
+      rt.*,
+      rc.name AS category_name
+    FROM report_templates rt
+    LEFT JOIN report_categories rc ON rc.id = rt.category_id
+    ORDER BY rt.created_at DESC`
   );
   return rows;
 };

@@ -121,7 +121,16 @@ exports.addSubmissionValue = async (submissionId, fieldId, value) => {
 
 exports.getById = async (id) => {
   const [rows] = await db.query(
-    `SELECT * FROM report_submissions WHERE id = ?`,
+    `SELECT 
+      rs.*,
+      emp.name AS employee_name,
+      insp.name AS inspector_name,
+      mgr.name AS manager_name
+    FROM report_submissions rs
+    LEFT JOIN users emp ON emp.id = rs.employee_id
+    LEFT JOIN users insp ON insp.id = rs.inspector_id
+    LEFT JOIN users mgr ON mgr.id = rs.manager_id
+    WHERE rs.id = ?`,
     [id],
   );
   return rows[0];
@@ -172,12 +181,18 @@ exports.listAll = async () => {
   rs.id,
   rs.template_id,
   rs.employee_id AS submitted_by,
+  rs.inspector_id,
+  rs.manager_id,
   rs.status,
   rs.created_at,
   u.name AS submitted_by_name,
+  insp.name AS inspector_name,
+  mgr.name AS manager_name,
   COALESCE(rt.part_description, rt.doc_no, rt.part_no) AS template_label
 FROM report_submissions rs
 LEFT JOIN users u ON u.id = rs.employee_id
+LEFT JOIN users insp ON insp.id = rs.inspector_id
+LEFT JOIN users mgr ON mgr.id = rs.manager_id
 LEFT JOIN report_templates rt ON rt.id = rs.template_id
 ORDER BY rs.created_at DESC;
 `,

@@ -257,6 +257,16 @@ const ReportsScreen = () => {
                         )}
                       </Text>
                     </View>
+                    <Text style={styles.bylineText}>
+                      Submitted by: {report.submitted_by_name || report.submitted_by || 'Unknown'}
+                    </Text>
+                    {(report.inspector_name || report.manager_name) ? (
+                      <Text style={styles.bylineText}>
+                        {report.manager_name
+                          ? `Manager: ${report.manager_name}`
+                          : `Inspector: ${report.inspector_name}`}
+                      </Text>
+                    ) : null}
                   </View>
                   <View
                     style={[
@@ -273,9 +283,13 @@ const ReportsScreen = () => {
                       style={[styles.statusText, { color: statusStyle.text }]}
                     >
                       {report.status === 'inspector_reviewed'
-                        ? 'Reviewed'
+                        ? 'Approved by Inspector'
                         : report.status === 'manager_approved'
-                        ? 'Approved'
+                        ? 'Approved by Manager'
+                        : report.status === 'rejected' && report.manager_id
+                        ? 'Rejected by Manager'
+                        : report.status === 'rejected' && report.inspector_id
+                        ? 'Rejected by Inspector'
                         : report.status}
                     </Text>
                   </View>
@@ -507,6 +521,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
     fontWeight: '500',
+  },
+  bylineText: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
   },
   statusBadge: {
     flexDirection: 'row',

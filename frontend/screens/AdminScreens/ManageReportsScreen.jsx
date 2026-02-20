@@ -1535,6 +1535,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
   // Modal & Form States
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalMode, setModalMode] = useState('category'); // category | report
   const [step, setStep] = useState(1); // 1: Category, 2: Template, 3: Fields
   const [selectedCatId, setSelectedCatId] = useState(null);
   const [createdTemplateId, setCreatedTemplateId] = useState(null);
@@ -1565,6 +1566,44 @@ const ManageReportsScreen = ({ navigation }) => {
 
   const showAlert = (type, title, message = '') => {
     setAlert({ visible: true, type, title, message });
+  };
+
+  const openCategoryModal = () => {
+    setModalMode('category');
+    setStep(1);
+    setShowAddModal(true);
+    setNewCatName('');
+  };
+
+  const openCreateReportModal = category => {
+    if (!category?.id || Number.isNaN(Number(category.id))) {
+      showAlert(
+        'error',
+        'Invalid Category',
+        'Please create/select a valid category first.',
+      );
+      return;
+    }
+    setModalMode('report');
+    setSelectedCatId(category.id);
+    setStep(2);
+    setCreatedTemplateId(null);
+    setTemplateForm({
+      doc_no: '',
+      rev_no: '',
+      customer: '',
+      part_no: '',
+      part_description: '',
+    });
+    setFields([]);
+    setFieldInput({
+      label: '',
+      specification: '',
+      unit: 'mm',
+      type: 'measurement',
+    });
+    setDiagramFile(null);
+    setShowAddModal(true);
   };
 
   // Load Data on Focus
@@ -1605,10 +1644,6 @@ const ManageReportsScreen = ({ navigation }) => {
         }, {});
 
         const baseCats = Array.isArray(cats) ? cats.slice() : [];
-        const nameSet = new Set(
-          baseCats.map(c => (c.name || String(c.id)).toString()),
-        );
-
         const merged = baseCats.map(cat => {
           const key = cat.name || cat.code || String(cat.id);
           const s = statMap[key];
@@ -1620,18 +1655,6 @@ const ManageReportsScreen = ({ navigation }) => {
             first_created: s ? s.first_created : cat.first_created || null,
             last_created: s ? s.last_created : cat.last_created || null,
           };
-        });
-
-        Object.entries(statMap).forEach(([reportType, s]) => {
-          if (!nameSet.has(reportType)) {
-            merged.push({
-              id: reportType,
-              name: reportType,
-              submission_count: s.submission_count || 0,
-              first_created: s.first_created,
-              last_created: s.last_created,
-            });
-          }
         });
 
         setCategories(merged);
@@ -1655,11 +1678,15 @@ const ManageReportsScreen = ({ navigation }) => {
         'Category name is required',
       );
     try {
-      const res = await reportApi.createCategory(newCatName.trim());
-      setSelectedCatId(res.id || res.insertId);
-      setStep(2);
+      await reportApi.createCategory(newCatName.trim());
+      showAlert('success', 'Category Created', 'You can now add reports inside this category.');
+      setShowAddModal(false);
+      setNewCatName('');
+      await loadAll();
     } catch (err) {
-      showAlert('error', 'Error', 'Category creation failed');
+      const apiMessage =
+        err?.response?.data?.message || err?.message || 'Category creation failed';
+      showAlert('error', 'Error', apiMessage);
     }
   };
 
@@ -1668,8 +1695,18 @@ const ManageReportsScreen = ({ navigation }) => {
     setLoadingTemplates(true);
 
     try {
-      const data = await reportApi.getTemplatesByCategory(category.id);
-      setTemplates(data || []);
+      const data = await reportApi.getTemplatesWithParts();
+      const categoryData = data?.[category.name];
+      const customers = categoryData?.customers || {};
+      const mappedTemplates = Object.values(customers)
+        .flat()
+        .map((part, idx) => ({
+          id: `${part.templateId || idx}`,
+          templateId: part.templateId,
+          docNo: part.docNo || '',
+          partDescription: part.description || '',
+        }));
+      setTemplates(mappedTemplates);
     } catch (err) {
       showAlert('error', 'Failed to load templates');
     } finally {
@@ -1772,6 +1809,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
   const resetModal = () => {
     setShowAddModal(false);
+    setModalMode('category');
     setStep(1);
     setNewCatName('');
     setTemplateForm({
@@ -1891,9 +1929,7 @@ const ManageReportsScreen = ({ navigation }) => {
                 <Pressable
                   key={tpl.id}
                   style={styles.templateItem}
-                  onPress={() => {
-                    navigation.navigate('TemplatePreview', { id: tpl.id });
-                  }}
+                  onPress={() => {}}
                 >
                   <Ionicons
                     name="document-text-outline"
@@ -1901,11 +1937,18 @@ const ManageReportsScreen = ({ navigation }) => {
                     color="#6B7280"
                   />
                   <Text style={styles.templateText}>
-                    {tpl.doc_no} — {tpl.part_description}
+                    {tpl.docNo || 'DOC'} - {tpl.partDescription || 'No description'}
                   </Text>
                 </Pressable>
               ))
             )}
+            <Pressable
+              style={styles.createReportBtn}
+              onPress={() => openCreateReportModal(item)}
+            >
+              <Ionicons name="add-circle" size={18} color="#286DA6" />
+              <Text style={styles.createReportBtnText}>Create Report</Text>
+            </Pressable>
           </View>
         )}
       </View>
@@ -1913,8 +1956,9 @@ const ManageReportsScreen = ({ navigation }) => {
   };
 
   const renderSubmissionItem = ({ item }) => {
-    const isApproved = item.status === 'approved';
-    const isPending = item.status === 'pending';
+    const isApproved = item.status === 'manager_approved';
+    const isPending =
+      item.status === 'submitted' || item.status === 'inspector_reviewed';
     const statusColor = isApproved
       ? '#10B981'
       : isPending
@@ -1922,22 +1966,25 @@ const ManageReportsScreen = ({ navigation }) => {
       : '#EF4444';
 
     return (
-      <View style={styles.card}>
+      <Pressable
+        style={styles.card}
+        onPress={() => navigation.navigate('ReportDetail', { reportId: item.id })}
+      >
         <View style={styles.cardHeader}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>
-              {item.title || item.report_type || 'Inspection Report'}
+              {item.template_label || item.title || item.report_type || 'Inspection Report'}
             </Text>
             <Text style={styles.cardSubtitle}>
-              Part: {item.part_no || 'N/A'}
+              Template ID: {item.template_id || 'N/A'}
             </Text>
           </View>
         </View>
         <View style={styles.metaRow}>
           <Ionicons name="person-outline" size={14} color="#6B7280" />
           <Text style={styles.metaText}>
-            {item.submitted_by || item.name || 'Anonymous'}
+            {item.submitted_by_name || item.submitted_by || item.name || 'Anonymous'}
           </Text>
           <Ionicons
             name="calendar-outline"
@@ -1955,10 +2002,18 @@ const ManageReportsScreen = ({ navigation }) => {
           style={[styles.statusBadge, { backgroundColor: `${statusColor}15` }]}
         >
           <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-            {item.status?.toUpperCase()}
+            {item.status === 'manager_approved'
+              ? 'APPROVED BY MANAGER'
+              : item.status === 'inspector_reviewed'
+              ? 'APPROVED BY INSPECTOR'
+              : item.status === 'rejected' && item.manager_id
+              ? 'REJECTED BY MANAGER'
+              : item.status === 'rejected' && item.inspector_id
+              ? 'REJECTED BY INSPECTOR'
+              : (item.status || '').toUpperCase()}
           </Text>
         </View>
-      </View>
+      </Pressable>
     );
   };
 
@@ -1990,10 +2045,7 @@ const ManageReportsScreen = ({ navigation }) => {
         </View>
         <Pressable
           style={styles.addButton}
-          onPress={() => {
-            setStep(1); // Always reset to step 1 when opening
-            setShowAddModal(true);
-          }}
+          onPress={openCategoryModal}
         >
           <Ionicons name="add" size={26} color="#FFF" />
         </Pressable>
@@ -2098,11 +2150,11 @@ const ManageReportsScreen = ({ navigation }) => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {step === 1
-                  ? 'Step 1: Create Category'
+                {modalMode === 'category'
+                  ? 'Create Category'
                   : step === 2
-                  ? 'Step 2: Template Details'
-                  : 'Step 3: Add Fields'}
+                  ? 'Step 1: Template Details'
+                  : 'Step 2: Add Fields'}
               </Text>
               <Pressable onPress={resetModal}>
                 <Ionicons name="close" size={26} color="#6B7280" />
@@ -2129,7 +2181,7 @@ const ManageReportsScreen = ({ navigation }) => {
                   </Pressable>
                 </View>
               )} */}
-              {step === 1 && (
+              {modalMode === 'category' && (
                 <View>
                   <Text style={styles.label}>Report Type Name</Text>
 
@@ -2156,14 +2208,12 @@ const ManageReportsScreen = ({ navigation }) => {
                     style={styles.primaryBtn}
                     onPress={handleCreateCategory}
                   >
-                    <Text style={styles.primaryBtnText}>
-                      Next: Template Info
-                    </Text>
+                    <Text style={styles.primaryBtnText}>Create Category</Text>
                   </Pressable>
                 </View>
               )}
 
-              {step === 2 && (
+              {modalMode === 'report' && step === 2 && (
                 <View>
                   {[
                     'doc_no',
@@ -2198,14 +2248,12 @@ const ManageReportsScreen = ({ navigation }) => {
                     style={styles.primaryBtn}
                     onPress={handleCreateTemplate}
                   >
-                    <Text style={styles.primaryBtnText}>
-                      Next: Define Fields
-                    </Text>
+                    <Text style={styles.primaryBtnText}>Next: Add Fields</Text>
                   </Pressable>
                 </View>
               )}
 
-              {step === 3 && (
+              {modalMode === 'report' && step === 3 && (
                 <View>
                   <Text style={styles.label}>
                     Existing Fields ({fields.length})
@@ -2436,5 +2484,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     fontWeight: '500',
+  },
+  createReportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: '#286DA6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F8FBFE',
+  },
+  createReportBtnText: {
+    color: '#286DA6',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

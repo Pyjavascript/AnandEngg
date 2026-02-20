@@ -694,8 +694,8 @@ exports.GetAllTemplatesWithParts = async (req, res) => {
     const result = {};
     
     for (const template of templates) {
-      // Use template name or a default if not available
-      const templateName = template.name || 'Inspection Report';
+      // Group employee selection by category name.
+      const templateName = template.category_name || 'Uncategorized';
       
       // Initialize template structure if not exists
       if (!result[templateName]) {

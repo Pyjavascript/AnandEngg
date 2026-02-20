@@ -78,9 +78,10 @@ export default function ReportDetailScreen({ route, navigation }) {
           shift: submission.shift,
           visualObservation: submission.inspector_observation || '',
           remarks: submission.inspector_remarks || submission.manager_remarks || '',
-          qa: '',
-          reviewedBy: '',
-          approvedBy: '',
+          qa: submission.employee_name || '',
+          reviewedBy: submission.inspector_name || '',
+          approvedBy: submission.manager_name || '',
+          submittedBy: submission.employee_name || '',
         },
       };
 
@@ -336,6 +337,7 @@ export default function ReportDetailScreen({ route, navigation }) {
           </View>
 
           <View style={styles.infoGrid}>
+            <InfoItem label="Submitted By" value={data.submittedBy} />
             <InfoItem label="Customer" value={data.customer} />
             <InfoItem label="Part Number" value={data.partNumber} />
             <InfoItem label="Doc Number" value={data.docNo} />
@@ -359,44 +361,28 @@ export default function ReportDetailScreen({ route, navigation }) {
                 Dimensions Inspection ({data.dimensions.length})
               </Text>
             </View>
-
-            {data.dimensions.map((dim, index) => (
-              <View key={index} style={styles.dimensionCard}>
-                <View style={styles.dimensionHeader}>
-                  <View style={styles.dimensionNumber}>
-                    <Text style={styles.dimensionNumberText}>{dim.slNo}</Text>
-                  </View>
-                  <View style={styles.dimensionInfo}>
-                    <Text style={styles.dimensionDesc}>{dim.desc}</Text>
-                    <Text style={styles.dimensionSpec}>
-                      Specification: {dim.spec}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.actualValues}>
-                  <Text style={styles.actualLabel}>Actual Values:</Text>
-                  <View style={styles.actualChips}>
-                    {Array.isArray(dim.actual) && dim.actual.length > 0 ? (
-                      dim.actual.map((val, idx) => (
-                        <View key={idx} style={styles.actualChip}>
-                          <Text style={styles.actualChipLabel}>
-                            Sample {idx + 1}
-                          </Text>
-                          <Text style={styles.actualChipValue}>
-                            {val || '-'}
-                          </Text>
-                        </View>
-                      ))
-                    ) : (
-                      <Text style={styles.noData}>
-                        No measurements recorded
-                      </Text>
-                    )}
-                  </View>
-                </View>
+            <View style={styles.tableWrap}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeadCell, styles.colSl]}>Sl</Text>
+                <Text style={[styles.tableHeadCell, styles.colDesc]}>Description</Text>
+                <Text style={[styles.tableHeadCell, styles.colSpec]}>Spec</Text>
+                <Text style={[styles.tableHeadCell, styles.colUnit]}>Unit</Text>
+                <Text style={[styles.tableHeadCell, styles.colActual]}>Actual</Text>
               </View>
-            ))}
+              {data.dimensions.map((dim, index) => (
+                <View key={index} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, styles.colSl]}>{dim.slNo || index + 1}</Text>
+                  <Text style={[styles.tableCell, styles.colDesc]} numberOfLines={2}>{dim.desc || '-'}</Text>
+                  <Text style={[styles.tableCell, styles.colSpec]} numberOfLines={2}>{dim.spec || '-'}</Text>
+                  <Text style={[styles.tableCell, styles.colUnit]}>{dim.unit || '-'}</Text>
+                  <Text style={[styles.tableCell, styles.colActual]} numberOfLines={2}>
+                    {Array.isArray(dim.actual) && dim.actual.length > 0
+                      ? dim.actual.filter(Boolean).join(', ')
+                      : '-'}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -916,6 +902,52 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#94A3B8',
     fontStyle: 'italic',
+  },
+  tableWrap: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF6FF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  tableHeadCell: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    fontSize: 11,
+    color: '#1E3A8A',
+    fontWeight: '700',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  tableCell: {
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    fontSize: 12,
+    color: '#1E293B',
+  },
+  colSl: {
+    width: '10%',
+  },
+  colDesc: {
+    width: '26%',
+  },
+  colSpec: {
+    width: '24%',
+  },
+  colUnit: {
+    width: '12%',
+  },
+  colActual: {
+    width: '28%',
   },
   textBox: {
     backgroundColor: '#F8FAFC',
