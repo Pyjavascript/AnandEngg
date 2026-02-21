@@ -21,6 +21,7 @@ import ManageUsersScreen from './screens/AdminScreens/ManageUsersScreen'
 import ManageRolesScreen from './screens/AdminScreens/ManageRolesScreen'
 import ManageReportsScreen from './screens/AdminScreens/ManageReportsScreen'
 import UserDetailScreen from './screens/AdminScreens/UserDetailScreen'
+import { theme } from './theme/designSystem';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -45,20 +46,15 @@ function MainTabs() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#286DA6',
-        tabBarInactiveTintColor: '#B0C4D8',
+        tabBarActiveTintColor: theme.colors.primarySoft,
+        tabBarInactiveTintColor: theme.colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
-          borderTopColor: '#E3F2FD',
+          borderTopColor: theme.colors.border,
           height: 80,
           paddingBottom: 8,
           paddingTop: 8,
-          elevation: 8,
-          shadowColor: '#286DA6',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -110,7 +106,7 @@ import { View, Text } from 'react-native';
 function App() {
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FAFBFD" />
+      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.bg} />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />

@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { theme } from '../theme/designSystem';
 
 const EntriesScreen = ({ navigation }) => {
   const quickActions = [
@@ -119,28 +120,29 @@ const EntriesScreen = ({ navigation }) => {
   );
 };
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.headerBg,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   content: {
     flex: 1,
@@ -151,7 +153,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 16,
   },
   actionsGrid: {
@@ -161,12 +163,12 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   actionIcon: {
     width: 56,
@@ -222,7 +224,7 @@ const styles = StyleSheet.create({
   // },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.surfaceAlt,
     marginHorizontal: 20,
     padding: 16,
     borderRadius: 12,

@@ -411,9 +411,26 @@ exports.DeleteCategory = async (req, res) => {
     const templateIds = templates.map(t => t.id);
 
     if (templateIds.length > 0) {
+      const [submissionRows] = await connection.query(
+        'SELECT id FROM report_submissions WHERE template_id IN (?)',
+        [templateIds]
+      );
+      const submissionIds = submissionRows.map(s => s.id);
+
+      if (submissionIds.length > 0) {
+        await connection.query(
+          'DELETE FROM submission_values WHERE submission_id IN (?)',
+          [submissionIds]
+        );
+      }
 
       await connection.query(
         'DELETE FROM report_submissions WHERE template_id IN (?)',
+        [templateIds]
+      );
+
+      await connection.query(
+        'DELETE sv FROM submission_values sv JOIN template_fields tf ON sv.field_id = tf.id WHERE tf.template_id IN (?)',
         [templateIds]
       );
 

@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
+import { theme } from '../theme/designSystem';
 
 export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType } = route.params;
@@ -46,13 +47,7 @@ export default function AddEntryScreen({ route, navigation }) {
           name: parsed.name,
           employeeId: parsed.employee_id, // or parsed.employeeId if you store that
         });
-
-        setForm(prev => ({
-          ...prev,
-          qa: parsed.name,
-        }));
       }
-      console.log(form);
     };
 
     loadUser();
@@ -74,11 +69,6 @@ export default function AddEntryScreen({ route, navigation }) {
     inspectionDate: new Date().toISOString().split('T')[0],
     shift: '',
     dimensions: initDimensions,
-    visualObservation: '',
-    remarks: '',
-    qa: userData.name, // Pre-filled with Rajesh Kumar
-    reviewedBy: '',
-    approvedBy: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -252,6 +242,10 @@ export default function AddEntryScreen({ route, navigation }) {
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
+            <View style={styles.headerPill}>
+              <Ionicons name="sparkles-outline" size={13} color="#E5F3FF" />
+              <Text style={styles.headerPillText}>Smart Quality Entry</Text>
+            </View>
             <Text style={styles.headerTitle}>Inspection Report</Text>
             <Text style={styles.headerSubtitle}>{reportType}</Text>
           </View>
@@ -284,7 +278,10 @@ export default function AddEntryScreen({ route, navigation }) {
 
         {/* Part Info Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Part Information</Text>
+          <View style={styles.cardHeader}>
+            <Ionicons name="cube-outline" size={20} color="#286DA6" />
+            <Text style={styles.cardTitle}>Part Information</Text>
+          </View>
           <Image
             source={
               part?.img?.uri
@@ -321,7 +318,10 @@ export default function AddEntryScreen({ route, navigation }) {
 
         {/* Shift Selection */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Shift Details</Text>
+          <View style={styles.cardHeader}>
+            <Ionicons name="time-outline" size={20} color="#286DA6" />
+            <Text style={styles.cardTitle}>Shift Details</Text>
+          </View>
           <View style={styles.pickerWrapper}>
             <Ionicons
               name="time-outline"
@@ -392,72 +392,6 @@ export default function AddEntryScreen({ route, navigation }) {
           ))}
         </View>
 
-        {/* Observations */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Visual Observation</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Enter visual observations..."
-            placeholderTextColor="#B0C4D8"
-            value={form.visualObservation}
-            multiline
-            numberOfLines={4}
-            onChangeText={t => setForm({ ...form, visualObservation: t })}
-          />
-        </View>
-
-        {/* Remarks */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Remarks</Text>
-          <TextInput
-            style={styles.textArea}
-            placeholder="Enter any remarks..."
-            placeholderTextColor="#B0C4D8"
-            value={form.remarks}
-            multiline
-            numberOfLines={4}
-            onChangeText={t => setForm({ ...form, remarks: t })}
-          />
-        </View>
-
-        {/* Approvals */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Approvals</Text>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>QA Inspector</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="QA Name"
-              placeholderTextColor="#B0C4D8"
-              value={form.qa}
-              onChangeText={t => setForm({ ...form, qa: t })}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Reviewed By</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Reviewer Name"
-              placeholderTextColor="#B0C4D8"
-              value={form.reviewedBy}
-              onChangeText={t => setForm({ ...form, reviewedBy: t })}
-            />
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Approved By</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Approver Name"
-              placeholderTextColor="#B0C4D8"
-              value={form.approvedBy}
-              onChangeText={t => setForm({ ...form, approvedBy: t })}
-            />
-          </View>
-        </View>
-
         {/* Submit Button */}
         <TouchableOpacity
           style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
@@ -492,18 +426,19 @@ export default function AddEntryScreen({ route, navigation }) {
   );
 }
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 28,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 34,
+    borderBottomRightRadius: 34,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -519,9 +454,25 @@ const styles = StyleSheet.create({
   headerContent: {
     flex: 1,
   },
+  headerPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginBottom: 10,
+  },
+  headerPillText: {
+    color: '#E5F3FF',
+    fontSize: 11,
+    fontWeight: '600',
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 26,
+    fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: 4,
   },
@@ -530,16 +481,13 @@ const styles = StyleSheet.create({
     color: '#DBEAFE',
   },
   inspectorCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     marginHorizontal: 20,
-    marginTop: -10,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    marginTop: -12,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   inspectorHeader: {
     flexDirection: 'row',
@@ -573,28 +521,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     marginHorizontal: 20,
     marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#286DA6',
-    marginBottom: 16,
+    color: '#123A59',
   },
   partImage: {
     width: '100%',
@@ -758,14 +702,19 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     flexDirection: 'row',
-    backgroundColor: '#286DA6',
+    backgroundColor: '#114A76',
     marginHorizontal: 20,
     marginTop: 24,
     padding: 18,
-    borderRadius: 40,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    shadowColor: '#0E3B5D',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 4,
   },
   submitBtnDisabled: {
     opacity: 0.6,

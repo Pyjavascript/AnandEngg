@@ -29,6 +29,26 @@ CREATE TABLE users (
 
 CREATE INDEX idx_employee_id ON users(employee_id);
 
+-- ==============================
+-- ROLES
+-- ==============================
+
+CREATE TABLE roles (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  display_name VARCHAR(150) NOT NULL,
+  description VARCHAR(255) DEFAULT '',
+  is_protected TINYINT(1) DEFAULT 0,
+  can_self_register TINYINT(1) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO roles (name, display_name, description, is_protected, can_self_register) VALUES
+('machine_operator', 'Machine Operator', 'Operates machines and submits inspection reports', 1, 1),
+('quality_inspector', 'Quality Inspector', 'Inspects and reviews submitted reports', 1, 1),
+('quality_manager', 'Quality Manager', 'Approves quality reports and manages quality flow', 1, 1),
+('admin', 'Admin', 'System administrator', 1, 0);
+
 -- Default Admin
 INSERT INTO users (
   name,

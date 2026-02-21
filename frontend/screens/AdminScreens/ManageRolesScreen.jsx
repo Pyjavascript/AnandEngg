@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
-import { RoleService } from '../../utils/mockData';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
+import { theme } from '../../theme/designSystem';
+import roleApi from '../../utils/roleApi';
 
 const ManageRolesScreen = ({ navigation }) => {
   const [roles, setRoles] = useState([]);
@@ -49,10 +50,22 @@ const ManageRolesScreen = ({ navigation }) => {
       const loadRoles = async () => {
         setLoading(true);
         try {
-          const data = await RoleService.getAllRoles();
-          setRoles(data);
+          const data = await roleApi.getAdminRoles();
+          const mapped = (data || []).map(r => ({
+            id: r.id,
+            name: r.name,
+            displayName: r.display_name || r.displayName || r.name,
+            description: r.description || '',
+            protected: Number(r.is_protected) === 1 || r.name === 'admin',
+            permissions: [],
+          }));
+          setRoles(mapped);
         } catch (err) {
-          showAlert('error', 'Failed to load roles');
+          showAlert(
+            'error',
+            'Failed to load roles',
+            err?.response?.data?.message || 'Please check backend and login token',
+          );
           console.log('Failed to load roles', err);
         } finally {
           setLoading(false);
@@ -72,20 +85,28 @@ const ManageRolesScreen = ({ navigation }) => {
     setAddRoleModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const result = await RoleService.addRole({
+      const created = await roleApi.createRole({
         name: addRoleModal.name.toLowerCase().replace(/\s+/g, '_'),
-        displayName: addRoleModal.displayName,
+        display_name: addRoleModal.displayName,
         description: addRoleModal.description,
-        permissions: ['create_reports', 'view_own_reports'],
+        can_self_register: 0,
       });
 
-      if (result.success) {
-        setRoles([...roles, result.data]);
-        showAlert('success', 'Success', 'Role added successfully');
-        setAddRoleModal({ visible: false, name: '', displayName: '', description: '', isLoading: false });
-      }
+      setRoles([
+        ...roles,
+        {
+          id: created.id,
+          name: created.name,
+          displayName: created.display_name || created.name,
+          description: created.description || '',
+          protected: Number(created.is_protected) === 1,
+          permissions: [],
+        },
+      ]);
+      showAlert('success', 'Success', 'Role added successfully');
+      setAddRoleModal({ visible: false, name: '', displayName: '', description: '', isLoading: false });
     } catch (err) {
-      showAlert('error', 'Error', 'Failed to add role');
+      showAlert('error', 'Error', err?.response?.data?.message || 'Failed to add role');
       console.log('Error:', err);
     } finally {
       setAddRoleModal(prev => ({ ...prev, isLoading: false }));
@@ -97,15 +118,11 @@ const ManageRolesScreen = ({ navigation }) => {
 
     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
     try {
-      const result = await RoleService.deleteRole(confirmDialog.roleId);
-      if (result.success) {
-        setRoles(roles.filter(r => r.id !== confirmDialog.roleId));
-        showAlert('success', 'Success', 'Role deleted successfully');
-      } else {
-        showAlert('error', 'Error', result.message || 'Failed to delete role');
-      }
+      await roleApi.deleteRole(confirmDialog.roleId);
+      setRoles(roles.filter(r => r.id !== confirmDialog.roleId));
+      showAlert('success', 'Success', 'Role deleted successfully');
     } catch (err) {
-      showAlert('error', 'Error', 'Failed to delete role');
+      showAlert('error', 'Error', err?.response?.data?.message || 'Failed to delete role');
       console.log('Error:', err);
     } finally {
       setConfirmDialog({
@@ -170,15 +187,15 @@ const ManageRolesScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.permissionsList}>
-          {item.permissions.slice(0, 2).map((perm, idx) => (
+          {(item.permissions || []).slice(0, 2).map((perm, idx) => (
             <View key={idx} style={styles.permissionTag}>
               <Text style={styles.permissionText}>{perm}</Text>
             </View>
           ))}
-          {item.permissions.length > 2 && (
+          {(item.permissions || []).length > 2 && (
             <View style={styles.permissionTag}>
               <Text style={styles.permissionText}>
-                +{item.permissions.length - 2} more
+                +{(item.permissions || []).length - 2} more
               </Text>
             </View>
           )}
@@ -414,7 +431,7 @@ const ManageRolesScreen = ({ navigation }) => {
         type={alert.type}
         title={alert.title}
         message={alert.message}
-        onClose={() =>
+        onHide={() =>
           setAlert({ visible: false, type: 'success', title: '', message: '' })
         }
       />
@@ -424,16 +441,17 @@ const ManageRolesScreen = ({ navigation }) => {
 
 export default ManageRolesScreen;
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   loadingText: {
     marginTop: 12,
@@ -445,11 +463,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    paddingTop: 55,
+    paddingBottom: 18,
+    backgroundColor: C.headerBg,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -457,25 +475,23 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonPressed: {
-    backgroundColor: '#F3F4F6',
+    opacity: 0.7,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.textStrong,
   },
   addButton: {
     width: 44,
     height: 44,
-    borderRadius: 10,
-    backgroundColor: '#286DA6',
+    borderRadius: 14,
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -492,9 +508,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FDE7B2',
   },
   warningText: {
     flex: 1,
@@ -508,14 +524,11 @@ const styles = StyleSheet.create({
   },
   roleCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   roleHeader: {
     flexDirection: 'row',

@@ -7,8 +7,8 @@ import {
   ScrollView,
   TextInput,
   Image,
-  Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
@@ -16,6 +16,7 @@ import BASE_URL from '../../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView } from 'react-native';
 import CustomAlert from '../../components/CustomAlert';
+import { theme } from '../../theme/designSystem';
 
 const EditProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -284,16 +285,17 @@ const EditProfileScreen = ({ navigation }) => {
   );
 };
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -355,11 +357,11 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
     gap: 10,
   },
   input: {
@@ -370,16 +372,16 @@ const styles = StyleSheet.create({
   },
   readOnlySection: {
     marginTop: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 12,
   },
   readOnlyItem: {
@@ -398,13 +400,13 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.border,
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     marginHorizontal: 20,
     marginTop: 24,
     padding: 16,

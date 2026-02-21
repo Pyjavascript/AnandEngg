@@ -1509,7 +1509,7 @@ import {
   FlatList,
   Modal,
   TextInput,
-  Dimensions,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -1517,8 +1517,7 @@ import { pick, isCancel, types } from '@react-native-documents/picker';
 
 import reportApi from '../../utils/reportApi';
 import CustomAlert from '../../components/CustomAlert';
-
-const { width } = Dimensions.get('window');
+import { theme } from '../../theme/designSystem';
 
 const ManageReportsScreen = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('types'); // 'types' or 'submissions'
@@ -1610,10 +1609,10 @@ const ManageReportsScreen = ({ navigation }) => {
   useFocusEffect(
     React.useCallback(() => {
       loadAll();
-    }, []),
+    }, [loadAll]),
   );
 
-  const loadAll = async () => {
+  const loadAll = React.useCallback(async () => {
     setLoading(true);
     try {
       const [cats, subs] = await Promise.all([
@@ -1666,7 +1665,7 @@ const ManageReportsScreen = ({ navigation }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   /* ================= LOGIC FUNCTIONS ================= */
 
@@ -1832,6 +1831,41 @@ const ManageReportsScreen = ({ navigation }) => {
     loadAll(); // Refresh main list
   };
 
+  const handleDeleteCategory = (category) => {
+    Alert.alert(
+      'Delete Category?',
+      `Deleting "${category.name}" will permanently delete all reports and submissions inside it from MySQL. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await reportApi.deleteCategory(category.id);
+              showAlert(
+                'success',
+                'Category Deleted',
+                'Category and all related reports were deleted.',
+              );
+              if (selectedCategory?.id === category.id) {
+                setSelectedCategory(null);
+                setTemplates([]);
+              }
+              await loadAll();
+            } catch (err) {
+              const apiMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to delete category';
+              showAlert('error', 'Delete Failed', apiMessage);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   /* ================= RENDER COMPONENTS ================= */
 
   // const renderCategoryItem = ({ item }) => (
@@ -1904,9 +1938,18 @@ const ManageReportsScreen = ({ navigation }) => {
 
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{item.name}</Text>
-            <Text style={styles.cardSubtitle}>
-              Report Type • {item.submission_count || 0} submissions
-            </Text>
+            <View style={styles.categoryMetaRow}>
+              <View style={styles.metaChip}>
+                <Ionicons name="layers-outline" size={12} color="#1D4D77" />
+                <Text style={styles.metaChipText}>Report Type</Text>
+              </View>
+              <View style={styles.metaChip}>
+                <Ionicons name="stats-chart-outline" size={12} color="#1D4D77" />
+                <Text style={styles.metaChipText}>
+                  {item.submission_count || 0} submissions
+                </Text>
+              </View>
+            </View>
           </View>
 
           <Ionicons
@@ -1948,6 +1991,13 @@ const ManageReportsScreen = ({ navigation }) => {
             >
               <Ionicons name="add-circle" size={18} color="#286DA6" />
               <Text style={styles.createReportBtnText}>Create Report</Text>
+            </Pressable>
+            <Pressable
+              style={styles.deleteCategoryBtn}
+              onPress={() => handleDeleteCategory(item)}
+            >
+              <Ionicons name="trash-outline" size={17} color="#DC2626" />
+              <Text style={styles.deleteCategoryBtnText}>Delete Category</Text>
             </Pressable>
           </View>
         )}
@@ -2329,8 +2379,9 @@ const ManageReportsScreen = ({ navigation }) => {
 
 export default ManageReportsScreen;
 
+const C = theme.colors;
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FBFE' },
+  container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -2338,47 +2389,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 55,
-    paddingBottom: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    paddingBottom: 18,
+    backgroundColor: C.headerBg,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#1F2937' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: C.textStrong },
   backBtn: { padding: 4 },
   addButton: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 3,
   },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
+    backgroundColor: C.bg,
     paddingHorizontal: 16,
+    paddingTop: 14,
   },
   tab: {
     flex: 1,
     paddingVertical: 14,
     alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    borderBottomWidth: 0,
+    borderRadius: 12,
+    backgroundColor: '#E3ECF4',
+    marginHorizontal: 4,
   },
-  tabActive: { borderBottomColor: '#286DA6' },
-  tabText: { fontWeight: '700', color: '#B0C4D8', fontSize: 13 },
-  tabTextActive: { color: '#286DA6' },
+  tabActive: { backgroundColor: '#114A76' },
+  tabText: { fontWeight: '700', color: '#5C7488', fontSize: 13 },
+  tabTextActive: { color: '#FFFFFF' },
   card: {
     backgroundColor: '#FFF',
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 14,
-    elevation: 1,
-    shadowColor: '#286DA6',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   iconContainer: {
@@ -2389,8 +2441,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#1F2937' },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: '#123A59' },
   cardSubtitle: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  categoryMetaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 6,
+    flexWrap: 'wrap',
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECF5FD',
+    borderWidth: 1,
+    borderColor: '#D5E8F8',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  metaChipText: {
+    fontSize: 11,
+    color: '#1D4D77',
+    fontWeight: '600',
+  },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
   metaText: { fontSize: 12, color: '#6B7280', marginLeft: 6 },
@@ -2500,6 +2574,23 @@ const styles = StyleSheet.create({
   },
   createReportBtnText: {
     color: '#286DA6',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  deleteCategoryBtn: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteCategoryBtnText: {
+    color: '#DC2626',
     fontSize: 13,
     fontWeight: '700',
   },

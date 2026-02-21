@@ -222,6 +222,15 @@ const register = async (req, res) => {
     )
       return res.status(400).json({ message: "All fields required" });
 
+    const allowedRegisterRoles = [
+      'machine_operator',
+      'quality_inspector',
+      'quality_manager',
+    ];
+    if (!allowedRegisterRoles.includes(role)) {
+      return res.status(400).json({ message: 'Invalid role for self registration' });
+    }
+
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 

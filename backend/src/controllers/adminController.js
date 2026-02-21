@@ -190,23 +190,16 @@ exports.getAllRoles = async (req, res) => {
 
 exports.getStats = async (req, res) => {
   try {
-    const [[user]] = await db.query(
-      'SELECT COUNT(*) AS total FROM users'
-    );
-
-    const [[reports]] = await db.query(
-      'SELECT COUNT(*) AS total FROM reports'
-    );
-
-    const [[roles]] = await db.query(
-      'SELECT COUNT(DISTINCT role) AS total FROM users;'
-    );
+    const [[user], [reports], [roles]] = await Promise.all([
+      db.query('SELECT COUNT(*) AS total FROM users'),
+      db.query('SELECT COUNT(*) AS total FROM report_submissions'),
+      db.query('SELECT COUNT(DISTINCT role) AS total FROM users'),
+    ]);
 
     res.json({
-        users: user.total,
-        reports: reports.total,
-        roles:roles.total
-        
+      users: user.total,
+      reports: reports.total,
+      roles: roles.total,
     });
   } catch (err) {
     console.error(err);

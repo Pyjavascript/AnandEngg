@@ -7,11 +7,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useEffect, useState } from 'react';
-import { Picker } from '@react-native-picker/picker';
 import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +17,13 @@ import BASE_URL from '../config/api';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import RoleSelector from '../components/RoleSelector';
 import CustomAlert from '../components/CustomAlert';
+import roleApi from '../utils/roleApi';
+
+const DEFAULT_REGISTER_ROLES = [
+  { id: 1, name: 'machine_operator', display_name: 'Machine Operator' },
+  { id: 2, name: 'quality_inspector', display_name: 'Quality Inspector' },
+  { id: 3, name: 'quality_manager', display_name: 'Quality Manager' },
+];
 
 const AuthScreen = ({ navigation }) => {
   const [roles, setRoles] = useState([]);
@@ -239,13 +244,16 @@ const AuthScreen = ({ navigation }) => {
   useEffect(() => {
     const loadRoles = async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/roles`);
-        const data = await res.json();
-
-        console.log('ROLES FROM API:', data); // 👈 must check once
-        setRoles(data);
+        const data = await roleApi.getPublicRoles();
+        const allowed = (Array.isArray(data) ? data : []).filter(r =>
+          ['machine_operator', 'quality_inspector', 'quality_manager'].includes(
+            r.name,
+          ),
+        );
+        setRoles(allowed.length > 0 ? allowed : DEFAULT_REGISTER_ROLES);
       } catch (err) {
         console.log('Failed to load roles', err);
+        setRoles(DEFAULT_REGISTER_ROLES);
       }
     };
 
@@ -804,3 +812,5 @@ const styles = StyleSheet.create({
 });
 
 export default AuthScreen;
+
+

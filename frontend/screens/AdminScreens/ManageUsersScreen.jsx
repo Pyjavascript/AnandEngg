@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   FlatList,
@@ -16,6 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as UserService from '../../utils/userApi';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
+import { theme } from '../../theme/designSystem';
 
 const ManageUsersScreen = ({ navigation }) => {
   const [users, setUsers] = useState([]);
@@ -220,14 +220,16 @@ const filteredUsers = users.filter(user =>
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Pressable
-          onPress={() => navigation.goBack()}
-          style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
-        >
-          <Ionicons name="chevron-back" size={24} color="#286DA6" />
-        </Pressable>
-        <Text style={styles.headerTitle}>Manage Users</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerLeft}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={({ pressed }) => [styles.backButton, pressed && styles.backButtonPressed]}
+          >
+            <Ionicons name="chevron-back" size={24} color="#286DA6" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Manage Users</Text>
+        </View>
+        <View style={styles.addButtonGhost} />
       </View>
 
       {/* Search Bar */}
@@ -322,16 +324,17 @@ const filteredUsers = users.filter(user =>
 
 export default ManageUsersScreen;
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   loadingText: {
     marginTop: 12,
@@ -343,26 +346,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    paddingTop: 55,
+    paddingBottom: 18,
+    backgroundColor: C.headerBg,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   backButtonPressed: {
-    backgroundColor: '#F3F4F6',
+    opacity: 0.7,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.textStrong,
+  },
+  addButtonGhost: {
+    width: 44,
+    height: 44,
   },
   searchSection: {
     flexDirection: 'row',
@@ -370,10 +380,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: C.surface,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
     height: 44,
   },
   searchInput: {
@@ -389,8 +399,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
     justifyContent: 'space-between',
   },
   statItem: {
@@ -418,23 +430,18 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   userCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: C.surface,
+    borderRadius: 18,
     padding: 12,
     marginBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   userCardPressed: {
     opacity: 0.95,
-    shadowOpacity: 0.08,
-    elevation: 2,
   },
   userContent: {
     flex: 1,

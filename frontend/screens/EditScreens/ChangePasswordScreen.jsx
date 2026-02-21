@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import BASE_URL from '../../config/api';
 import CustomAlert from '../../components/CustomAlert';
+import { theme } from '../../theme/designSystem';
 
 const ChangePasswordScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
@@ -160,17 +161,18 @@ const ChangePasswordScreen = ({ navigation }) => {
     </View>
   );
 };
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
 
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -206,11 +208,11 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
     gap: 10,
   },
 
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     marginHorizontal: 20,
     marginTop: 32,
     padding: 16,

@@ -13,6 +13,7 @@ import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
+import { theme } from '../theme/designSystem';
 
 const DashboardScreen = ({ navigation }) => {
   const defaultAvatar =
@@ -280,18 +281,19 @@ const DashboardScreen = ({ navigation }) => {
   );
 };
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#286DA6',
+    backgroundColor: C.headerBg,
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   headerTop: {
     flexDirection: 'row',
@@ -307,7 +309,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.textStrong,
     marginBottom: 2,
   },
   userRole: {
@@ -340,7 +342,9 @@ const styles = StyleSheet.create({
   employeeIdBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -348,23 +352,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   employeeIdText: {
-    color: '#FFFFFF',
+    color: C.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   todaySummary: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     margin: 20,
     marginTop: -20,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    borderColor: C.border,
   },
   todayHeader: {
     flexDirection: 'row',
@@ -441,7 +440,7 @@ const styles = StyleSheet.create({
   loadingContainer: {
     alignItems: 'center',
     paddingVertical: 30,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
   },
   loadingText: {
@@ -453,12 +452,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   reportLeft: {
     flexDirection: 'row',
@@ -508,7 +507,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     paddingVertical: 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
   },
   emptyStateText: {

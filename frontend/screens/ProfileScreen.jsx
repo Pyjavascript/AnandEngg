@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
+import { theme } from '../theme/designSystem';
 
 const ProfileScreen = ({ navigation }) => {
   const [reports, setReports] = useState([]);
@@ -291,25 +291,26 @@ const InfoRow = ({ icon, label, value }) => (
 );
 
 /* Styles */
+const C = theme.colors;
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FBFE' },
+  container: { flex: 1, backgroundColor: C.bg },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.headerBg,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
-  headerTitle: { fontSize: 28, fontWeight: '700', color: '#286DA6' },
+  headerTitle: { fontSize: 28, fontWeight: '700', color: C.textStrong },
   profileCard: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     margin: 20,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   avatarContainer: { position: 'relative', marginBottom: 12 },
   avatar: {
@@ -317,7 +318,7 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     borderWidth: 3,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   editAvatarBtn: {
     position: 'absolute',
@@ -332,49 +333,49 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  profileName: { fontSize: 22, fontWeight: '700', color: '#1F2937' },
-  profileRole: { fontSize: 14, color: '#6B7280', marginBottom: 12 },
+  profileName: { fontSize: 22, fontWeight: '700', color: C.textBody },
+  profileRole: { fontSize: 14, color: C.textMuted, marginBottom: 12 },
   employeeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.surfaceAlt,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     gap: 6,
   },
-  employeeId: { fontSize: 13, fontWeight: '600', color: '#286DA6' },
+  employeeId: { fontSize: 13, fontWeight: '600', color: C.primary },
   statsContainer: { flexDirection: 'row', paddingHorizontal: 20, gap: 12 },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
-  statValue: { fontSize: 20, fontWeight: '700', color: '#1F2937' },
-  statLabel: { fontSize: 12, color: '#6B7280' },
+  statValue: { fontSize: 20, fontWeight: '700', color: C.textBody },
+  statLabel: { fontSize: 12, color: C.textMuted },
   section: { paddingHorizontal: 20, marginTop: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#286DA6' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: C.textStrong },
   infoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   infoContent: { flex: 1 },
-  infoLabel: { fontSize: 12, color: '#6B7280' },
-  infoValue: { fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  divider: { height: 1, backgroundColor: '#E3F2FD', marginVertical: 6 },
+  infoLabel: { fontSize: 12, color: C.textMuted },
+  infoValue: { fontSize: 14, fontWeight: '600', color: C.textBody },
+  divider: { height: 1, backgroundColor: C.border, marginVertical: 6 },
   menuCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   menuItem: {
     flexDirection: 'row',
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  menuLabel: { fontSize: 15, fontWeight: '500', color: '#1F2937' },
+  menuLabel: { fontSize: 15, fontWeight: '500', color: C.textBody },
   logoutBtn: {
     flexDirection: 'row',
     justifyContent: 'center',

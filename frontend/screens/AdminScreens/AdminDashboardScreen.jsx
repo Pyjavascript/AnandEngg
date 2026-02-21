@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,30 +6,17 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Image,
   TouchableOpacity,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-// import { AdminStatsService } from '../../utils/mockData';
-import { getAdminStats } from '../../utils/adminApi';
-
-import CustomAlert from '../../components/CustomAlert';
 import BASE_URL from '../../config/api';
+import { theme } from '../../theme/designSystem';
 
 const AdminDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ name: 'Admin' });
-  const [alert, setAlert] = useState({
-    visible: false,
-    type: 'info',
-    title: '',
-    message: '',
-  });
-  const showAlert = (type, title, message = '') => {
-    setAlert({ visible: true, type, title, message });
-  };
   const [stats, setStats] = useState({});
 
   // Load user data
@@ -39,8 +26,8 @@ const AdminDashboardScreen = ({ navigation }) => {
         try {
           const storedUser = await AsyncStorage.getItem('user');
           if (storedUser) {
-            // const user = JSON.parse(storedUser);
-            // setUserData({ name: user.nameX || 'Admin' });
+            const user = JSON.parse(storedUser);
+            setUserData({ name: user.name || 'Admin' });
           }
         } catch (err) {
           console.log('Failed to load user data', err);
@@ -79,7 +66,6 @@ const AdminDashboardScreen = ({ navigation }) => {
             systemHealth: 'Good',
           });
           console.log('Admin stats loaded', data);
-          console.log(stats);
         } catch (err) {
           console.log('Failed to load stats', err);
         } finally {
@@ -92,13 +78,9 @@ const AdminDashboardScreen = ({ navigation }) => {
   );
 
   const handleLogout = async () => {
-    showAlert('info', 'Logging out');
-
-    setTimeout(async () => {
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('token');
-      navigation.replace('AuthScreen');
-    }, 1200);
+    await AsyncStorage.removeItem('user');
+    await AsyncStorage.removeItem('token');
+    navigation.replace('AuthScreen');
   };
 
   const adminModules = [
@@ -166,7 +148,11 @@ const AdminDashboardScreen = ({ navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerTextWrap}>
+            <View style={styles.headerPill}>
+              <Ionicons name="sparkles-outline" size={14} color="#0D4D7C" />
+              <Text style={styles.headerPillText}>Control Center</Text>
+            </View>
             <Text style={styles.greeting}>Admin Panel</Text>
             <Text style={styles.subtitle}>Welcome, {userData.name}</Text>
           </View>
@@ -259,6 +245,17 @@ const AdminDashboardScreen = ({ navigation }) => {
                     {module.description}
                   </Text>
 
+                  <View style={styles.moduleOptions}>
+                    <View style={styles.moduleOptionChip}>
+                      <Ionicons name="flash-outline" size={12} color="#475569" />
+                      <Text style={styles.moduleOptionText}>Quick Access</Text>
+                    </View>
+                    <View style={styles.moduleOptionChip}>
+                      <Ionicons name="grid-outline" size={12} color="#475569" />
+                      <Text style={styles.moduleOptionText}>Options</Text>
+                    </View>
+                  </View>
+
                   {/* Stat badge */}
                   <View style={styles.moduleStat}>
                     <Ionicons
@@ -317,10 +314,11 @@ const AdminDashboardScreen = ({ navigation }) => {
 
 export default AdminDashboardScreen;
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.bg,
   },
   scrollView: {
     flex: 1,
@@ -331,29 +329,48 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 24,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    paddingBottom: 28,
+    backgroundColor: C.headerBg,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+  },
+  headerTextWrap: { flex: 1, paddingRight: 10 },
+  headerPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#C4E1FB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 12,
+  },
+  headerPillText: {
+    fontSize: 11,
+    color: '#0D4D7C',
+    fontWeight: '700',
   },
   greeting: {
-    fontSize: 28,
+    fontSize: 29,
     fontWeight: '800',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
     fontWeight: '500',
   },
   headerIcon: {
     width: 56,
     height: 56,
-    borderRadius: 16,
-    backgroundColor: '#E3F2FD',
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#B8D9F3',
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -361,9 +378,9 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
     marginBottom: 16,
   },
   statsRow: {
@@ -374,14 +391,16 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 16,
+    padding: 14,
     alignItems: 'center',
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#E3EEF7',
+    shadowColor: '#0E3B5F',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   statIcon: {
     width: 40,
@@ -392,7 +411,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   statValue: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1F2937',
     marginBottom: 2,
@@ -411,13 +430,15 @@ const styles = StyleSheet.create({
   },
   moduleCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E7EEF6',
+    shadowColor: '#14334F',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 4,
   },
   moduleCardPressed: {
     opacity: 0.95,
@@ -466,6 +487,27 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginBottom: 12,
   },
+  moduleOptions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  moduleOptionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  moduleOptionText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
   moduleStat: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -483,10 +525,10 @@ const styles = StyleSheet.create({
   tipsSection: {
     marginHorizontal: 20,
     marginBottom: 24,
-    backgroundColor: '#FFFBEB',
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
+    backgroundColor: '#FFF7E4',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FDE7B2',
     padding: 16,
   },
   tipHeader: {
@@ -524,11 +566,13 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FFE8E8',
     margin: 20,
-    padding: 14,
-    borderRadius: 12,
+    padding: 15,
+    borderRadius: 14,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#FBCACA',
   },
   logoutText: { fontSize: 16, fontWeight: '700', color: '#EF4444' },
 });

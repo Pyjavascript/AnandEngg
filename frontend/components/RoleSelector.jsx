@@ -1,25 +1,6 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
-const roles = [
-  {
-    key: 'machine_operator',
-    label: 'Machine Operator',
-    icon: 'settings-outline',
-  },
-  {
-    key: 'quality_inspector',
-    label: 'Quality Inspector',
-    icon: 'search-outline',
-  },
-  {
-    key: 'quality_manager',
-    label: 'Quality Manager',
-    icon: 'checkmark-done-outline',
-  },
-];
 
 // const RoleSelector = ({ value, onChange, error }) => {
 //   return (
@@ -86,7 +67,7 @@ const RoleSelector = ({ value, onChange, roles = [] }) => {
           .map(role => (
             <Picker.Item
               key={role.id}
-              label={role.display_name}
+              label={role.display_name || role.displayName || role.name}
               value={role.name}
             />
           ))}

@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
+import { theme } from '../theme/designSystem';
 
 const ReportsScreen = () => {
   const navigation = useNavigation();
@@ -360,18 +361,19 @@ const ReportsScreen = () => {
   );
 };
 
+const C = theme.colors;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.headerBg,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
   },
   headerContent: {
     flexDirection: 'row',
@@ -381,12 +383,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '500',
   },
   refreshBtn: {
@@ -418,13 +420,13 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   searchInput: {
     flex: 1,
@@ -442,13 +444,13 @@ const styles = StyleSheet.create({
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 14,
     gap: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   filterChipActive: {
     backgroundColor: '#286DA6',
@@ -486,11 +488,11 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   reportCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   cardTop: {
     flexDirection: 'row',
