@@ -94,8 +94,8 @@ app.use("/api/roles", roleRoutes);
 /* ───── Health Checks ───── */
 app.get("/", (req, res) => {
   res.send("Backend is live");
-  // console.log("DB_HOST:", process.env.DB_HOST);
-  // console.log("DB_PORT:", process.env.DB_PORT);
+  console.log("DB_HOST:", process.env.DB_HOST);
+  console.log("DB_PORT:", process.env.DB_PORT);
   res.json({
     message: "Backend is live",
     dbHost: process.env.DB_HOST,
