@@ -748,7 +748,7 @@ exports.GetAllTemplatesWithParts = async (req, res) => {
       if (template.diagram_url) {
         imageUrl = template.diagram_url.startsWith('http') 
           ? template.diagram_url 
-          : `${baseImageUrl}/${template.diagram_url}`;
+          : `${baseImageUrl}${template.diagram_url}`;  //made change here to remove extra slash since diagram_url already starts with /uploads/diagrams/...
       }
       
       // Add template as a part entry

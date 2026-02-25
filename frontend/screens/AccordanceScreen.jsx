@@ -32,6 +32,7 @@ const AccordanceScreen = ({ navigation }) => {
       setLoading(true);
       const data = await reportApi.getTemplatesWithParts();
       console.log(data);
+      console.log("IMAGE URI:", part?.img?.uri);
       
       setReportsData(data);
     } catch (error) {
@@ -237,7 +238,7 @@ const AccordanceScreen = ({ navigation }) => {
             {/* Part Preview */}
             {part ? (
               <View style={styles.previewCard}>
-                {/* <Text style={styles.previewTitle}>Selected Part Preview</Text> */}
+                 <Text style={styles.previewTitle}>Selected Part Preview</Text>
                 <Image
                   source={
                     part?.img?.uri

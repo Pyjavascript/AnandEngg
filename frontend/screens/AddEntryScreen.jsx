@@ -18,8 +18,18 @@ import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
 import { theme } from '../theme/designSystem';
 
+
+const resolveImageUri = (imageUri) => {
+  if (!imageUri || typeof imageUri !== 'string') return null;
+  if (/^https?:\/\//i.test(imageUri)) return imageUri;
+  const normalizedBase = BASE_URL.replace(/\/+$/, '');
+  const normalizedPath = imageUri.startsWith('/') ? imageUri : `/${imageUri}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
 export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType } = route.params;
+  const rawImageUri = typeof part?.img === 'string' ? part.img : part?.img?.uri;
+  const partImageUri = resolveImageUri(rawImageUri);
   const [alert, setAlert] = useState({
     visible: false,
     type: 'success', // success | error | info
@@ -284,8 +294,8 @@ export default function AddEntryScreen({ route, navigation }) {
           </View>
           <Image
             source={
-              part?.img?.uri
-                ? { uri: part.img.uri }
+              partImageUri
+                ? { uri: partImageUri }
                 : require('../assets/pictures/AppLogo.png')
             }
             style={styles.partImage}
@@ -725,3 +735,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
