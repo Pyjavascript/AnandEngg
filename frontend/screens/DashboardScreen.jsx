@@ -90,6 +90,13 @@ const DashboardScreen = ({ navigation }) => {
   const quickActions = [
     {
       id: 1,
+      icon: 'add-circle-outline',
+      label: 'Create Report',
+      color: '#286DA6',
+      screen: 'Entries',
+    },
+    {
+      id: 2,
       icon: 'download-outline',
       label: 'Download Reports',
       color: '#286DA6',
@@ -288,12 +295,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: C.headerBg,
+    backgroundColor: C.surface,
     paddingTop: 60,
-    paddingBottom: 24,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   headerTop: {
     flexDirection: 'row',
@@ -303,7 +310,7 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 14,
-    color: '#DBEAFE',
+    color: C.textMuted,
     marginBottom: 4,
   },
   userName: {
@@ -314,7 +321,7 @@ const styles = StyleSheet.create({
   },
   userRole: {
     fontSize: 14,
-    color: '#DBEAFE',
+    color: C.textMuted,
   },
   avatarContainer: {
     position: 'relative',
@@ -359,7 +366,7 @@ const styles = StyleSheet.create({
   todaySummary: {
     backgroundColor: C.surface,
     margin: 20,
-    marginTop: -20,
+    marginTop: 16,
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
@@ -406,7 +413,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginBottom: 12,
   },
   seeAllText: {
@@ -416,10 +423,16 @@ const styles = StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 12,
   },
   quickActionItem: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 14,
+    paddingVertical: 12,
     alignItems: 'center',
     gap: 8,
   },

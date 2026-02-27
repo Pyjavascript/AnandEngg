@@ -49,12 +49,6 @@ const EntriesScreen = ({ navigation }) => {
     // },
   ];
 
-  const recentTemplates = [
-    { id: 1, name: 'Cutting Inspection', count: 12, icon: 'cut-outline' },
-    { id: 2, name: 'Welding Quality', count: 8, icon: 'flame-outline' },
-    { id: 3, name: 'Final Assembly', count: 5, icon: 'construct-outline' },
-  ];
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -127,12 +121,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: C.headerBg,
+    backgroundColor: C.surface,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   headerTitle: {
     fontSize: 28,
@@ -149,6 +143,7 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 20,
+    paddingBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -169,6 +164,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   actionIcon: {
     width: 56,

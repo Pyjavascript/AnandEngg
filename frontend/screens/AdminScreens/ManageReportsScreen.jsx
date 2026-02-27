@@ -2088,10 +2088,10 @@ const ManageReportsScreen = ({ navigation }) => {
 
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color="#286DA6" />
+          <Pressable onPress={() => navigation.navigate('AdminHome')} style={styles.backBtn}>
+            <Ionicons name="grid-outline" size={22} color="#286DA6" />
           </Pressable>
-          <Text style={styles.headerTitle}>Manage Reports</Text>
+          <Text style={styles.headerTitle}>Reports</Text>
         </View>
         <Pressable
           style={styles.addButton}
@@ -2211,7 +2211,7 @@ const ManageReportsScreen = ({ navigation }) => {
               </Pressable>
             </View>
 
-            <ScrollView style={{ padding: 20 }}>
+            <ScrollView style={styles.modalBody}>
               {/* {step === 1 && (
                 <View>
                   <Text style={styles.label}>Category Name</Text>
@@ -2264,36 +2264,94 @@ const ManageReportsScreen = ({ navigation }) => {
               )}
 
               {modalMode === 'report' && step === 2 && (
-                <View>
-                  {[
-                    'doc_no',
-                    'rev_no',
-                    'customer',
-                    'part_no',
-                    'part_description',
-                  ].map(key => (
-                    <View key={key} style={{ marginBottom: 12 }}>
-                      <Text style={styles.label}>
-                        {key.replace('_', ' ').toUpperCase()}
-                      </Text>
-                      <TextInput
-                        style={styles.input}
-                        placeholder={`Enter ${key}...`}
-                        value={templateForm[key]}
-                        onChangeText={t =>
-                          setTemplateForm({ ...templateForm, [key]: t })
-                        }
-                      />
+                <View style={styles.builderWrap}>
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Report Information</Text>
+                    <View style={styles.doubleColRow}>
+                      <View style={styles.col}>
+                        <Text style={styles.label}>Report Type</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Template code"
+                          value={templateForm.doc_no}
+                          onChangeText={t =>
+                            setTemplateForm({ ...templateForm, doc_no: t })
+                          }
+                        />
+                      </View>
+                      <View style={styles.col}>
+                        <Text style={styles.label}>Report Title</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Enter report title"
+                          value={templateForm.part_description}
+                          onChangeText={t =>
+                            setTemplateForm({
+                              ...templateForm,
+                              part_description: t,
+                            })
+                          }
+                        />
+                      </View>
                     </View>
-                  ))}
-                  <Pressable style={styles.secondaryBtn} onPress={pickDiagram}>
-                    <Ionicons name="image-outline" size={20} color="#286DA6" />
-                    <Text style={styles.secondaryBtnText}>
-                      {diagramFile
-                        ? 'Diagram Attached ✅'
-                        : 'Pick Diagram Image'}
-                    </Text>
-                  </Pressable>
+                  </View>
+
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Project Details</Text>
+                    <Text style={styles.label}>Select Project / Customer</Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Customer name"
+                      value={templateForm.customer}
+                      onChangeText={t =>
+                        setTemplateForm({ ...templateForm, customer: t })
+                      }
+                    />
+                  </View>
+
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Part Specification</Text>
+                    <View style={styles.doubleColRow}>
+                      <View style={styles.col}>
+                        <Text style={styles.label}>Part Number</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Part no"
+                          value={templateForm.part_no}
+                          onChangeText={t =>
+                            setTemplateForm({ ...templateForm, part_no: t })
+                          }
+                        />
+                      </View>
+                      <View style={styles.col}>
+                        <Text style={styles.label}>Revision</Text>
+                        <TextInput
+                          style={styles.input}
+                          placeholder="Rev no"
+                          value={templateForm.rev_no}
+                          onChangeText={t =>
+                            setTemplateForm({ ...templateForm, rev_no: t })
+                          }
+                        />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Part Diagram</Text>
+                    <Pressable style={styles.uploadBox} onPress={pickDiagram}>
+                      <Ionicons
+                        name={diagramFile ? 'checkmark-circle-outline' : 'image-outline'}
+                        size={26}
+                        color={diagramFile ? '#16A34A' : '#94A3B8'}
+                      />
+                      <Text style={styles.uploadTitle}>
+                        {diagramFile ? 'Diagram attached' : 'Click to upload part diagram'}
+                      </Text>
+                      <Text style={styles.uploadSub}>PNG, JPG up to 5MB</Text>
+                    </Pressable>
+                  </View>
+
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={handleCreateTemplate}
@@ -2304,25 +2362,38 @@ const ManageReportsScreen = ({ navigation }) => {
               )}
 
               {modalMode === 'report' && step === 3 && (
-                <View>
-                  <Text style={styles.label}>
-                    Existing Fields ({fields.length})
-                  </Text>
-                  {fields.map((f, i) => (
-                    <View key={i} style={styles.fieldBadge}>
-                      <Text style={styles.fieldBadgeText}>
-                        {i + 1}. {f.label} — {f.specification || 'No Spec'}
-                      </Text>
+                <View style={styles.builderWrap}>
+                  <View style={styles.builderSection}>
+                    <View style={styles.tableHead}>
+                      <Text style={styles.builderSectionTitle}>Dimensions & Measurements</Text>
+                      <Text style={styles.tableHeadCount}>({fields.length} rows)</Text>
                     </View>
-                  ))}
+                    <View style={styles.measureHeaderRow}>
+                      <Text style={styles.measureHeadText}>Dimension</Text>
+                      <Text style={styles.measureHeadText}>Specification</Text>
+                    </View>
+                    {fields.length === 0 ? (
+                      <View style={styles.emptyMeasure}>
+                        <Text style={styles.emptyMeasureText}>No fields added yet</Text>
+                      </View>
+                    ) : (
+                      fields.map((f, i) => (
+                        <View key={i} style={styles.measureRow}>
+                          <Text style={styles.measureCell}>{f.label}</Text>
+                          <Text style={styles.measureCell}>
+                            {f.specification || 'No Spec'}
+                          </Text>
+                        </View>
+                      ))
+                    )}
+                  </View>
 
-                  <View style={styles.fieldForm}>
-                    <Text style={[styles.label, { marginTop: 15 }]}>
-                      New Field Label
-                    </Text>
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Add Row</Text>
+                    <Text style={styles.label}>Dimension</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="e.g. Outer Diameter"
+                      placeholder="e.g. Length"
                       value={fieldInput.label}
                       onChangeText={t =>
                         setFieldInput({ ...fieldInput, label: t })
@@ -2331,7 +2402,7 @@ const ManageReportsScreen = ({ navigation }) => {
                     <Text style={styles.label}>Specification</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="e.g. 20mm +/- 0.5"
+                      placeholder="e.g. 100 +/- 0.5 mm"
                       value={fieldInput.specification}
                       onChangeText={t =>
                         setFieldInput({ ...fieldInput, specification: t })
@@ -2346,17 +2417,14 @@ const ManageReportsScreen = ({ navigation }) => {
                         size={20}
                         color="#FFF"
                       />
-                      <Text style={[styles.primaryBtnText, { marginLeft: 8 }]}>
+                      <Text style={styles.primaryBtnTextWithGap}>
                         Add Field to Template
                       </Text>
                     </Pressable>
                   </View>
 
                   <Pressable
-                    style={[
-                      styles.primaryBtn,
-                      { backgroundColor: '#10B981', marginTop: 40 },
-                    ]}
+                    style={styles.finishBtn}
                     onPress={resetModal}
                   >
                     <Text style={styles.primaryBtnText}>Finish & Close</Text>
@@ -2495,6 +2563,112 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   modalTitle: { fontSize: 18, fontWeight: '800', color: '#1F2937' },
+  modalBody: {
+    padding: 20,
+  },
+  builderWrap: {
+    gap: 14,
+  },
+  builderSection: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5EAF0',
+    borderRadius: 14,
+    padding: 14,
+  },
+  builderSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 10,
+  },
+  doubleColRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  col: {
+    flex: 1,
+  },
+  uploadBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingVertical: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+  },
+  uploadTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  uploadSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  tableHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tableHeadCount: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  measureHeaderRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 8,
+    marginBottom: 6,
+  },
+  measureHeadText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+  },
+  measureRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    paddingVertical: 8,
+  },
+  measureCell: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  emptyMeasure: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  emptyMeasureText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  primaryBtnTextWithGap: {
+    color: '#FFF',
+    fontWeight: '800',
+    fontSize: 15,
+    marginLeft: 8,
+  },
+  finishBtn: {
+    backgroundColor: '#10B981',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
   label: {
     fontSize: 12,
     fontWeight: '700',
@@ -2595,3 +2769,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
+

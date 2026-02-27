@@ -19,7 +19,6 @@ const ReportsScreen = () => {
   const [role, setRole] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -44,7 +43,6 @@ const ReportsScreen = () => {
     } catch (err) {
       console.log('FETCH SUBMISSIONS ERROR:', err.response?.data || err.message);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -100,6 +98,7 @@ const ReportsScreen = () => {
 
   const counts = {
     all: reports.length,
+    draft: reports.filter(r => r.status === 'draft').length,
     pending: reports.filter(r => (r.status || 'submitted') === 'submitted').length,
     approved: reports.filter(r => r.status === 'manager_approved').length,
     rejected: reports.filter(r => r.status === 'rejected').length,
@@ -107,6 +106,7 @@ const ReportsScreen = () => {
 
   const filters = [
     { id: 'all', label: 'All', count: counts.all },
+    { id: 'draft', label: 'Draft', count: counts.draft },
     { id: 'pending', label: 'Pending', count: counts.pending },
     { id: 'approved', label: 'Approved', count: counts.approved },
     { id: 'rejected', label: 'Rejected', count: counts.rejected },
@@ -120,6 +120,8 @@ const ReportsScreen = () => {
       case 'pending':
       case 'submitted':
         return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
+      case 'draft':
+        return { bg: '#EEF2FF', text: '#4F46E5', icon: 'save-outline' };
       case 'rejected':
         return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
       case 'inspector_approved':
@@ -139,6 +141,7 @@ const ReportsScreen = () => {
       ? reports
       : reports.filter(r => {
           const status = r.status || 'submitted';
+          if (activeFilter === 'draft') return status === 'draft';
           if (activeFilter === 'pending') return status === 'submitted';
           if (activeFilter === 'approved') return status === 'manager_approved';
           return status === activeFilter;
@@ -368,12 +371,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: C.headerBg,
+    backgroundColor: C.surface,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 22,
-    borderBottomRightRadius: 22,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   headerContent: {
     flexDirection: 'row',

@@ -51,6 +51,13 @@ export const getAllSubmissions = async () => {
   return res.data;
 };
 
+export const getMyDraftSubmissions = async userId => {
+  const rows = await getAllSubmissions();
+  return (Array.isArray(rows) ? rows : []).filter(
+    r => r.status === 'draft' && Number(r.submitted_by) === Number(userId),
+  );
+};
+
 export const createSubmission = async (payload) => {
   const res = await axios.post(`${API}/submissions`, payload, await authHeader());
   return res.data;
@@ -123,6 +130,7 @@ export default {
   uploadDiagram,
   getTemplatesByCategory,
   getAllSubmissions,
+  getMyDraftSubmissions,
   createSubmission,
   getSubmissionById,
   inspectorReviewSubmission,

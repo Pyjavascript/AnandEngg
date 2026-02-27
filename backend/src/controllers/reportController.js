@@ -515,21 +515,36 @@ exports.CreateSubmission = async (req, res) => {
   try {
     const employeeId = req.user.id;
     const payload = req.body;
-    if (!payload.template_id || !Array.isArray(payload.values)) {
-      return res.status(400).json({ message: 'template_id and values[] required' });
+    const status = payload.status === 'draft' ? 'draft' : 'submitted';
+    if (!payload.template_id) {
+      return res.status(400).json({ message: 'template_id is required' });
+    }
+    if (status === 'submitted' && !Array.isArray(payload.values)) {
+      return res
+        .status(400)
+        .json({ message: 'values[] required when submitting a report' });
     }
     const subRes = await submissionModel.createSubmission({
       template_id: payload.template_id,
       employee_id: employeeId,
       inspection_date: payload.inspection_date,
       shift: payload.shift,
-      status: 'submitted'
+      status,
     });
     const submissionId = subRes.insertId;
-    for (const v of payload.values) {
-      await submissionModel.addSubmissionValue(submissionId, v.field_id, v.value);
+    const values = Array.isArray(payload.values) ? payload.values : [];
+    for (const v of values) {
+      await submissionModel.addSubmissionValue(
+        submissionId,
+        v.field_id,
+        v.value,
+      );
     }
-    res.status(201).json({ message: 'Submitted', id: submissionId });
+    res.status(201).json({
+      message: status === 'draft' ? 'Draft saved' : 'Submitted',
+      id: submissionId,
+      status,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

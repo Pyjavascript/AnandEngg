@@ -89,7 +89,7 @@ const AdminDashboardScreen = ({ navigation }) => {
       title: 'Manage Users',
       description: 'View, edit, and manage employee accounts',
       icon: 'people',
-      color: '#286DA6',
+      color: '#2F5BFF',
       screen: 'ManageUsers',
       stat: stats.totalUsers,
       statLabel: 'Total Users',
@@ -99,7 +99,7 @@ const AdminDashboardScreen = ({ navigation }) => {
       title: 'Manage Roles',
       description: 'Create, edit, and manage user roles',
       icon: 'shield-checkmark',
-      color: '#8B5CF6',
+      color: '#12B981',
       screen: 'ManageRoles',
       stat: stats.totalRoles,
       statLabel: 'Roles',
@@ -109,7 +109,7 @@ const AdminDashboardScreen = ({ navigation }) => {
       title: 'Manage Reports',
       description: 'Configure report types and view submissions',
       icon: 'document-text',
-      color: '#EC4899',
+      color: '#F59E0B',
       screen: 'ManageReports',
       stat: stats.totalSubmittedReports,
       statLabel: 'Reports',
@@ -119,24 +119,31 @@ const AdminDashboardScreen = ({ navigation }) => {
   const overviewStats = [
     {
       id: 1,
-      label: 'Active Users',
+      label: 'Total Users',
       value: stats.totalUsers,
-      icon: 'checkmark-circle',
-      color: '#10B981',
+      icon: 'people-outline',
+      color: '#2F5BFF',
     },
     {
       id: 2,
-      label: 'Report Types',
-      value: stats.totalReportTypes,
-      icon: 'layers',
-      color: '#F59E0B',
+      label: 'Total Roles',
+      value: stats.totalRoles,
+      icon: 'shield-checkmark-outline',
+      color: '#12B981',
     },
     {
       id: 3,
-      label: 'System Status',
-      value: stats.systemHealth,
-      icon: 'pulse',
-      color: '#2563EB',
+      label: 'Total Reports',
+      value: stats.totalSubmittedReports,
+      icon: 'document-text-outline',
+      color: '#F59E0B',
+    },
+    {
+      id: 4,
+      label: 'System Health',
+      value: stats.systemHealth || 'Good',
+      icon: 'pulse-outline',
+      color: '#8B5CF6',
     },
   ];
 
@@ -153,11 +160,11 @@ const AdminDashboardScreen = ({ navigation }) => {
               <Ionicons name="sparkles-outline" size={14} color="#0D4D7C" />
               <Text style={styles.headerPillText}>Control Center</Text>
             </View>
-            <Text style={styles.greeting}>Admin Panel</Text>
-            <Text style={styles.subtitle}>Welcome, {userData.name}</Text>
+            <Text style={styles.greeting}>Admin Dashboard</Text>
+            <Text style={styles.subtitle}>Inspection Control Panel - {userData.name}</Text>
           </View>
           <View style={styles.headerIcon}>
-            <Ionicons name="settings" size={32} color="#286DA6" />
+            <Ionicons name="shield-checkmark" size={28} color="#2F5BFF" />
           </View>
         </View>
 
@@ -235,7 +242,7 @@ const AdminDashboardScreen = ({ navigation }) => {
                       <Ionicons
                         name="arrow-forward"
                         size={20}
-                        color="#B0C4D8"
+                        color="#7B8595"
                       />
                     </Pressable>
                   </View>
@@ -247,11 +254,11 @@ const AdminDashboardScreen = ({ navigation }) => {
 
                   <View style={styles.moduleOptions}>
                     <View style={styles.moduleOptionChip}>
-                      <Ionicons name="flash-outline" size={12} color="#475569" />
+                      <Ionicons name="flash-outline" size={12} color="#334155" />
                       <Text style={styles.moduleOptionText}>Quick Access</Text>
                     </View>
                     <View style={styles.moduleOptionChip}>
-                      <Ionicons name="grid-outline" size={12} color="#475569" />
+                      <Ionicons name="grid-outline" size={12} color="#334155" />
                       <Text style={styles.moduleOptionText}>Options</Text>
                     </View>
                   </View>
@@ -330,7 +337,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 28,
-    backgroundColor: C.headerBg,
+    backgroundColor: '#EAF4FF',
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -340,7 +347,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#C4E1FB',
+    backgroundColor: '#D9ECFF',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -348,18 +355,18 @@ const styles = StyleSheet.create({
   },
   headerPillText: {
     fontSize: 11,
-    color: '#0D4D7C',
+    color: '#1C4E7A',
     fontWeight: '700',
   },
   greeting: {
-    fontSize: 29,
+    fontSize: 27,
     fontWeight: '800',
-    color: C.textStrong,
+    color: '#123A59',
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: C.textMuted,
+    color: '#5C7488',
     fontWeight: '500',
   },
   headerIcon: {
@@ -367,10 +374,10 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D6E8F8',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#B8D9F3',
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -387,9 +394,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    flexWrap: 'wrap',
   },
   statCard: {
-    flex: 1,
+    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 14,
@@ -417,9 +425,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#9CA3AF',
     fontWeight: '500',
+    textAlign: 'center',
   },
   modulesSection: {
     paddingHorizontal: 20,
@@ -434,11 +443,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#E7EEF6',
-    shadowColor: '#14334F',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#123A59',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   moduleCardPressed: {
     opacity: 0.95,
@@ -471,7 +480,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -506,7 +515,7 @@ const styles = StyleSheet.create({
   moduleOptionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: '#334155',
   },
   moduleStat: {
     flexDirection: 'row',
@@ -566,7 +575,7 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: '#FFE8E8',
+    backgroundColor: '#FEF2F2',
     margin: 20,
     padding: 15,
     borderRadius: 14,

@@ -6,11 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import BASE_URL from '../config/api';
-import axios from 'axios';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
@@ -27,7 +25,7 @@ const resolveImageUri = (imageUri) => {
   return `${normalizedBase}${normalizedPath}`;
 };
 export default function AddEntryScreen({ route, navigation }) {
-  const { part, customer, reportType } = route.params;
+  const { part, customer, reportType, draftSubmissionId } = route.params;
   const rawImageUri = typeof part?.img === 'string' ? part.img : part?.img?.uri;
   const partImageUri = resolveImageUri(rawImageUri);
   const [alert, setAlert] = useState({
@@ -82,6 +80,7 @@ export default function AddEntryScreen({ route, navigation }) {
   });
 
   const [loading, setLoading] = useState(false);
+  const [draftHydrating, setDraftHydrating] = useState(false);
 
   const buildSubmissionValues = async () => {
     const templateRes = await reportApi.getTemplatesByCategory(part.templateId);
@@ -143,16 +142,6 @@ export default function AddEntryScreen({ route, navigation }) {
 
     setLoading(true);
     try {
-      // await axios.post(`${BASE_URL}api/report/create`, form);
-      const token = await AsyncStorage.getItem('token');
-      // setLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 0));
-      if (!token) {
-        Alert.alert('Session expired', 'Please login again');
-        setLoading(false);
-        return;
-      }
-
       const values = await buildSubmissionValues();
       if (!part?.templateId) {
         showAlert({
@@ -174,16 +163,11 @@ export default function AddEntryScreen({ route, navigation }) {
         return;
       }
 
-      await axios.post(`${BASE_URL}/api/report/submissions`, {
+      await reportApi.createSubmission({
         template_id: part.templateId,
         inspection_date: form.inspectionDate,
         shift: form.shift,
         values,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       // Alert.alert('Success', 'Inspection report submitted successfully!', [
@@ -214,6 +198,35 @@ export default function AddEntryScreen({ route, navigation }) {
     }
   };
 
+  const handleSaveDraft = async () => {
+    if (!part?.templateId) return;
+    setLoading(true);
+    try {
+      const values = await buildSubmissionValues();
+      await reportApi.createSubmission({
+        template_id: part.templateId,
+        inspection_date: form.inspectionDate,
+        shift: form.shift || null,
+        values,
+        status: 'draft',
+      });
+      showAlert({
+        type: 'success',
+        title: 'Draft Saved',
+        message: 'You can continue this report later from Saved Reports.',
+      });
+      setTimeout(() => navigation.goBack(), 1200);
+    } catch (err) {
+      showAlert({
+        type: 'error',
+        title: 'Draft Save Failed',
+        message: err.response?.data?.message || err.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDimensionChange = (dimIndex, actualIndex, value) => {
     const updated = [...form.dimensions];
     if (updated[dimIndex] && updated[dimIndex].actual) {
@@ -233,6 +246,51 @@ export default function AddEntryScreen({ route, navigation }) {
   // const formatDate = date => {
   //   return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
   // };
+
+  useEffect(() => {
+    const loadDraft = async () => {
+      if (!draftSubmissionId) return;
+      setDraftHydrating(true);
+      try {
+        const res = await reportApi.getSubmissionById(draftSubmissionId);
+        const submission = res?.submission || {};
+        const values = Array.isArray(res?.values) ? res.values : [];
+
+        const byLabel = {};
+        values.forEach(v => {
+          const key = (v.label || '').trim().toLowerCase();
+          if (!key) return;
+          if (!byLabel[key]) byLabel[key] = [];
+          byLabel[key].push(String(v.actual_value ?? v.value ?? ''));
+        });
+
+        const mergedDims = initDimensions.map(d => {
+          const key = (d.desc || '').trim().toLowerCase();
+          const actualList = byLabel[key];
+          if (actualList && actualList.length > 0) {
+            return { ...d, actual: actualList };
+          }
+          return d;
+        });
+
+        setForm(prev => ({
+          ...prev,
+          inspectionDate: submission.inspection_date
+            ? String(submission.inspection_date).slice(0, 10)
+            : prev.inspectionDate,
+          shift: submission.shift || prev.shift,
+          dimensions: mergedDims,
+        }));
+      } catch (err) {
+        console.log('Failed to hydrate draft', err);
+      } finally {
+        setDraftHydrating(false);
+      }
+    };
+
+    loadDraft();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftSubmissionId]);
 
   return (
     <KeyboardAvoidingView
@@ -404,9 +462,18 @@ export default function AddEntryScreen({ route, navigation }) {
 
         {/* Submit Button */}
         <TouchableOpacity
+          style={[styles.draftBtn, loading && styles.submitBtnDisabled]}
+          onPress={handleSaveDraft}
+          disabled={loading || draftHydrating}
+        >
+          <Ionicons name="save-outline" size={20} color="#286DA6" />
+          <Text style={styles.draftBtnText}>Save as Draft</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={loading || draftHydrating}
         >
           {loading ? (
             <Text style={styles.submitBtnText}>Submitting...</Text>
@@ -443,12 +510,12 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: C.primary,
+    backgroundColor: C.surface,
     paddingTop: 60,
-    paddingBottom: 28,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 34,
-    borderBottomRightRadius: 34,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -469,26 +536,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#EAF4FF',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginBottom: 10,
   },
   headerPillText: {
-    color: '#E5F3FF',
+    color: '#286DA6',
     fontSize: 11,
     fontWeight: '600',
   },
   headerTitle: {
     fontSize: 26,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: C.textStrong,
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#DBEAFE',
+    color: C.textMuted,
   },
   inspectorCard: {
     backgroundColor: C.surface,
@@ -732,6 +799,24 @@ const styles = StyleSheet.create({
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontWeight: '700',
+  },
+  draftBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#EAF4FF',
+    borderWidth: 1,
+    borderColor: '#CFE3F8',
+    marginHorizontal: 20,
+    marginTop: 24,
+    padding: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  draftBtnText: {
+    color: '#286DA6',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

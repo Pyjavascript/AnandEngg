@@ -70,37 +70,66 @@ function MainTabs() {
   );
 }
 
-// Temporary Placeholder Screen (you can replace these later)
-function PlaceholderScreen() {
+function AdminTabs() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: '#F8FBFE',
-      }}
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName = 'grid-outline';
+
+          if (route.name === 'AdminHome') {
+            iconName = focused ? 'grid' : 'grid-outline';
+          } else if (route.name === 'ManageUsers') {
+            iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'ManageRoles') {
+            iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
+          } else if (route.name === 'ManageReports') {
+            iconName = focused ? 'document-text' : 'document-text-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#286DA6',
+        tabBarInactiveTintColor: '#7B8595',
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginBottom: 2,
+        },
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E2E8F0',
+          height: 74,
+          paddingTop: 8,
+          paddingBottom: 8,
+        },
+      })}
     >
-      <Ionicons name="construct-outline" size={64} color="#B0C4D8" />
-      <Text
-        style={{
-          fontSize: 18,
-          color: '#286DA6',
-          marginTop: 16,
-          fontWeight: '600',
-        }}
-      >
-        Coming Soon
-      </Text>
-      <Text style={{ fontSize: 14, color: '#6B7280', marginTop: 8 }}>
-        This screen is under development
-      </Text>
-    </View>
+      <Tab.Screen
+        name="AdminHome"
+        component={AdminDashboardScreen}
+        options={{ tabBarLabel: 'Dashboard' }}
+      />
+      <Tab.Screen
+        name="ManageUsers"
+        component={ManageUsersScreen}
+        options={{ tabBarLabel: 'Users' }}
+      />
+      <Tab.Screen
+        name="ManageRoles"
+        component={ManageRolesScreen}
+        options={{ tabBarLabel: 'Roles' }}
+      />
+      <Tab.Screen
+        name="ManageReports"
+        component={ManageReportsScreen}
+        options={{ tabBarLabel: 'Reports' }}
+      />
+    </Tab.Navigator>
   );
 }
-
-// Import these at the top if PlaceholderScreen is used
-import { View, Text } from 'react-native';
 
 // Main Stack Navigator
 function App() {
@@ -125,10 +154,7 @@ function App() {
             name="DownloadReports"
             component={DownloadReportsScreen}
           />
-          <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
-          <Stack.Screen name="ManageUsers" component={ManageUsersScreen} />
-          <Stack.Screen name="ManageRoles" component={ManageRolesScreen} />
-          <Stack.Screen name="ManageReports" component={ManageReportsScreen} />
+          <Stack.Screen name="AdminDashboard" component={AdminTabs} />
           <Stack.Screen name="UserDetail" component={UserDetailScreen} />
         </Stack.Navigator>
       </NavigationContainer>

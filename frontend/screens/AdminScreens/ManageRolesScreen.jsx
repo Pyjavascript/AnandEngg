@@ -232,15 +232,15 @@ const ManageRolesScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Pressable
-            onPress={() => navigation.goBack()}
+            onPress={() => navigation.navigate('AdminHome')}
             style={({ pressed }) => [
               styles.backButton,
               pressed && styles.backButtonPressed,
             ]}
           >
-            <Ionicons name="chevron-back" size={24} color="#286DA6" />
+            <Ionicons name="grid-outline" size={22} color="#286DA6" />
           </Pressable>
-          <Text style={styles.headerTitle}>Manage Roles</Text>
+          <Text style={styles.headerTitle}>Roles</Text>
         </View>
 
         <Pressable
