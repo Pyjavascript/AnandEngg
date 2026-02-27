@@ -250,9 +250,12 @@ exports.listForExport = async (filters = {}, user = null) => {
   insp.name AS inspector_name,
   mgr.name AS manager_name,
   rc.name AS category_name,
+  rt.customer,
   rt.doc_no,
+  rt.rev_no,
   rt.part_no,
   rt.part_description,
+  rt.diagram_url,
   COALESCE(rt.part_description, rt.doc_no, rt.part_no) AS template_label,
   sv.actual_values
 FROM report_submissions rs
@@ -272,6 +275,86 @@ ORDER BY rs.created_at DESC`,
   );
 
   return rows;
+};
+
+exports.getSubmissionDetailForExport = async (submissionId, user = null) => {
+  const params = [submissionId];
+  let ownershipSql = "";
+  if (user && user.role === "machine_operator") {
+    ownershipSql = " AND rs.employee_id = ?";
+    params.push(user.id);
+  }
+
+  const [subs] = await db.query(
+    `SELECT
+      rs.id,
+      rs.template_id,
+      rs.employee_id,
+      rs.status,
+      rs.inspection_date,
+      rs.shift,
+      rs.created_at,
+      rs.inspector_reviewed_at,
+      rs.manager_approved_at,
+      u.name AS submitted_by_name,
+      insp.name AS inspector_name,
+      mgr.name AS manager_name,
+      rc.name AS category_name,
+      rt.customer,
+      rt.doc_no,
+      rt.rev_no,
+      rt.part_no,
+      rt.part_description,
+      rt.diagram_url
+    FROM report_submissions rs
+    LEFT JOIN users u ON u.id = rs.employee_id
+    LEFT JOIN users insp ON insp.id = rs.inspector_id
+    LEFT JOIN users mgr ON mgr.id = rs.manager_id
+    LEFT JOIN report_templates rt ON rt.id = rs.template_id
+    LEFT JOIN report_categories rc ON rc.id = rt.category_id
+    WHERE rs.id = ? ${ownershipSql}
+    LIMIT 1`,
+    params
+  );
+
+  const submission = subs[0];
+  if (!submission) return null;
+
+  const [valueRows] = await db.query(
+    `SELECT
+      tf.id AS field_id,
+      tf.position,
+      tf.label,
+      tf.specification,
+      tf.unit,
+      sv.actual_value
+    FROM submission_values sv
+    JOIN template_fields tf ON tf.id = sv.field_id
+    WHERE sv.submission_id = ?
+    ORDER BY tf.position ASC, sv.id ASC`,
+    [submissionId]
+  );
+
+  const grouped = new Map();
+  valueRows.forEach((row) => {
+    const key = String(row.field_id);
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        field_id: row.field_id,
+        position: row.position,
+        label: row.label,
+        specification: row.specification,
+        unit: row.unit,
+        actual_values: [],
+      });
+    }
+    grouped.get(key).actual_values.push(row.actual_value);
+  });
+
+  submission.values = Array.from(grouped.values()).sort(
+    (a, b) => Number(a.position || 0) - Number(b.position || 0)
+  );
+  return submission;
 };
 
 module.exports = exports;

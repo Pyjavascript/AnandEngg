@@ -355,6 +355,9 @@ const templateModel = require('../models/templateModel');
 const submissionModel = require('../models/submissionModel');
 const db = require('../config/db');
 const path = require('path');
+const fs = require('fs');
+const PDFDocument = require('pdfkit');
+const { uploadRoot } = require('../config/uploads');
 
 function requireRole(user, roleName) {
   return user && user.role === roleName;
@@ -875,6 +878,217 @@ function buildSimplePdf(lines) {
   return Buffer.from(pdf, 'utf8');
 }
 
+function resolveDiagramFilePath(diagramUrl) {
+  if (!diagramUrl) return null;
+  let parsedPath = diagramUrl;
+  if (/^https?:\/\//i.test(diagramUrl)) {
+    try {
+      parsedPath = new URL(diagramUrl).pathname || '';
+    } catch {
+      return null;
+    }
+  }
+
+  if (!parsedPath.startsWith('/uploads/')) return null;
+  const relative = parsedPath.replace(/^\/uploads\//, '');
+  const absPath = path.join(uploadRoot, relative);
+  return fs.existsSync(absPath) ? absPath : null;
+}
+
+function pushFieldRow(doc, left, top, colWidths, row, isHeader = false) {
+  const rowHeight = 22;
+  const font = isHeader ? 'Helvetica-Bold' : 'Helvetica';
+  const size = isHeader ? 9 : 8.5;
+
+  let x = left;
+  row.forEach((cell, idx) => {
+    doc
+      .rect(x, top, colWidths[idx], rowHeight)
+      .strokeColor('#DCE6F3')
+      .lineWidth(0.7)
+      .stroke();
+    doc
+      .font(font)
+      .fontSize(size)
+      .fillColor('#1F2937')
+      .text(String(cell ?? '-'), x + 4, top + 6, {
+        width: colWidths[idx] - 8,
+        height: rowHeight - 8,
+        ellipsis: true,
+      });
+    x += colWidths[idx];
+  });
+  return rowHeight;
+}
+
+async function buildDetailedPdf(detail) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 36 });
+    const chunks = [];
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const left = doc.page.margins.left;
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(18)
+      .fillColor('#114A76')
+      .text('Inspection Report', left, 34);
+
+    doc
+      .font('Helvetica')
+      .fontSize(9)
+      .fillColor('#475569')
+      .text(`Submission ID: ${detail.id}`, left, 58);
+
+    doc.moveTo(left, 74).lineTo(left + pageWidth, 74).strokeColor('#DCE6F3').stroke();
+
+    const infoPairs = [
+      ['Category', detail.category_name || '-'],
+      ['Report Type', detail.part_description || '-'],
+      ['Customer', detail.customer || '-'],
+      ['Part No', detail.part_no || '-'],
+      ['Doc No / Rev No', `${detail.doc_no || '-'} / ${detail.rev_no || '-'}`],
+      ['Inspection Date', formatDate(detail.inspection_date)],
+      ['Shift', detail.shift || '-'],
+      ['Status', detail.status || '-'],
+      ['Submitted By', detail.submitted_by_name || '-'],
+      ['Inspector', detail.inspector_name || '-'],
+      ['Manager', detail.manager_name || '-'],
+      ['Created At', formatDate(detail.created_at)],
+    ];
+
+    let y = 84;
+    const colGap = 12;
+    const colWidth = (pageWidth - colGap) / 2;
+    infoPairs.forEach((pair, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = left + col * (colWidth + colGap);
+      const yy = y + row * 18;
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#334155').text(`${pair[0]}:`, x, yy, { width: 90 });
+      doc.font('Helvetica').fontSize(8.5).fillColor('#111827').text(String(pair[1]), x + 92, yy, { width: colWidth - 92 });
+    });
+
+    y += Math.ceil(infoPairs.length / 2) * 18 + 12;
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#123A59')
+      .text('Part Diagram', left, y);
+    y += 16;
+
+    const diagramPath = resolveDiagramFilePath(detail.diagram_url);
+    if (diagramPath) {
+      doc.rect(left, y, pageWidth, 150).strokeColor('#DCE6F3').stroke();
+      doc.image(diagramPath, left + 8, y + 8, {
+        fit: [pageWidth - 16, 134],
+        align: 'center',
+        valign: 'center',
+      });
+      y += 160;
+    } else {
+      doc.rect(left, y, pageWidth, 60).strokeColor('#DCE6F3').stroke();
+      doc
+        .font('Helvetica')
+        .fontSize(9)
+        .fillColor('#6B7280')
+        .text(detail.diagram_url ? `Diagram not found on server: ${detail.diagram_url}` : 'No diagram attached', left + 10, y + 23);
+      y += 70;
+    }
+
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#123A59')
+      .text('Dimensions & Measurements', left, y);
+    y += 14;
+
+    const colWidths = [28, 140, 140, pageWidth - 28 - 140 - 140];
+    y += pushFieldRow(doc, left, y, colWidths, ['No', 'Dimension', 'Specification', 'Actual Values'], true);
+
+    const rows = Array.isArray(detail.values) ? detail.values : [];
+    if (rows.length === 0) {
+      y += pushFieldRow(doc, left, y, colWidths, ['-', 'No values', '-', '-']);
+    } else {
+      rows.forEach((v, idx) => {
+        const spec = v.specification
+          ? `${v.specification}${v.unit ? ` (${v.unit})` : ''}`
+          : '-';
+        const actual = Array.isArray(v.actual_values) && v.actual_values.length
+          ? v.actual_values.join(' | ')
+          : '-';
+        if (y > doc.page.height - 72) {
+          doc.addPage();
+          y = doc.page.margins.top;
+          y += pushFieldRow(doc, left, y, colWidths, ['No', 'Dimension', 'Specification', 'Actual Values'], true);
+        }
+        y += pushFieldRow(doc, left, y, colWidths, [idx + 1, v.label || '-', spec, actual]);
+      });
+    }
+
+    doc.end();
+  });
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  try {
+    return new Date(value).toLocaleDateString('en-GB');
+  } catch {
+    return String(value);
+  }
+}
+
+function toDetailedReportLines(detail) {
+  const lines = [];
+  lines.push('Inspection Report');
+  lines.push('------------------------------------------------------------');
+  lines.push(`Submission ID: ${detail.id}`);
+  lines.push(`Category: ${detail.category_name || '-'}`);
+  lines.push(`Report Type: ${detail.part_description || '-'}`);
+  lines.push(`Customer: ${detail.customer || '-'}`);
+  lines.push(`Part No: ${detail.part_no || '-'}`);
+  lines.push(`Doc No / Rev No: ${detail.doc_no || '-'} / ${detail.rev_no || '-'}`);
+  lines.push(`Inspection Date: ${formatDate(detail.inspection_date)}`);
+  lines.push(`Shift: ${detail.shift || '-'}`);
+  lines.push(`Status: ${detail.status || '-'}`);
+  lines.push(`Submitted By: ${detail.submitted_by_name || '-'}`);
+  lines.push(`Inspector: ${detail.inspector_name || '-'}`);
+  lines.push(`Manager: ${detail.manager_name || '-'}`);
+  lines.push(`Created At: ${formatDate(detail.created_at)}`);
+  lines.push('------------------------------------------------------------');
+  lines.push('Part Diagram');
+  lines.push(
+    detail.diagram_url
+      ? `Diagram URL: ${detail.diagram_url}`
+      : 'Diagram URL: Not attached',
+  );
+  lines.push('------------------------------------------------------------');
+  lines.push('Dimensions & Measurements');
+  lines.push('No | Dimension | Specification | Actual Values');
+  lines.push('------------------------------------------------------------');
+
+  if (!Array.isArray(detail.values) || detail.values.length === 0) {
+    lines.push('No measurement values available');
+  } else {
+    detail.values.forEach((v, idx) => {
+      const actual = Array.isArray(v.actual_values) && v.actual_values.length
+        ? v.actual_values.join(' | ')
+        : '-';
+      const spec = v.specification
+        ? `${v.specification}${v.unit ? ` (${v.unit})` : ''}`
+        : '-';
+      lines.push(`${idx + 1} | ${v.label || '-'} | ${spec} | ${actual}`);
+    });
+  }
+  return lines;
+}
+
 exports.DownloadSubmissions = async (req, res) => {
   try {
     const format = String(req.query.format || 'csv').toLowerCase();
@@ -900,21 +1114,39 @@ exports.DownloadSubmissions = async (req, res) => {
       return res.status(200).send(csv);
     }
 
-    const lines = [];
-    lines.push('Inspection Report Export');
-    lines.push(`Generated: ${new Date().toLocaleString('en-GB')}`);
-    lines.push(`Filters -> Report ID: ${filters.submissionId || 'all'}, Type: ${filters.reportType}, Status: ${filters.status}, From: ${filters.fromDate || '-'}, To: ${filters.toDate || '-'}`);
-    lines.push('--------------------------------------------------------------------');
-    rows.forEach((r) => {
-      lines.push(
-        `#${r.id} | ${r.template_label || 'Report'} | ${r.status || ''} | ${r.submitted_by_name || ''} | ${r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : ''}`
+    let lines = [];
+    let detail = null;
+    if (filters.submissionId) {
+      detail = await submissionModel.getSubmissionDetailForExport(
+        Number(filters.submissionId),
+        req.user,
       );
-    });
-    if (rows.length === 0) {
-      lines.push('No submissions found for selected filters.');
+      if (!detail) {
+        lines = ['Inspection Report', 'No report found for selected submission ID.'];
+      } else {
+        if (detail.diagram_url && !/^https?:\/\//i.test(detail.diagram_url)) {
+          detail.diagram_url = `${req.protocol}://${req.get('host')}${detail.diagram_url}`;
+        }
+        lines = toDetailedReportLines(detail);
+      }
+    } else {
+      lines.push('Inspection Report Export');
+      lines.push(`Generated: ${new Date().toLocaleString('en-GB')}`);
+      lines.push(`Filters -> Report ID: ${filters.submissionId || 'all'}, Type: ${filters.reportType}, Status: ${filters.status}, From: ${filters.fromDate || '-'}, To: ${filters.toDate || '-'}`);
+      lines.push('--------------------------------------------------------------------');
+      rows.forEach((r) => {
+        lines.push(
+          `#${r.id} | ${r.template_label || 'Report'} | ${r.status || ''} | ${r.submitted_by_name || ''} | ${r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB') : ''}`
+        );
+      });
+      if (rows.length === 0) {
+        lines.push('No submissions found for selected filters.');
+      }
     }
 
-    const pdfBuffer = buildSimplePdf(lines);
+    const pdfBuffer = filters.submissionId
+      ? await buildDetailedPdf(detail || { id: filters.submissionId, values: [] })
+      : buildSimplePdf(lines);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-export-${now}.pdf"`);
     return res.status(200).send(pdfBuffer);
