@@ -12,6 +12,15 @@ import { Picker } from '@react-native-picker/picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
+import BASE_URL from '../config/api';
+
+const resolveImageUri = imageUri => {
+  if (!imageUri || typeof imageUri !== 'string') return null;
+  if (/^https?:\/\//i.test(imageUri)) return imageUri;
+  const normalizedBase = BASE_URL.replace(/\/+$/, '');
+  const normalizedPath = imageUri.startsWith('/') ? imageUri : `/${imageUri}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
 
 const AccordanceScreen = ({ navigation }) => {
   const [category, setCategory] = useState('');
@@ -32,7 +41,7 @@ const AccordanceScreen = ({ navigation }) => {
       setLoading(true);
       const data = await reportApi.getTemplatesWithParts();
       console.log(data);
-      console.log("IMAGE URI:", part?.img?.uri);
+      console.log("IMAGE URI:", resolveImageUri(part?.img?.uri));
       
       setReportsData(data);
     } catch (error) {
@@ -241,11 +250,14 @@ const AccordanceScreen = ({ navigation }) => {
                  <Text style={styles.previewTitle}>Selected Part Preview</Text>
                 <Image
                   source={
-                    part?.img?.uri
-                      ? { uri: part.img.uri }
+                    resolveImageUri(part?.img?.uri)
+                      ? { uri: resolveImageUri(part.img.uri) }
                       : require('../assets/pictures/AppLogo.png')
                   }
                   style={styles.previewImage}
+                  onError={e =>
+                    console.log('Part preview image load error:', e.nativeEvent)
+                  }
                 />
                 <View style={styles.previewInfo}>
                   <View style={styles.previewRow}>

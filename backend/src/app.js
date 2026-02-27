@@ -64,11 +64,13 @@ const adminRoutes = require("./routes/adminRoutes");
 // const categoryRoutes = require('./routes/categoryRoutes');
 const userRoutes = require("./routes/userRoutes");
 const roleRoutes = require("./routes/roleRoutes");
+const { uploadRoot, ensureUploadDirs } = require("./config/uploads");
 
 const db = require("./config/db");
 
 const PORT = process.env.PORT || 5000;
 const app = express();
+app.set("trust proxy", 1);
 
 /* ───── Middleware ───── */
 app.use(
@@ -80,8 +82,9 @@ app.use(
 );
 app.use(express.json());
 
-// Serve static files from uploads folder
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Ensure upload directories exist before serving and writing files.
+ensureUploadDirs();
+app.use("/uploads", express.static(uploadRoot));
 
 /* ───── Routes ───── */
 app.use("/api/auth", authRoutes);

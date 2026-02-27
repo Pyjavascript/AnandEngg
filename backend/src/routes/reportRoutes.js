@@ -51,10 +51,13 @@ const auth = require("../middleware/auth");
 const multer = require('multer');
 const path = require('path');
 const ReportController = require('../controllers/reportController');
+const { diagramsDir, ensureUploadDirs } = require("../config/uploads");
+
+ensureUploadDirs();
 
 const storage = multer.diskStorage({
 	destination: function (req, file, cb) {
-		cb(null, path.join(__dirname, '../../uploads/diagrams'));
+		cb(null, diagramsDir);
 	},
 	filename: function (req, file, cb) {
 		const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
