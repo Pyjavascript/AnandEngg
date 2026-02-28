@@ -14,10 +14,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 import roleApi from '../../utils/roleApi';
 
 const ManageRolesScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({
@@ -441,8 +445,7 @@ const ManageRolesScreen = ({ navigation }) => {
 
 export default ManageRolesScreen;
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -456,7 +459,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   header: {
     flexDirection: 'row',
@@ -523,7 +526,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   roleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 18,
     padding: 16,
     marginBottom: 12,
@@ -549,17 +552,17 @@ const styles = StyleSheet.create({
   roleName: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
   },
   roleCode: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     marginTop: 2,
     fontFamily: 'monospace',
   },
   roleDescription: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginTop: 4,
     lineHeight: 16,
   },
@@ -612,7 +615,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     marginTop: 12,
   },
   modalOverlay: {
@@ -621,7 +624,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '85%',
@@ -634,12 +637,12 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    borderBottomColor: C.border,
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
   },
   closeButton: {
     width: 36,
@@ -661,18 +664,18 @@ const styles = StyleSheet.create({
   formLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 8,
   },
   formInput: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
     borderRadius: 8,
     fontSize: 14,
-    color: '#1F2937',
-    backgroundColor: '#F9FAFB',
+    color: C.textBody,
+    backgroundColor: C.surfaceAlt,
   },
   textAreaInput: {
     minHeight: 80,
@@ -681,7 +684,7 @@ const styles = StyleSheet.create({
   },
   formHelp: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     marginTop: 6,
   },
   modalFooter: {
@@ -691,13 +694,13 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 20,
     borderTopWidth: 1,
-    borderTopColor: '#E3F2FD',
+    borderTopColor: C.border,
   },
   modalCancelButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -718,7 +721,7 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: C.textMuted,
   },
   modalSaveText: {
     fontSize: 14,

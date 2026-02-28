@@ -7,9 +7,13 @@ import {
   ScrollView,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { theme } from '../theme/designSystem';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const EntriesScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const quickActions = [
     {
       id: 1,
@@ -114,8 +118,7 @@ const EntriesScreen = ({ navigation }) => {
   );
 };
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -164,11 +167,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   actionIcon: {
     width: 56,
@@ -181,13 +179,13 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
     textAlign: 'center',
     marginBottom: 4,
   },
   actionSubtitle: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     textAlign: 'center',
   },
   // templateCard: {
@@ -236,12 +234,12 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginBottom: 4,
   },
   infoSubtitle: {
     fontSize: 13,
-    color: '#5A8FBE',
+    color: C.textMuted,
     lineHeight: 18,
   },
 });

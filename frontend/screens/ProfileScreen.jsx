@@ -12,9 +12,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
-import { theme } from '../theme/designSystem';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const ProfileScreen = ({ navigation }) => {
+  const { theme, isDark, toggleTheme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [reports, setReports] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [alert, setAlert] = useState({
@@ -147,12 +151,37 @@ const ProfileScreen = ({ navigation }) => {
     }, 1200);
   };
 
+  const InfoRow = ({ icon, label, value }) => (
+    <>
+      <View style={styles.infoRow}>
+        <Ionicons name={icon} size={20} color="#286DA6" />
+        <View style={styles.infoContent}>
+          <Text style={styles.infoLabel}>{label}</Text>
+          <Text style={styles.infoValue}>{value || '-'}</Text>
+        </View>
+      </View>
+      <View style={styles.divider} />
+    </>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>Profile</Text>
+            <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+              <Ionicons
+                name={isDark ? 'sunny-outline' : 'moon-outline'}
+                size={18}
+                color={C.primarySoft}
+              />
+              <Text style={styles.themeToggleText}>
+                {isDark ? 'Light' : 'Dark'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Profile Card */}
@@ -276,23 +305,8 @@ const ProfileScreen = ({ navigation }) => {
   );
 };
 
-/* Reusable Row */
-const InfoRow = ({ icon, label, value }) => (
-  <>
-    <View style={styles.infoRow}>
-      <Ionicons name={icon} size={20} color="#286DA6" />
-      <View style={styles.infoContent}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || '-'}</Text>
-      </View>
-    </View>
-    <View style={styles.divider} />
-  </>
-);
-
 /* Styles */
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   header: {
     backgroundColor: C.surface,
@@ -302,7 +316,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   headerTitle: { fontSize: 28, fontWeight: '700', color: C.textStrong },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+  },
+  themeToggleText: {
+    color: C.primarySoft,
+    fontSize: 12,
+    fontWeight: '700',
+  },
   profileCard: {
     alignItems: 'center',
     backgroundColor: C.surface,
@@ -311,11 +346,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3,
   },
   avatarContainer: { position: 'relative', marginBottom: 12 },
   avatar: {
@@ -332,11 +362,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primarySoft,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: C.surface,
   },
   profileName: { fontSize: 22, fontWeight: '700', color: C.textBody },
   profileRole: { fontSize: 14, color: C.textMuted, marginBottom: 12 },
@@ -359,11 +389,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
   },
   statValue: { fontSize: 20, fontWeight: '700', color: C.textBody },
   statLabel: { fontSize: 12, color: C.textMuted },
@@ -397,7 +422,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -405,11 +430,13 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: C.surface,
     margin: 20,
     padding: 14,
     borderRadius: 12,
     gap: 8,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   logoutText: { fontSize: 16, fontWeight: '700', color: '#EF4444' },
 });

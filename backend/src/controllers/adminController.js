@@ -193,7 +193,7 @@ exports.getStats = async (req, res) => {
     const [[user], [reports], [roles]] = await Promise.all([
       db.query('SELECT COUNT(*) AS total FROM users'),
       db.query('SELECT COUNT(*) AS total FROM report_submissions'),
-      db.query('SELECT COUNT(DISTINCT role) AS total FROM users'),
+      db.query('SELECT COUNT(*) AS total FROM roles'),
     ]);
 
     res.json({

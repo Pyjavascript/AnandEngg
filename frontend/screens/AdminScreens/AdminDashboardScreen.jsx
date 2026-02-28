@@ -12,9 +12,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import BASE_URL from '../../config/api';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 const AdminDashboardScreen = ({ navigation }) => {
+  const { theme, isDark, toggleTheme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ name: 'Admin' });
   const [stats, setStats] = useState({});
@@ -138,13 +142,6 @@ const AdminDashboardScreen = ({ navigation }) => {
       icon: 'document-text-outline',
       color: '#F59E0B',
     },
-    {
-      id: 4,
-      label: 'System Health',
-      value: stats.systemHealth || 'Good',
-      icon: 'pulse-outline',
-      color: '#8B5CF6',
-    },
   ];
 
   return (
@@ -167,6 +164,16 @@ const AdminDashboardScreen = ({ navigation }) => {
             <Ionicons name="shield-checkmark" size={28} color="#2F5BFF" />
           </View>
         </View>
+        <Pressable style={styles.themeSwitch} onPress={toggleTheme}>
+          <Ionicons
+            name={isDark ? 'sunny-outline' : 'moon-outline'}
+            size={16}
+            color={C.primarySoft}
+          />
+          <Text style={styles.themeSwitchText}>
+            {isDark ? 'Light' : 'Dark'} mode
+          </Text>
+        </Pressable>
 
         {/* Overview Stats Row */}
         <View style={styles.statsSection}>
@@ -321,8 +328,7 @@ const AdminDashboardScreen = ({ navigation }) => {
 
 export default AdminDashboardScreen;
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -337,7 +343,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 28,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: C.headerBg,
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
   },
@@ -347,7 +353,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#D9ECFF',
+    backgroundColor: C.surfaceAlt,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -355,7 +361,7 @@ const styles = StyleSheet.create({
   },
   headerPillText: {
     fontSize: 11,
-    color: '#1C4E7A',
+    color: C.primarySoft,
     fontWeight: '700',
   },
   greeting: {
@@ -366,18 +372,37 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#5C7488',
+    color: C.textMuted,
     fontWeight: '500',
   },
   headerIcon: {
     width: 56,
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#D6E8F8',
+    borderColor: C.border,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  themeSwitch: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surface,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  themeSwitchText: {
+    color: C.primarySoft,
+    fontSize: 12,
+    fontWeight: '700',
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -403,12 +428,7 @@ const styles = StyleSheet.create({
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E3EEF7',
-    shadowColor: '#0E3B5F',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: C.border,
   },
   statIcon: {
     width: 40,
@@ -421,12 +441,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     fontWeight: '500',
     textAlign: 'center',
   },
@@ -438,21 +458,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   moduleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E7EEF6',
-    shadowColor: '#123A59',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
+    borderColor: C.border,
   },
   moduleCardPressed: {
     opacity: 0.95,
-    shadowOpacity: 0.1,
-    elevation: 4,
   },
   moduleAccent: {
     position: 'absolute',
@@ -487,12 +500,12 @@ const styles = StyleSheet.create({
   moduleTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 6,
   },
   moduleDescription: {
     fontSize: 13,
-    color: '#6B7280',
+    color: C.textMuted,
     lineHeight: 18,
     marginBottom: 12,
   },
@@ -506,8 +519,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -515,13 +528,13 @@ const styles = StyleSheet.create({
   moduleOptionText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#334155',
+    color: C.textMuted,
   },
   moduleStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.surfaceAlt,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -534,10 +547,10 @@ const styles = StyleSheet.create({
   tipsSection: {
     marginHorizontal: 20,
     marginBottom: 24,
-    backgroundColor: '#FFF7E4',
+    backgroundColor: C.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#FDE7B2',
+    borderColor: C.border,
     padding: 16,
   },
   tipHeader: {
@@ -549,7 +562,7 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#92400E',
+    color: C.textStrong,
   },
   tipsList: {
     gap: 8,
@@ -568,20 +581,20 @@ const styles = StyleSheet.create({
   },
   tipText: {
     fontSize: 12,
-    color: '#92400E',
+    color: C.textMuted,
     lineHeight: 16,
     flex: 1,
   },
   logoutBtn: {
     flexDirection: 'row',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: C.surface,
     margin: 20,
     padding: 15,
     borderRadius: 14,
     gap: 8,
     borderWidth: 1,
-    borderColor: '#FBCACA',
+    borderColor: '#FECACA',
   },
   logoutText: { fontSize: 16, fontWeight: '700', color: '#EF4444' },
 });

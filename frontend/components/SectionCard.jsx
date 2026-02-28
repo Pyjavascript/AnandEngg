@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function SectionCard({ title, image, children }) {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   return (
     <View style={styles.wrapper}>
       {image && <Image source={image} style={styles.image} />}
@@ -11,31 +16,28 @@ export default function SectionCard({ title, image, children }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   wrapper: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     marginHorizontal: 20,
     marginTop: 16,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#286DA6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   image: {
     width: '100%',
     height: 140,
     resizeMode: 'contain',
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.surfaceAlt,
     borderRadius: 12,
     marginBottom: 12,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginBottom: 12,
   },
 });

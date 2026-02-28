@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  TouchableOpacity,
   Image,
   ActivityIndicator,
 } from 'react-native';
@@ -13,9 +14,13 @@ import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
-import { theme } from '../theme/designSystem';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const DashboardScreen = ({ navigation }) => {
+  const { theme, isDark, toggleTheme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const defaultAvatar =
     'https://ui-avatars.com/api/?name=User&background=286DA6&color=fff&size=200';
 
@@ -146,26 +151,40 @@ const DashboardScreen = ({ navigation }) => {
               <Text style={styles.userName}>{userData.name || 'User'}</Text>
               <Text style={styles.userRole}>{userData.role || 'Loading...'}</Text>
             </View>
-            <Pressable
-              onPress={() => navigation.navigate('Profile')}
-              style={styles.avatarContainer}
-            >
-              <Image
-                source={{ uri: userData.avatar || defaultAvatar }}
-                style={styles.avatar}
-              />
-              <View style={styles.editBadge}>
-                <Ionicons name="pencil" size={12} color="#FFFFFF" />
-              </View>
-            </Pressable>
+            <View style={styles.headerActions}>
+              <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+                <Ionicons
+                  name={isDark ? 'sunny-outline' : 'moon-outline'}
+                  size={16}
+                  color={C.primarySoft}
+                />
+              </TouchableOpacity>
+              <Pressable
+                onPress={() => navigation.navigate('Profile')}
+                style={styles.avatarContainer}
+              >
+                <Image
+                  source={{ uri: userData.avatar || defaultAvatar }}
+                  style={styles.avatar}
+                />
+                <View style={styles.editBadge}>
+                  <Ionicons name="pencil" size={12} color="#FFFFFF" />
+                </View>
+              </Pressable>
+            </View>
+
           </View>
 
-          {/* Employee ID Badge */}
-          <View style={styles.employeeIdBadge}>
-            <Ionicons name="card" size={16} color="#286DA6" />
-            <Text style={styles.employeeIdText}>
-              {userData.employeeId || '-'}
-            </Text>
+          <View style={styles.headerBottom}>
+            <View style={styles.employeeIdBadge}>
+              <Ionicons name="card" size={16} color="#286DA6" />
+              <Text style={styles.employeeIdText}>
+                {userData.employeeId || '-'}
+              </Text>
+            </View>
+            <View style={styles.modeBadge}>
+              <Text style={styles.modeBadgeText}>{isDark ? 'Dark' : 'Light'} Theme</Text>
+            </View>
           </View>
         </View>
 
@@ -288,8 +307,7 @@ const DashboardScreen = ({ navigation }) => {
   );
 };
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -307,6 +325,21 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   greeting: {
     fontSize: 14,
@@ -331,20 +364,25 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: 30,
     borderWidth: 3,
-    borderColor: '#FFFFFF',
+    borderColor: C.surface,
   },
   editBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#10B981',
+    backgroundColor: C.success,
     width: 24,
     height: 24,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: C.surface,
+  },
+  headerBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   employeeIdBadge: {
     flexDirection: 'row',
@@ -359,9 +397,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   employeeIdText: {
-    color: C.primary,
+    color: C.primarySoft,
     fontSize: 13,
     fontWeight: '600',
+  },
+  modeBadge: {
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: C.surfaceAlt,
+  },
+  modeBadgeText: {
+    color: C.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
   },
   todaySummary: {
     backgroundColor: C.surface,

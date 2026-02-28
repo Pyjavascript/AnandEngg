@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'react-native';
+import React from 'react';
 import SplashScreen from './screens/SplashScreen';
 import Features from './screens/Features';
 import AuthScreen from './screens/AuthScreen';
@@ -21,12 +22,15 @@ import ManageUsersScreen from './screens/AdminScreens/ManageUsersScreen'
 import ManageRolesScreen from './screens/AdminScreens/ManageRolesScreen'
 import ManageReportsScreen from './screens/AdminScreens/ManageReportsScreen'
 import UserDetailScreen from './screens/AdminScreens/UserDetailScreen'
-import { theme } from './theme/designSystem';
+import { ThemeProvider, useAppTheme } from './theme/ThemeProvider';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function MainTabs() {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -46,12 +50,12 @@ function MainTabs() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.primarySoft,
-        tabBarInactiveTintColor: theme.colors.textSubtle,
+        tabBarActiveTintColor: C.primarySoft,
+        tabBarInactiveTintColor: C.textSubtle,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
+          backgroundColor: C.surface,
           borderTopWidth: 1,
-          borderTopColor: theme.colors.border,
+          borderTopColor: C.border,
           height: 80,
           paddingBottom: 8,
           paddingTop: 8,
@@ -71,6 +75,9 @@ function MainTabs() {
 }
 
 function AdminTabs() {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -90,17 +97,17 @@ function AdminTabs() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#286DA6',
-        tabBarInactiveTintColor: '#7B8595',
+        tabBarActiveTintColor: C.primarySoft,
+        tabBarInactiveTintColor: C.textSubtle,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
           marginBottom: 2,
         },
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: C.surface,
           borderTopWidth: 1,
-          borderTopColor: '#E2E8F0',
+          borderTopColor: C.border,
           height: 74,
           paddingTop: 8,
           paddingBottom: 8,
@@ -132,10 +139,16 @@ function AdminTabs() {
 }
 
 // Main Stack Navigator
-function App() {
+function AppNavigator() {
+  const { theme, isDark } = useAppTheme();
+  const C = theme.colors;
+
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.bg} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={C.bg}
+      />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
@@ -159,6 +172,14 @@ function App() {
         </Stack.Navigator>
       </NavigationContainer>
     </>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
   );
 }
 

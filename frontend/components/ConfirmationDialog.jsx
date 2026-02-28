@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +37,10 @@ export default function ConfirmationDialog({
   isLoading = false,
   isDangerous = true,
 }) {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const confirmColor = isDangerous ? '#EF4444' : '#10B981';
   const confirmIconName = isDangerous ? 'trash' : 'checkmark';
 
@@ -105,23 +110,20 @@ export default function ConfirmationDialog({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dialogContainer: {
     width: width - 40,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 12,
+    borderWidth: 1,
+    borderColor: C.border,
   },
   header: {
     alignItems: 'center',
@@ -138,12 +140,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
     textAlign: 'center',
   },
   message: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -160,14 +162,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
   },
   cancelButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: C.textMuted,
   },
   confirmButton: {
     backgroundColor: '#EF4444',

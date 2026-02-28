@@ -12,9 +12,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
-import { theme } from '../theme/designSystem';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const ReportsScreen = () => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const navigation = useNavigation();
   const [role, setRole] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -364,8 +368,7 @@ const ReportsScreen = () => {
   );
 };
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -434,7 +437,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
   },
   filtersContainer: {
     paddingLeft: 20,
@@ -462,7 +465,7 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: C.textMuted,
   },
   filterLabelActive: {
     color: '#FFFFFF',
@@ -481,7 +484,7 @@ const styles = StyleSheet.create({
   filterCount: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: C.textMuted,
   },
   filterCountActive: {
     color: '#FFFFFF',
@@ -509,7 +512,7 @@ const styles = StyleSheet.create({
   reportTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: C.textBody,
     marginBottom: 6,
   },
   metaRow: {
@@ -519,7 +522,7 @@ const styles = StyleSheet.create({
   },
   partNo: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '500',
   },
   dotSeparator: {
@@ -530,12 +533,12 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '500',
   },
   bylineText: {
     fontSize: 11,
-    color: '#6B7280',
+    color: C.textMuted,
     marginTop: 4,
   },
   statusBadge: {
@@ -556,7 +559,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: C.border,
     gap: 8,
   },
   actionBtn: {

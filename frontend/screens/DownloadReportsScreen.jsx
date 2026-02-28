@@ -550,11 +550,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -627,11 +622,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 14,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   pdfBtn: {
     backgroundColor: '#DC2626',

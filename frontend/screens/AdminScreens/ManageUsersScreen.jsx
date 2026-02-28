@@ -15,9 +15,13 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as UserService from '../../utils/userApi';
 import ConfirmationDialog from '../../components/ConfirmationDialog';
 import CustomAlert from '../../components/CustomAlert';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 const ManageUsersScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -324,8 +328,7 @@ const filteredUsers = users.filter(user =>
 
 export default ManageUsersScreen;
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -339,7 +342,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   header: {
     flexDirection: 'row',
@@ -390,7 +393,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 8,
     fontSize: 14,
-    color: '#1F2937',
+    color: C.textBody,
   },
   statsBar: {
     flexDirection: 'row',
@@ -411,18 +414,18 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 11,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     fontWeight: '500',
   },
   statValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginTop: 4,
   },
   statDivider: {
     width: 1,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.border,
     marginHorizontal: 8,
   },
   listContent: {
@@ -453,7 +456,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: C.surfaceAlt,
   },
   userInfo: {
     flex: 1,
@@ -461,20 +464,20 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textBody,
   },
   userEmail: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   userRole: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginTop: 2,
   },
   userId: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     marginTop: 2,
   },
   userMeta: {
@@ -538,7 +541,7 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#9CA3AF',
+    color: C.textSubtle,
     marginTop: 12,
   },
 });

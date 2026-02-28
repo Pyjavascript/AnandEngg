@@ -694,7 +694,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
-    shadowColor: '#286DA6',
     // borderWidth: 1,
     // borderColor: '#0000000d',
     width: '100%',

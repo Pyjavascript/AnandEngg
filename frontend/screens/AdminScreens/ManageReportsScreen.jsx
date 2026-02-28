@@ -1517,9 +1517,13 @@ import { pick, isCancel, types } from '@react-native-documents/picker';
 
 import reportApi from '../../utils/reportApi';
 import CustomAlert from '../../components/CustomAlert';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 const ManageReportsScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [activeTab, setActiveTab] = useState('types'); // 'types' or 'submissions'
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -2624,8 +2628,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
 export default ManageReportsScreen;
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
@@ -2649,7 +2652,6 @@ const styles = StyleSheet.create({
     backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
   },
   tabs: {
     flexDirection: 'row',
