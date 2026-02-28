@@ -26,6 +26,15 @@ export const createTemplate = async (data) => {
   return res.data;
 };
 
+export const updateTemplate = async (templateId, data) => {
+  const res = await axios.put(
+    `${API}/templates/${templateId}`,
+    data,
+    await authHeader(),
+  );
+  return res.data;
+};
+
 export const createField = async (templateId, field) => {
   const res = await axios.post(`${API}/templates/${templateId}/fields`, field, await authHeader());
   return res.data;
@@ -43,6 +52,11 @@ export const uploadDiagram = async (templateId, file) => {
 
 export const getTemplatesByCategory = async (categoryId) => {
   const res = await axios.get(`${API}/templates/${categoryId}`, await authHeader());
+  return res.data;
+};
+
+export const getTemplateById = async (templateId) => {
+  const res = await axios.get(`${API}/templates/${templateId}`, await authHeader());
   return res.data;
 };
 
@@ -126,9 +140,11 @@ export default {
   getCategories,
   createCategory,
   createTemplate,
+  updateTemplate,
   createField,
   uploadDiagram,
   getTemplatesByCategory,
+  getTemplateById,
   getAllSubmissions,
   getMyDraftSubmissions,
   createSubmission,

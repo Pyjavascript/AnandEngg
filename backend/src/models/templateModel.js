@@ -86,6 +86,24 @@ exports.create = async (data) => {
   return result;
 };
 
+exports.update = async (templateId, data) => {
+  const [result] = await db.query(
+    `UPDATE report_templates
+     SET category_id = ?, doc_no = ?, customer = ?, part_no = ?, part_description = ?, rev_no = ?
+     WHERE id = ?`,
+    [
+      data.category_id,
+      data.doc_no || null,
+      data.customer || null,
+      data.part_no || null,
+      data.part_description || null,
+      data.rev_no || null,
+      templateId,
+    ],
+  );
+  return result;
+};
+
 exports.updateDiagram = async (templateId, url) => {
   const [result] = await db.query(
     `UPDATE report_templates SET diagram_url = ? WHERE id = ?`,
@@ -115,6 +133,23 @@ exports.createField = async (templateId, field) => {
     `INSERT INTO template_fields (template_id, label, specification, unit, position, created_at)
      VALUES (?, ?, ?, ?, ?, NOW())`,
     [templateId, field.label, field.specification || null, field.unit || 'mm', field.position || null]
+  );
+  return result;
+};
+
+exports.updateField = async (templateId, fieldId, field) => {
+  const [result] = await db.query(
+    `UPDATE template_fields
+     SET label = ?, specification = ?, unit = ?, position = ?
+     WHERE id = ? AND template_id = ?`,
+    [
+      field.label,
+      field.specification || null,
+      field.unit || 'mm',
+      field.position || null,
+      fieldId,
+      templateId,
+    ],
   );
   return result;
 };

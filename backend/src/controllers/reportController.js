@@ -553,6 +553,63 @@ exports.CreateSubmission = async (req, res) => {
   }
 };
 
+exports.UpdateTemplate = async (req, res) => {
+  if (!requireRole(req.user, 'admin')) return res.status(403).json({ message: 'Admin only' });
+  try {
+    const templateId = Number(req.params.id);
+    if (!templateId) {
+      return res.status(400).json({ message: 'Valid template id is required' });
+    }
+
+    const existing = await templateModel.getById(templateId);
+    if (!existing) {
+      return res.status(404).json({ message: 'Template not found' });
+    }
+
+    const data = req.body || {};
+    const categoryId = Number(data.category_id || existing.category_id);
+    if (!categoryId) {
+      return res.status(400).json({ message: 'category_id is required' });
+    }
+
+    await templateModel.update(templateId, {
+      category_id: categoryId,
+      doc_no: data.doc_no ?? existing.doc_no,
+      customer: data.customer ?? existing.customer,
+      part_no: data.part_no ?? existing.part_no,
+      part_description: data.part_description ?? existing.part_description,
+      rev_no: data.rev_no ?? existing.rev_no,
+    });
+
+    if (Array.isArray(data.fields)) {
+      for (let i = 0; i < data.fields.length; i += 1) {
+        const field = data.fields[i] || {};
+        const label = String(field.label || '').trim();
+        if (!label) continue;
+
+        const payload = {
+          label,
+          specification: field.specification || null,
+          unit: field.unit || 'mm',
+          position: Number(field.position || i + 1),
+        };
+
+        if (field.id) {
+          await templateModel.updateField(templateId, Number(field.id), payload);
+        } else {
+          await templateModel.createField(templateId, payload);
+        }
+      }
+    }
+
+    const template = await templateModel.getById(templateId);
+    const fields = await templateModel.getFields(templateId);
+    return res.json({ message: 'Template updated', template, fields });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 exports.GetSubmissionById = async (req, res) => {
   try {
     const id = req.params.id;

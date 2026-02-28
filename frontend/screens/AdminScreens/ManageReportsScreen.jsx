@@ -1538,6 +1538,8 @@ const ManageReportsScreen = ({ navigation }) => {
   const [step, setStep] = useState(1); // 1: Category, 2: Template, 3: Fields
   const [selectedCatId, setSelectedCatId] = useState(null);
   const [createdTemplateId, setCreatedTemplateId] = useState(null);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [loadingTemplateDetail, setLoadingTemplateDetail] = useState(false);
 
   const [newCatName, setNewCatName] = useState('');
   const [templateForm, setTemplateForm] = useState({
@@ -1587,6 +1589,7 @@ const ManageReportsScreen = ({ navigation }) => {
     setSelectedCatId(category.id);
     setStep(2);
     setCreatedTemplateId(null);
+    setIsEditingTemplate(false);
     setTemplateForm({
       doc_no: '',
       rev_no: '',
@@ -1605,12 +1608,58 @@ const ManageReportsScreen = ({ navigation }) => {
     setShowAddModal(true);
   };
 
-  // Load Data on Focus
-  useFocusEffect(
-    React.useCallback(() => {
-      loadAll();
-    }, [loadAll]),
-  );
+  const openEditTemplateModal = async templateId => {
+    if (!templateId) return;
+    setLoadingTemplateDetail(true);
+    try {
+      const res = await reportApi.getTemplateById(templateId);
+      const template = res?.template;
+      const templateFields = Array.isArray(res?.fields) ? res.fields : [];
+      if (!template) {
+        showAlert('error', 'Not Found', 'Template details not found.');
+        return;
+      }
+
+      setModalMode('report');
+      setIsEditingTemplate(true);
+      setSelectedCatId(template.category_id);
+      setCreatedTemplateId(template.id);
+      setTemplateForm({
+        doc_no: template.doc_no || '',
+        rev_no: template.rev_no || '',
+        customer: template.customer || '',
+        part_no: template.part_no || '',
+        part_description: template.part_description || '',
+      });
+      setFields(
+        templateFields.map((f, idx) => ({
+          id: f.id,
+          label: f.label || '',
+          specification: f.specification || '',
+          unit: f.unit || 'mm',
+          type: 'measurement',
+          position: Number(f.position || idx + 1),
+        })),
+      );
+      setFieldInput({
+        label: '',
+        specification: '',
+        unit: 'mm',
+        type: 'measurement',
+      });
+      setDiagramFile(null);
+      setStep(2);
+      setShowAddModal(true);
+    } catch (err) {
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to load template details';
+      showAlert('error', 'Error', apiMessage);
+    } finally {
+      setLoadingTemplateDetail(false);
+    }
+  };
 
   const loadAll = React.useCallback(async () => {
     setLoading(true);
@@ -1667,6 +1716,13 @@ const ManageReportsScreen = ({ navigation }) => {
     }
   }, []);
 
+  // Load Data on Focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadAll();
+    }, [loadAll]),
+  );
+
   /* ================= LOGIC FUNCTIONS ================= */
 
   const handleCreateCategory = async () => {
@@ -1700,10 +1756,11 @@ const ManageReportsScreen = ({ navigation }) => {
       const mappedTemplates = Object.values(customers)
         .flat()
         .map((part, idx) => ({
-          id: `${part.templateId || idx}`,
-          templateId: part.templateId,
+          id: Number(part.templateId || idx),
+          templateId: Number(part.templateId || 0),
           docNo: part.docNo || '',
           partDescription: part.description || '',
+          customer: part.customer || '',
         }));
       setTemplates(mappedTemplates);
     } catch (err) {
@@ -1718,7 +1775,7 @@ const ManageReportsScreen = ({ navigation }) => {
       return showAlert(
         'error',
         'Required Fields',
-        'Doc No and Description are required',
+        'Doc No and Part Description are required',
       );
     }
     try {
@@ -1740,6 +1797,61 @@ const ManageReportsScreen = ({ navigation }) => {
     } catch (err) {
       showAlert('error', 'Error', 'Template creation failed');
     }
+  };
+
+  const handleUpdateTemplate = async () => {
+    if (!createdTemplateId) {
+      return showAlert('error', 'Template Missing', 'Unable to edit this template.');
+    }
+    if (!templateForm.doc_no || !templateForm.part_description) {
+      return showAlert(
+        'error',
+        'Required Fields',
+        'Doc No and Part Description are required',
+      );
+    }
+    try {
+      const payload = {
+        category_id: selectedCatId,
+        ...templateForm,
+        fields: fields
+          .filter(f => String(f.label || '').trim())
+          .map((f, idx) => ({
+            id: f.id,
+            label: String(f.label || '').trim(),
+            specification: String(f.specification || '').trim(),
+            unit: f.unit || 'mm',
+            position: idx + 1,
+          })),
+      };
+      await reportApi.updateTemplate(createdTemplateId, payload);
+      if (diagramFile) {
+        await reportApi.uploadDiagram(createdTemplateId, diagramFile);
+      }
+      showAlert('success', 'Template Updated', 'Report template updated successfully.');
+      resetModal();
+    } catch (err) {
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to update template';
+      showAlert('error', 'Update Failed', apiMessage);
+    }
+  };
+
+  const handleProceedTemplateStep = async () => {
+    if (isEditingTemplate) {
+      if (!templateForm.doc_no || !templateForm.part_description) {
+        return showAlert(
+          'error',
+          'Required Fields',
+          'Doc No and Part Description are required',
+        );
+      }
+      setStep(3);
+      return;
+    }
+    await handleCreateTemplate();
   };
 
   const handleAddField = async () => {
@@ -1809,6 +1921,7 @@ const ManageReportsScreen = ({ navigation }) => {
   const resetModal = () => {
     setShowAddModal(false);
     setModalMode('category');
+    setIsEditingTemplate(false);
     setStep(1);
     setNewCatName('');
     setTemplateForm({
@@ -1821,6 +1934,7 @@ const ManageReportsScreen = ({ navigation }) => {
     setFields([]);
     setSelectedCatId(null);
     setCreatedTemplateId(null);
+    setLoadingTemplateDetail(false);
     setFieldInput({
       label: '',
       specification: '',
@@ -1941,7 +2055,7 @@ const ManageReportsScreen = ({ navigation }) => {
             <View style={styles.categoryMetaRow}>
               <View style={styles.metaChip}>
                 <Ionicons name="layers-outline" size={12} color="#1D4D77" />
-                <Text style={styles.metaChipText}>Report Type</Text>
+                <Text style={styles.metaChipText}>Category</Text>
               </View>
               <View style={styles.metaChip}>
                 <Ionicons name="stats-chart-outline" size={12} color="#1D4D77" />
@@ -1972,16 +2086,20 @@ const ManageReportsScreen = ({ navigation }) => {
                 <Pressable
                   key={tpl.id}
                   style={styles.templateItem}
-                  onPress={() => {}}
+                  onPress={() => openEditTemplateModal(tpl.templateId)}
                 >
                   <Ionicons
                     name="document-text-outline"
                     size={16}
                     color="#6B7280"
                   />
-                  <Text style={styles.templateText}>
-                    {tpl.docNo || 'DOC'} - {tpl.partDescription || 'No description'}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.templateText}>
+                      {tpl.docNo || 'DOC'} - {tpl.partDescription || 'No description'}
+                    </Text>
+                    <Text style={styles.templateEditHint}>Tap to view / edit</Text>
+                  </View>
+                  <Ionicons name="create-outline" size={15} color="#6B7280" />
                 </Pressable>
               ))
             )}
@@ -2203,7 +2321,11 @@ const ManageReportsScreen = ({ navigation }) => {
                 {modalMode === 'category'
                   ? 'Create Category'
                   : step === 2
-                  ? 'Step 1: Template Details'
+                  ? isEditingTemplate
+                    ? 'View / Edit Template'
+                    : 'Step 1: Template Details'
+                  : isEditingTemplate
+                  ? 'Edit Template Fields'
                   : 'Step 2: Add Fields'}
               </Text>
               <Pressable onPress={resetModal}>
@@ -2212,6 +2334,11 @@ const ManageReportsScreen = ({ navigation }) => {
             </View>
 
             <ScrollView style={styles.modalBody}>
+              {loadingTemplateDetail && (
+                <View style={styles.center}>
+                  <ActivityIndicator size="small" color="#286DA6" />
+                </View>
+              )}
               {/* {step === 1 && (
                 <View>
                   <Text style={styles.label}>Category Name</Text>
@@ -2269,10 +2396,10 @@ const ManageReportsScreen = ({ navigation }) => {
                     <Text style={styles.builderSectionTitle}>Report Information</Text>
                     <View style={styles.doubleColRow}>
                       <View style={styles.col}>
-                        <Text style={styles.label}>Report Type</Text>
+                        <Text style={styles.label}>Doc No</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Template code"
+                          placeholder="e.g. No.AE-QA-FR-FCG-SC02"
                           value={templateForm.doc_no}
                           onChangeText={t =>
                             setTemplateForm({ ...templateForm, doc_no: t })
@@ -2280,10 +2407,10 @@ const ManageReportsScreen = ({ navigation }) => {
                         />
                       </View>
                       <View style={styles.col}>
-                        <Text style={styles.label}>Report Title</Text>
+                        <Text style={styles.label}>Part Description</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Enter report title"
+                          placeholder="e.g. DOOR PLATE BOTTOM RH"
                           value={templateForm.part_description}
                           onChangeText={t =>
                             setTemplateForm({
@@ -2298,10 +2425,10 @@ const ManageReportsScreen = ({ navigation }) => {
 
                   <View style={styles.builderSection}>
                     <Text style={styles.builderSectionTitle}>Project Details</Text>
-                    <Text style={styles.label}>Select Project / Customer</Text>
+                    <Text style={styles.label}>Customer</Text>
                     <TextInput
                       style={styles.input}
-                      placeholder="Customer name"
+                      placeholder="e.g. Vestas"
                       value={templateForm.customer}
                       onChangeText={t =>
                         setTemplateForm({ ...templateForm, customer: t })
@@ -2313,10 +2440,10 @@ const ManageReportsScreen = ({ navigation }) => {
                     <Text style={styles.builderSectionTitle}>Part Specification</Text>
                     <View style={styles.doubleColRow}>
                       <View style={styles.col}>
-                        <Text style={styles.label}>Part Number</Text>
+                        <Text style={styles.label}>Part / Drawing No</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Part no"
+                          placeholder="e.g. 29314225-2"
                           value={templateForm.part_no}
                           onChangeText={t =>
                             setTemplateForm({ ...templateForm, part_no: t })
@@ -2324,15 +2451,40 @@ const ManageReportsScreen = ({ navigation }) => {
                         />
                       </View>
                       <View style={styles.col}>
-                        <Text style={styles.label}>Revision</Text>
+                        <Text style={styles.label}>Rev No</Text>
                         <TextInput
                           style={styles.input}
-                          placeholder="Rev no"
+                          placeholder="e.g. 00"
                           value={templateForm.rev_no}
                           onChangeText={t =>
                             setTemplateForm({ ...templateForm, rev_no: t })
                           }
                         />
+                      </View>
+                    </View>
+                  </View>
+
+                  <View style={styles.builderSection}>
+                    <Text style={styles.builderSectionTitle}>Report Header Preview</Text>
+                    <View style={styles.previewWrap}>
+                      <Text style={styles.previewTitle}>
+                        {(templateForm.part_description || 'CUTTING INSPECTION REPORT').toUpperCase()}
+                      </Text>
+                      <View style={styles.previewRow}>
+                        <Text style={styles.previewKey}>CUSTOMER :</Text>
+                        <Text style={styles.previewValue}>{templateForm.customer || '-'}</Text>
+                      </View>
+                      <View style={styles.previewRow}>
+                        <Text style={styles.previewKey}>PART / DRAWING NO :</Text>
+                        <Text style={styles.previewValue}>{templateForm.part_no || '-'}</Text>
+                      </View>
+                      <View style={styles.previewRow}>
+                        <Text style={styles.previewKey}>DOC. NO :</Text>
+                        <Text style={styles.previewValue}>{templateForm.doc_no || '-'}</Text>
+                      </View>
+                      <View style={styles.previewRow}>
+                        <Text style={styles.previewKey}>REV. NO :</Text>
+                        <Text style={styles.previewValue}>{templateForm.rev_no || '-'}</Text>
                       </View>
                     </View>
                   </View>
@@ -2354,9 +2506,11 @@ const ManageReportsScreen = ({ navigation }) => {
 
                   <Pressable
                     style={styles.primaryBtn}
-                    onPress={handleCreateTemplate}
+                    onPress={handleProceedTemplateStep}
                   >
-                    <Text style={styles.primaryBtnText}>Next: Add Fields</Text>
+                    <Text style={styles.primaryBtnText}>
+                      {isEditingTemplate ? 'Next: Edit Fields' : 'Next: Add Fields'}
+                    </Text>
                   </Pressable>
                 </View>
               )}
@@ -2379,10 +2533,30 @@ const ManageReportsScreen = ({ navigation }) => {
                     ) : (
                       fields.map((f, i) => (
                         <View key={i} style={styles.measureRow}>
-                          <Text style={styles.measureCell}>{f.label}</Text>
-                          <Text style={styles.measureCell}>
-                            {f.specification || 'No Spec'}
-                          </Text>
+                          <TextInput
+                            style={styles.measureInput}
+                            placeholder="Dimension"
+                            value={f.label}
+                            onChangeText={value =>
+                              setFields(prev =>
+                                prev.map((row, idx) =>
+                                  idx === i ? { ...row, label: value } : row,
+                                ),
+                              )
+                            }
+                          />
+                          <TextInput
+                            style={styles.measureInput}
+                            placeholder="Specification"
+                            value={f.specification}
+                            onChangeText={value =>
+                              setFields(prev =>
+                                prev.map((row, idx) =>
+                                  idx === i ? { ...row, specification: value } : row,
+                                ),
+                              )
+                            }
+                          />
                         </View>
                       ))
                     )}
@@ -2423,12 +2597,15 @@ const ManageReportsScreen = ({ navigation }) => {
                     </Pressable>
                   </View>
 
-                  <Pressable
-                    style={styles.finishBtn}
-                    onPress={resetModal}
-                  >
-                    <Text style={styles.primaryBtnText}>Finish & Close</Text>
-                  </Pressable>
+                  {isEditingTemplate ? (
+                    <Pressable style={styles.finishBtn} onPress={handleUpdateTemplate}>
+                      <Text style={styles.primaryBtnText}>Save Template</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable style={styles.finishBtn} onPress={resetModal}>
+                      <Text style={styles.primaryBtnText}>Finish & Close</Text>
+                    </Pressable>
+                  )}
                 </View>
               )}
             </ScrollView>
@@ -2609,6 +2786,36 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
   },
+  previewWrap: {
+    borderWidth: 1,
+    borderColor: '#D7E3EF',
+    borderRadius: 10,
+    backgroundColor: '#FAFCFF',
+    padding: 12,
+    gap: 6,
+  },
+  previewTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#123A59',
+    marginBottom: 4,
+  },
+  previewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  previewKey: {
+    width: 128,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#4B5563',
+  },
+  previewValue: {
+    flex: 1,
+    fontSize: 11,
+    color: '#1F2937',
+    fontWeight: '600',
+  },
   tableHead: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2644,6 +2851,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1F2937',
     fontWeight: '500',
+  },
+  measureInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1F2937',
+    fontWeight: '500',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    marginRight: 6,
   },
   emptyMeasure: {
     paddingVertical: 14,
@@ -2732,6 +2952,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     fontWeight: '500',
+  },
+  templateEditHint: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+    fontWeight: '600',
   },
   createReportBtn: {
     flexDirection: 'row',
