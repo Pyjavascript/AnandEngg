@@ -64,9 +64,11 @@ const AdminDashboardScreen = ({ navigation }) => {
           }
           const data = await res.json();
           setStats({
-            totalUsers: data.users,
-            totalSubmittedReports: data.reports,
-            totalRoles:data.roles,
+            totalUsers: Number(data.users ?? data.totalUsers ?? 0),
+            totalSubmittedReports: Number(
+              data.reports ?? data.totalSubmittedReports ?? 0,
+            ),
+            totalRoles: Number(data.roles ?? data.totalRoles ?? 0),
             systemHealth: 'Good',
           });
           console.log('Admin stats loaded', data);
@@ -124,21 +126,21 @@ const AdminDashboardScreen = ({ navigation }) => {
     {
       id: 1,
       label: 'Total Users',
-      value: stats.totalUsers,
+      value: stats.totalUsers ?? 0,
       icon: 'people-outline',
       color: '#2F5BFF',
     },
     {
       id: 2,
       label: 'Total Roles',
-      value: stats.totalRoles,
+      value: stats.totalRoles ?? 0,
       icon: 'shield-checkmark-outline',
       color: '#12B981',
     },
     {
       id: 3,
       label: 'Total Reports',
-      value: stats.totalSubmittedReports,
+      value: stats.totalSubmittedReports ?? 0,
       icon: 'document-text-outline',
       color: '#F59E0B',
     },

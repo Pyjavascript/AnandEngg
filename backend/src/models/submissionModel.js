@@ -136,6 +136,14 @@ exports.getById = async (id) => {
   return rows[0];
 };
 
+exports.deleteById = async (id) => {
+  const [result] = await db.query(
+    `DELETE FROM report_submissions WHERE id = ?`,
+    [id],
+  );
+  return result;
+};
+
 exports.getValues = async (submissionId) => {
   const [rows] = await db.query(
     `SELECT sv.*, tf.label, tf.specification, tf.unit

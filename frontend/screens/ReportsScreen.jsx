@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -98,6 +99,48 @@ const ReportsScreen = () => {
 
   const handleViewReport = id => {
     navigation.navigate('ReportDetail', { reportId: id });
+  };
+
+  const handleDeleteReport = id => {
+    Alert.alert(
+      'Delete Report',
+      'Are you sure you want to delete this report? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await reportApi.deleteSubmission(id);
+              await fetchReports();
+            } catch (err) {
+              Alert.alert(
+                'Delete Failed',
+                err?.response?.data?.message || 'Unable to delete report.',
+              );
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleReportLongPress = report => {
+    if (role !== 'machine_operator') return;
+    Alert.alert(
+      'Report Options',
+      'Choose an action for this report',
+      [
+        { text: 'View', onPress: () => handleViewReport(report.id) },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => handleDeleteReport(report.id),
+        },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
   };
 
   const counts = {
@@ -250,6 +293,8 @@ const ReportsScreen = () => {
                 key={report.id}
                 style={styles.reportCard}
                 onPress={() => handleViewReport(report.id)}
+                onLongPress={() => handleReportLongPress(report)}
+                delayLongPress={350}
                 activeOpacity={0.7}
               >
                 {/* Top Section */}

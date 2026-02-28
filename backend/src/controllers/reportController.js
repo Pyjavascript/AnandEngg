@@ -622,6 +622,27 @@ exports.GetSubmissionById = async (req, res) => {
   }
 };
 
+exports.DeleteSubmission = async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ message: 'Valid submission id is required' });
+
+    const existing = await submissionModel.getById(id);
+    if (!existing) return res.status(404).json({ message: 'Submission not found' });
+
+    const isAdmin = req.user?.role === 'admin';
+    const isOwner = Number(existing.employee_id) === Number(req.user?.id);
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ message: 'You can only delete your own report' });
+    }
+
+    await submissionModel.deleteById(id);
+    return res.json({ message: 'Submission deleted successfully' });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
 exports.InspectorReview = async (req, res) => {
   if (!requireRole(req.user, 'quality_inspector')) return res.status(403).json({ message: 'Inspector only' });
   try {

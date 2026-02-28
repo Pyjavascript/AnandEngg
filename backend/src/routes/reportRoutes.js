@@ -85,6 +85,7 @@ router.post('/submissions', auth, ReportController.CreateSubmission);
 // router.post('/create', auth, ReportController.CreateInspectionReport);
 router.get('/submissions', auth, ReportController.ListSubmissions);
 router.get('/submissions/:id', auth, ReportController.GetSubmissionById);
+router.delete('/submissions/:id', auth, ReportController.DeleteSubmission);
 router.get('/download', auth, ReportController.DownloadSubmissions);
 // router.get('/reports-all', auth, ReportController.GetAllInjectionReports);
 // router.get('/reports-stats', auth, ReportController.GetReportTypesWithStats);

@@ -82,6 +82,11 @@ export const getSubmissionById = async (id) => {
   return res.data;
 };
 
+export const deleteSubmission = async id => {
+  const res = await axios.delete(`${API}/submissions/${id}`, await authHeader());
+  return res.data;
+};
+
 export const inspectorReviewSubmission = async (id, payload) => {
   const res = await axios.put(`${API}/submissions/${id}/inspect`, payload, await authHeader());
   return res.data;
@@ -149,6 +154,7 @@ export default {
   getMyDraftSubmissions,
   createSubmission,
   getSubmissionById,
+  deleteSubmission,
   inspectorReviewSubmission,
   managerReviewSubmission,
   rejectSubmission,

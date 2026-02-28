@@ -190,7 +190,7 @@ exports.getAllRoles = async (req, res) => {
 
 exports.getStats = async (req, res) => {
   try {
-    const [[user], [reports], [roles]] = await Promise.all([
+    const [[[user]], [[reports]], [[roles]]] = await Promise.all([
       db.query('SELECT COUNT(*) AS total FROM users'),
       db.query('SELECT COUNT(*) AS total FROM report_submissions'),
       db.query('SELECT COUNT(*) AS total FROM roles'),
