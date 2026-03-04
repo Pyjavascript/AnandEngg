@@ -16,8 +16,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import reportApi from '../utils/reportApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const DownloadReportsScreen = () => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const navigation = useNavigation();
 
   // State
@@ -171,7 +175,7 @@ const DownloadReportsScreen = () => {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={22} color={C.surface} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Download Reports</Text>
@@ -189,7 +193,7 @@ const DownloadReportsScreen = () => {
         {/* Filter Card */}
         <View style={styles.filterCard}>
           <View style={styles.filterHeader}>
-            <Ionicons name="funnel" size={20} color="#286DA6" />
+            <Ionicons name="funnel" size={20} color={C.primarySoft} />
             <Text style={styles.filterTitle}>Report Filters</Text>
           </View>
 
@@ -206,7 +210,7 @@ const DownloadReportsScreen = () => {
               <Ionicons
                 name={showReportTypeDropdown ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color="#64748B"
+                color={C.textMuted}
               />
             </TouchableOpacity>
             {showReportTypeDropdown && (
@@ -229,7 +233,7 @@ const DownloadReportsScreen = () => {
                       {type.label}
                     </Text>
                     {reportType === type.value && (
-                      <Ionicons name="checkmark" size={18} color="#286DA6" />
+                      <Ionicons name="checkmark" size={18} color={C.primarySoft} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -245,7 +249,7 @@ const DownloadReportsScreen = () => {
                 style={styles.dateInput}
                 onPress={() => setShowFromPicker(true)}
               >
-                <Ionicons name="calendar-outline" size={18} color="#64748B" />
+                <Ionicons name="calendar-outline" size={18} color={C.textMuted} />
                 <Text style={styles.dateText}>{formatDate(fromDate)}</Text>
               </TouchableOpacity>
             </View>
@@ -256,7 +260,7 @@ const DownloadReportsScreen = () => {
                 style={styles.dateInput}
                 onPress={() => setShowToPicker(true)}
               >
-                <Ionicons name="calendar-outline" size={18} color="#64748B" />
+                <Ionicons name="calendar-outline" size={18} color={C.textMuted} />
                 <Text style={styles.dateText}>{formatDate(toDate)}</Text>
               </TouchableOpacity>
             </View>
@@ -275,7 +279,7 @@ const DownloadReportsScreen = () => {
               <Ionicons
                 name={showStatusDropdown ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color="#64748B"
+                color={C.textMuted}
               />
             </TouchableOpacity>
             {showStatusDropdown && (
@@ -298,7 +302,7 @@ const DownloadReportsScreen = () => {
                       {stat.label}
                     </Text>
                     {status === stat.value && (
-                      <Ionicons name="checkmark" size={18} color="#286DA6" />
+                      <Ionicons name="checkmark" size={18} color={C.primarySoft} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -319,7 +323,7 @@ const DownloadReportsScreen = () => {
               <Ionicons
                 name={showReportDropdown ? 'chevron-up' : 'chevron-down'}
                 size={20}
-                color="#64748B"
+                color={C.textMuted}
               />
             </TouchableOpacity>
             {showReportDropdown && (
@@ -343,7 +347,7 @@ const DownloadReportsScreen = () => {
                       {report.label}
                     </Text>
                     {selectedReportId === report.value && (
-                      <Ionicons name="checkmark" size={18} color="#286DA6" />
+                      <Ionicons name="checkmark" size={18} color={C.primarySoft} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -355,7 +359,7 @@ const DownloadReportsScreen = () => {
         {/* Download Buttons */}
         <View style={styles.downloadCard}>
           <View style={styles.downloadHeader}>
-            <Ionicons name="download-outline" size={20} color="#286DA6" />
+            <Ionicons name="download-outline" size={20} color={C.primarySoft} />
             <Text style={styles.downloadTitle}>Export Options</Text>
           </View>
 
@@ -366,10 +370,10 @@ const DownloadReportsScreen = () => {
               disabled={downloading}
             >
               {downloading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={C.surface} />
               ) : (
                 <>
-                  <Ionicons name="document-text" size={20} color="#FFFFFF" />
+                  <Ionicons name="document-text" size={20} color={C.surface} />
                   <Text style={styles.downloadBtnText}>Download PDF</Text>
                 </>
               )}
@@ -380,7 +384,7 @@ const DownloadReportsScreen = () => {
               onPress={() => handleDownload('csv')}
               disabled={downloading}
             >
-              <Ionicons name="document" size={20} color="#FFFFFF" />
+              <Ionicons name="document" size={20} color={C.surface} />
               <Text style={styles.downloadBtnText}>Download CSV</Text>
             </TouchableOpacity>
 
@@ -393,7 +397,7 @@ const DownloadReportsScreen = () => {
             <View style={styles.metricsHeader}>
               <Text style={styles.metricsTitle}>Quality Metrics</Text>
               {loadingMetrics ? (
-                <ActivityIndicator size="small" color="#286DA6" />
+                <ActivityIndicator size="small" color={C.primarySoft} />
               ) : null}
             </View>
 
@@ -457,13 +461,13 @@ const DownloadReportsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -486,7 +490,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
     marginBottom: 2,
   },
   headerSubtitle: {
@@ -501,12 +505,12 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   filterCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   filterHeader: {
     flexDirection: 'row',
@@ -517,7 +521,7 @@ const styles = StyleSheet.create({
   filterTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   filterGroup: {
     marginBottom: 16,
@@ -525,31 +529,31 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 8,
   },
   dropdown: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
   dropdownText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
     fontWeight: '500',
   },
   dropdownMenu: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -558,15 +562,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: C.border,
   },
   dropdownItemText: {
     fontSize: 14,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '500',
   },
   dropdownItemTextActive: {
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '600',
   },
   dateRow: {
@@ -581,25 +585,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
   },
   dateText: {
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
     fontWeight: '500',
   },
   downloadCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   downloadHeader: {
     flexDirection: 'row',
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
   downloadTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   downloadButtons: {
     gap: 12,
@@ -632,20 +636,20 @@ const styles = StyleSheet.create({
   downloadBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
   metricsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   metricsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: C.textStrong,
     marginBottom: 16,
   },
   metricsHeader: {
@@ -662,15 +666,15 @@ const styles = StyleSheet.create({
   metricItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.surfaceAlt,
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   metricLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 6,
     fontWeight: '500',
   },

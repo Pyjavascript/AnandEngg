@@ -247,13 +247,13 @@ const AdminDashboardScreen = ({ navigation }) => {
                         color={module.color}
                       />
                     </View>
-                    <Pressable style={styles.moduleArrow}>
+                    {/* <Pressable style={styles.moduleArrow}>
                       <Ionicons
                         name="arrow-forward"
                         size={20}
                         color="#7B8595"
                       />
-                    </Pressable>
+                    </Pressable> */}
                   </View>
 
                   <Text style={styles.moduleTitle}>{module.title}</Text>
@@ -261,7 +261,7 @@ const AdminDashboardScreen = ({ navigation }) => {
                     {module.description}
                   </Text>
 
-                  <View style={styles.moduleOptions}>
+                  {/* <View style={styles.moduleOptions}>
                     <View style={styles.moduleOptionChip}>
                       <Ionicons name="flash-outline" size={12} color="#334155" />
                       <Text style={styles.moduleOptionText}>Quick Access</Text>
@@ -270,7 +270,7 @@ const AdminDashboardScreen = ({ navigation }) => {
                       <Ionicons name="grid-outline" size={12} color="#334155" />
                       <Text style={styles.moduleOptionText}>Options</Text>
                     </View>
-                  </View>
+                  </View> */}
 
                   {/* Stat badge */}
                   <View style={styles.moduleStat}>
@@ -465,6 +465,7 @@ const createStyles = C => StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: C.border,
+    overflow: 'hidden',
   },
   moduleCardPressed: {
     opacity: 0.95,

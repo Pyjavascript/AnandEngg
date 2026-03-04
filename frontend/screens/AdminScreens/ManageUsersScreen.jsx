@@ -73,11 +73,22 @@ const ManageUsersScreen = ({ navigation }) => {
     }, []),
   );
 
-const filteredUsers = users.filter(user =>
-  user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  user.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-  user.email.toLowerCase().includes(searchQuery.toLowerCase())
-);
+// const filteredUsers = users.filter(user =>
+//   user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//   user.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+//   user.email.toLowerCase().includes(searchQuery.toLowerCase())
+// );
+
+const q = searchQuery.trim().toLowerCase();
+
+const filteredUsers = users.filter((user = {}) => {
+  const name = String(user.name ?? '').toLowerCase();
+  const employeeId = String(user.employee_id ?? '').toLowerCase();
+  const email = String(user.email ?? '').toLowerCase();
+
+  return name.includes(q) || employeeId.includes(q) || email.includes(q);
+});
+
 
 
   const handleDeleteUser = async () => {
@@ -196,7 +207,7 @@ const filteredUsers = users.filter(user =>
             <Ionicons name="pencil" size={18} color="#286DA6" />
           </Pressable>
 
-          <Pressable
+          {/* <Pressable
             style={({ pressed }) => [
               styles.actionButton,
               styles.deleteButton,
@@ -205,7 +216,7 @@ const filteredUsers = users.filter(user =>
             onPress={() => openDeleteConfirm(item.id, item.name)}
           >
             <Ionicons name="trash" size={18} color="#EF4444" />
-          </Pressable>
+          </Pressable> */}
         </View>
       </Pressable>
     );

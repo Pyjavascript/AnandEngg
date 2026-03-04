@@ -13,8 +13,12 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import reportApi from '../utils/reportApi';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 export default function ReportDetailScreen({ route, navigation }) {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const { reportId } = route.params;
 
   const [report, setReport] = useState(null);
@@ -215,7 +219,7 @@ export default function ReportDetailScreen({ route, navigation }) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#286DA6" />
+        <ActivityIndicator size="large" color={C.primarySoft} />
         <Text style={styles.loadingText}>Loading report...</Text>
       </View>
     );
@@ -236,7 +240,7 @@ export default function ReportDetailScreen({ route, navigation }) {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
         >
-          <Ionicons name="arrow-back" size={22} color="#FFFFFF" />
+          <Ionicons name="arrow-back" size={22} color={C.textStrong} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Inspection Report</Text>
         <View style={styles.placeholder} />
@@ -260,7 +264,7 @@ export default function ReportDetailScreen({ route, navigation }) {
               />
               <Text style={[styles.statusText, { color: statusStyle.text }]}>
                 {report.status === 'inspector_reviewed'
-                  ? 'Reviewed'
+                  ? 'Approved by Inspector'
                   : report.status === 'manager_approved'
                   ? 'Approved'
                   : report.status}
@@ -270,11 +274,11 @@ export default function ReportDetailScreen({ route, navigation }) {
 
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
-              <Ionicons name="cube-outline" size={16} color="#64748B" />
+              <Ionicons name="cube-outline" size={16} color={C.textMuted} />
               <Text style={styles.metaText}>Part: {report.part_no}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={16} color="#64748B" />
+              <Ionicons name="calendar-outline" size={16} color={C.textMuted} />
               <Text style={styles.metaText}>
                 {new Date(report.created_at).toLocaleDateString('en-GB', {
                   day: 'numeric',
@@ -287,7 +291,7 @@ export default function ReportDetailScreen({ route, navigation }) {
 
           {data.shift && (
             <View style={styles.shiftTag}>
-              <Ionicons name="time-outline" size={14} color="#286DA6" />
+              <Ionicons name="time-outline" size={14} color={C.primarySoft} />
               <Text style={styles.shiftText}>
                 {data.shift === 'day'
                   ? 'Day Shift'
@@ -303,6 +307,8 @@ export default function ReportDetailScreen({ route, navigation }) {
             <Text style={styles.workflowTitle}>Approval Workflow</Text>
             <View style={styles.workflowSteps}>
               <WorkflowStep
+                C={C}
+                styles={styles}
                 label="Operator"
                 icon="create-outline"
                 completed={true}
@@ -310,6 +316,8 @@ export default function ReportDetailScreen({ route, navigation }) {
               />
               <View style={styles.workflowLine} />
               <WorkflowStep
+                C={C}
+                styles={styles}
                 label="Inspector"
                 icon="search-outline"
                 completed={
@@ -320,6 +328,8 @@ export default function ReportDetailScreen({ route, navigation }) {
               />
               <View style={styles.workflowLine} />
               <WorkflowStep
+                C={C}
+                styles={styles}
                 label="Manager"
                 icon="checkmark-done-outline"
                 completed={report.status === 'manager_approved'}
@@ -332,16 +342,16 @@ export default function ReportDetailScreen({ route, navigation }) {
         {/* Part Information */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="information-circle" size={20} color="#286DA6" />
+            <Ionicons name="information-circle" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Part Information</Text>
           </View>
 
           <View style={styles.infoGrid}>
-            <InfoItem label="Submitted By" value={data.submittedBy} />
-            <InfoItem label="Customer" value={data.customer} />
-            <InfoItem label="Part Number" value={data.partNumber} />
-            <InfoItem label="Doc Number" value={data.docNo} />
-            <InfoItem label="Rev Number" value={data.revNo} />
+            <InfoItem styles={styles} label="Submitted By" value={data.submittedBy} />
+            <InfoItem styles={styles} label="Customer" value={data.customer} />
+            <InfoItem styles={styles} label="Part Number" value={data.partNumber} />
+            <InfoItem styles={styles} label="Doc Number" value={data.docNo} />
+            <InfoItem styles={styles} label="Rev Number" value={data.revNo} />
           </View>
 
           {data.partDescription && (
@@ -356,7 +366,7 @@ export default function ReportDetailScreen({ route, navigation }) {
         {data.dimensions && data.dimensions.length > 0 && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Ionicons name="resize-outline" size={20} color="#286DA6" />
+              <Ionicons name="resize-outline" size={20} color={C.primarySoft} />
               <Text style={styles.cardTitle}>
                 Dimensions Inspection ({data.dimensions.length})
               </Text>
@@ -389,11 +399,11 @@ export default function ReportDetailScreen({ route, navigation }) {
         {/* Visual Observation - Editable by Inspector/Manager */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="eye-outline" size={20} color="#286DA6" />
+            <Ionicons name="eye-outline" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Visual Observation</Text>
             {isEditable && (
               <View style={styles.editableBadge}>
-                <Ionicons name="create-outline" size={12} color="#286DA6" />
+                <Ionicons name="create-outline" size={12} color={C.primarySoft} />
                 <Text style={styles.editableText}>Editable</Text>
               </View>
             )}
@@ -403,7 +413,7 @@ export default function ReportDetailScreen({ route, navigation }) {
             <TextInput
               style={styles.textArea}
               placeholder="Add your visual observations..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={C.textSubtle}
               value={visualObservation}
               onChangeText={setVisualObservation}
               multiline
@@ -421,11 +431,11 @@ export default function ReportDetailScreen({ route, navigation }) {
         {/* Remarks - Editable by Inspector/Manager */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="chatbox-outline" size={20} color="#286DA6" />
+            <Ionicons name="chatbox-outline" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Remarks</Text>
             {isEditable && (
               <View style={styles.editableBadge}>
-                <Ionicons name="create-outline" size={12} color="#286DA6" />
+                <Ionicons name="create-outline" size={12} color={C.primarySoft} />
                 <Text style={styles.editableText}>Editable</Text>
               </View>
             )}
@@ -435,7 +445,7 @@ export default function ReportDetailScreen({ route, navigation }) {
             <TextInput
               style={styles.textArea}
               placeholder="Add your remarks..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor={C.textSubtle}
               value={remarks}
               onChangeText={setRemarks}
               multiline
@@ -456,23 +466,29 @@ export default function ReportDetailScreen({ route, navigation }) {
             <Ionicons
               name="checkmark-done-outline"
               size={20}
-              color="#286DA6"
+              color={C.primarySoft}
             />
             <Text style={styles.cardTitle}>Approvals</Text>
           </View>
 
           <View style={styles.approvalsList}>
             <ApprovalItem
+              C={C}
+              styles={styles}
               icon="person-outline"
               label="QA Inspector"
               value={data.qa}
             />
             <ApprovalItem
+              C={C}
+              styles={styles}
               icon="eye-outline"
               label="Reviewed By"
               value={data.reviewedBy}
             />
             <ApprovalItem
+              C={C}
+              styles={styles}
               icon="checkmark-circle-outline"
               label="Approved By"
               value={data.approvedBy}
@@ -501,13 +517,13 @@ export default function ReportDetailScreen({ route, navigation }) {
                 disabled={submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={C.surface} />
                 ) : (
                   <>
                     <Ionicons
                       name="checkmark-circle"
                       size={20}
-                      color="#FFFFFF"
+                      color={C.surface}
                     />
                     <Text style={styles.actionBtnText}>Approve Report</Text>
                   </>
@@ -519,7 +535,7 @@ export default function ReportDetailScreen({ route, navigation }) {
                 onPress={handleReject}
                 disabled={submitting}
               >
-                <Ionicons name="close-circle" size={20} color="#FFFFFF" />
+                <Ionicons name="close-circle" size={20} color={C.surface} />
                 <Text style={styles.actionBtnText}>Reject Report</Text>
               </TouchableOpacity>
             </View>
@@ -532,17 +548,17 @@ export default function ReportDetailScreen({ route, navigation }) {
   );
 }
 
-const InfoItem = ({ label, value }) => (
+const InfoItem = ({ label, value, styles }) => (
   <View style={styles.infoItem}>
     <Text style={styles.infoLabel}>{label}</Text>
     <Text style={styles.infoValue}>{value || '-'}</Text>
   </View>
 );
 
-const ApprovalItem = ({ icon, label, value }) => (
+const ApprovalItem = ({ icon, label, value, styles, C }) => (
   <View style={styles.approvalItem}>
     <View style={styles.approvalIcon}>
-      <Ionicons name={icon} size={18} color="#286DA6" />
+      <Ionicons name={icon} size={18} color={C.primarySoft} />
     </View>
     <View style={styles.approvalContent}>
       <Text style={styles.approvalLabel}>{label}</Text>
@@ -551,7 +567,7 @@ const ApprovalItem = ({ icon, label, value }) => (
   </View>
 );
 
-const WorkflowStep = ({ label, icon, completed, active }) => (
+const WorkflowStep = ({ label, icon, completed, active, styles, C }) => (
   <View style={styles.workflowStep}>
     <View
       style={[
@@ -563,7 +579,7 @@ const WorkflowStep = ({ label, icon, completed, active }) => (
       <Ionicons
         name={completed ? 'checkmark' : icon}
         size={16}
-        color={completed ? '#FFFFFF' : active ? '#286DA6' : '#94A3B8'}
+        color={completed ? C.surface : active ? C.primarySoft : C.textSubtle}
       />
     </View>
     <Text
@@ -578,24 +594,24 @@ const WorkflowStep = ({ label, icon, completed, active }) => (
   </View>
 );
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: '#64748B',
+    color: C.textMuted,
   },
   header: {
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingTop: 60,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -607,14 +623,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
   placeholder: {
     width: 40,
@@ -623,13 +639,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   titleRow: {
     flexDirection: 'row',
@@ -642,7 +658,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: C.textBody,
     lineHeight: 24,
   },
   statusBadge: {
@@ -663,7 +679,7 @@ const styles = StyleSheet.create({
     gap: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: C.border,
   },
   metaItem: {
     flexDirection: 'row',
@@ -672,7 +688,7 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '500',
   },
   shiftTag: {
@@ -682,25 +698,25 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: C.surfaceAlt,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   shiftText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   workflowContainer: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: C.border,
   },
   workflowTitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 12,
   },
   workflowSteps: {
@@ -716,47 +732,47 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
   },
   workflowIconCompleted: {
-    backgroundColor: '#059669',
+    backgroundColor: C.success,
   },
   workflowIconActive: {
-    backgroundColor: '#EBF5FF',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 2,
-    borderColor: '#286DA6',
+    borderColor: C.primarySoft,
   },
   workflowLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: C.textSubtle,
     fontWeight: '500',
   },
   workflowLabelCompleted: {
-    color: '#059669',
+    color: C.success,
     fontWeight: '600',
   },
   workflowLabelActive: {
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '600',
   },
   workflowLine: {
     height: 2,
     flex: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: C.border,
     marginHorizontal: 4,
     marginBottom: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     marginHorizontal: 20,
     marginTop: 12,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -767,14 +783,14 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     flex: 1,
   },
   editableBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: C.surfaceAlt,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
@@ -782,7 +798,7 @@ const styles = StyleSheet.create({
   editableText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   infoGrid: {
     flexDirection: 'row',
@@ -796,39 +812,39 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 4,
     fontWeight: '500',
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: C.textBody,
   },
   descriptionBox: {
     marginTop: 4,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: C.border,
   },
   descLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 6,
     fontWeight: '500',
   },
   descValue: {
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
     lineHeight: 20,
   },
   dimensionCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
     padding: 14,
     borderRadius: 12,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   dimensionHeader: {
     flexDirection: 'row',
@@ -839,14 +855,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dimensionNumberText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
   dimensionInfo: {
     flex: 1,
@@ -854,23 +870,23 @@ const styles = StyleSheet.create({
   dimensionDesc: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E293B',
+    color: C.textBody,
     marginBottom: 4,
   },
   dimensionSpec: {
     fontSize: 13,
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '500',
   },
   actualValues: {
     marginTop: 8,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: C.border,
   },
   actualLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
     marginBottom: 8,
   },
@@ -880,59 +896,59 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   actualChip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   actualChipLabel: {
     fontSize: 10,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 2,
     fontWeight: '500',
   },
   actualChipValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   noData: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: C.textSubtle,
     fontStyle: 'italic',
   },
   tableWrap: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     borderRadius: 12,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#EEF6FF',
+    backgroundColor: C.surfaceAlt,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: C.border,
   },
   tableHeadCell: {
     paddingVertical: 10,
     paddingHorizontal: 8,
     fontSize: 11,
-    color: '#1E3A8A',
+    color: C.primarySoft,
     fontWeight: '700',
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: C.border,
+    backgroundColor: C.surface,
   },
   tableCell: {
     paddingVertical: 10,
     paddingHorizontal: 8,
     fontSize: 12,
-    color: '#1E293B',
+    color: C.textBody,
   },
   colSl: {
     width: '10%',
@@ -950,25 +966,25 @@ const styles = StyleSheet.create({
     width: '28%',
   },
   textBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
     padding: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   textContent: {
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
     lineHeight: 20,
   },
   textArea: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
     borderWidth: 1,
-    borderColor: '#286DA6',
+    borderColor: C.primarySoft,
     padding: 14,
     borderRadius: 12,
     fontSize: 14,
-    color: '#1E293B',
+    color: C.textBody,
     minHeight: 100,
     textAlignVertical: 'top',
   },
@@ -979,17 +995,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.bg,
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   approvalIcon: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#EBF5FF',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -998,33 +1014,33 @@ const styles = StyleSheet.create({
   },
   approvalLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 2,
     fontWeight: '500',
   },
   approvalValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: C.textBody,
   },
   actionContainer: {
     marginHorizontal: 20,
     marginTop: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   actionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginBottom: 6,
   },
   actionSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: C.textMuted,
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -1040,14 +1056,15 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   approveBtn: {
-    backgroundColor: '#059669',
+    backgroundColor: C.success,
   },
   rejectBtn: {
-    backgroundColor: '#DC2626',
+    backgroundColor: C.danger,
   },
   actionBtnText: {
-    color: '#FFFFFF',
+    color: C.surface,
     fontSize: 15,
     fontWeight: '700',
   },
 });
+

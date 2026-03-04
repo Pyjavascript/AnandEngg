@@ -13,9 +13,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import BASE_URL from '../../config/api';
 import CustomAlert from '../../components/CustomAlert';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 const ChangePasswordScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     currentPassword: '',
@@ -88,7 +91,7 @@ const ChangePasswordScreen = ({ navigation }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
+          <Ionicons name="arrow-back" size={24} color={C.surface} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Change Password</Text>
         <View style={{ width: 24 }} />
@@ -109,13 +112,14 @@ const ChangePasswordScreen = ({ navigation }) => {
                 <Ionicons
                   name="lock-closed-outline"
                   size={20}
-                  color="#6B7280"
+                  color={C.textMuted}
                 />
                 <TextInput
                   style={styles.input}
                   value={form[field]}
                   onChangeText={v => setForm({ ...form, [field]: v })}
                   secureTextEntry={!showPassword[field]}
+                  placeholderTextColor={C.textSubtle}
                 />
                 <TouchableOpacity
                   onPress={() =>
@@ -130,7 +134,7 @@ const ChangePasswordScreen = ({ navigation }) => {
                       showPassword[field] ? 'eye-outline' : 'eye-off-outline'
                     }
                     size={25}
-                    color="#6B7280"
+                    color={C.textMuted}
                   />
                 </TouchableOpacity>
               </View>
@@ -144,10 +148,10 @@ const ChangePasswordScreen = ({ navigation }) => {
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={C.surface} />
           ) : (
             <>
-              <Ionicons name="key-outline" size={20} color="#FFF" />
+              <Ionicons name="key-outline" size={20} color={C.surface} />
               <Text style={styles.saveText}>Update Password</Text>
             </>
           )}
@@ -161,8 +165,7 @@ const ChangePasswordScreen = ({ navigation }) => {
     </View>
   );
 };
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -181,7 +184,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
 
   inputGroup: {
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 8,
   },
    backButton: {
@@ -219,7 +222,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#1F2937',
+    color: C.textBody,
     paddingVertical: 14,
   },
 
@@ -238,7 +241,7 @@ const styles = StyleSheet.create({
   saveText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
 });
 

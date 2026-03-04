@@ -16,9 +16,12 @@ import BASE_URL from '../../config/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView } from 'react-native';
 import CustomAlert from '../../components/CustomAlert';
-import { theme } from '../../theme/designSystem';
+import { useAppTheme } from '../../theme/ThemeProvider';
 
 const EditProfileScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -158,7 +161,7 @@ const EditProfileScreen = ({ navigation }) => {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color={C.surface} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Edit Profile</Text>
           <View style={styles.placeholder} />
@@ -182,13 +185,13 @@ const EditProfileScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name *</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={20} color="#6B7280" />
+                <Ionicons name="person-outline" size={20} color={C.textMuted} />
                 <TextInput
                   style={styles.input}
                   value={form.name}
                   onChangeText={text => setForm({ ...form, name: text })}
                   placeholder="Enter your name"
-                  placeholderTextColor="#B0C4D8"
+                  placeholderTextColor={C.textSubtle}
                 />
               </View>
             </View>
@@ -196,13 +199,13 @@ const EditProfileScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email *</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="mail-outline" size={20} color="#6B7280" />
+                <Ionicons name="mail-outline" size={20} color={C.textMuted} />
                 <TextInput
                   style={styles.input}
                   value={form.email}
                   onChangeText={text => setForm({ ...form, email: text })}
                   placeholder="Enter your email"
-                  placeholderTextColor="#B0C4D8"
+                  placeholderTextColor={C.textSubtle}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
@@ -212,13 +215,13 @@ const EditProfileScreen = ({ navigation }) => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Phone</Text>
               <View style={styles.inputWrapper}>
-                <Ionicons name="call-outline" size={20} color="#6B7280" />
+                <Ionicons name="call-outline" size={20} color={C.textMuted} />
                 <TextInput
                   style={styles.input}
                   value={form.phone}
                   onChangeText={text => setForm({ ...form, phone: text })}
                   placeholder="Enter your phone"
-                  placeholderTextColor="#B0C4D8"
+                  placeholderTextColor={C.textSubtle}
                   keyboardType="phone-pad"
                 />
               </View>
@@ -262,10 +265,10 @@ const EditProfileScreen = ({ navigation }) => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={C.surface} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+                <Ionicons name="checkmark-circle" size={22} color={C.surface} />
                 <Text style={styles.saveButtonText}>Save Changes</Text>
               </>
             )}
@@ -285,8 +288,7 @@ const EditProfileScreen = ({ navigation }) => {
   );
 };
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -311,7 +313,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
   placeholder: {
     width: 40,
@@ -325,7 +327,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: C.surface,
     marginBottom: 16,
   },
   changePhotoBtn: {
@@ -351,7 +353,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 8,
   },
   inputWrapper: {
@@ -367,7 +369,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
-    color: '#1F2937',
+    color: C.textBody,
     paddingVertical: 14,
   },
   readOnlySection: {
@@ -391,12 +393,12 @@ const styles = StyleSheet.create({
   },
   readOnlyLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   readOnlyValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
   },
   divider: {
     height: 1,
@@ -419,7 +421,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
 });
 

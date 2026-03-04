@@ -344,7 +344,7 @@ const ReportsScreen = () => {
                       {report.status === 'inspector_reviewed'
                         ? 'Approved by Inspector'
                         : report.status === 'manager_approved'
-                        ? 'Approved by Manager'
+                        ? 'Approved'
                         : report.status === 'rejected' && report.manager_id
                         ? 'Rejected by Manager'
                         : report.status === 'rejected' && report.inspector_id

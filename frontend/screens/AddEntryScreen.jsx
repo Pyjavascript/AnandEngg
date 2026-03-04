@@ -14,7 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
-import { theme } from '../theme/designSystem';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 
 const resolveImageUri = (imageUri) => {
@@ -25,6 +25,9 @@ const resolveImageUri = (imageUri) => {
   return `${normalizedBase}${normalizedPath}`;
 };
 export default function AddEntryScreen({ route, navigation }) {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
   const { part, customer, reportType, draftSubmissionId } = route.params;
   const rawImageUri = typeof part?.img === 'string' ? part.img : part?.img?.uri;
   const partImageUri = resolveImageUri(rawImageUri);
@@ -307,11 +310,11 @@ export default function AddEntryScreen({ route, navigation }) {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color={C.surface} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <View style={styles.headerPill}>
-              <Ionicons name="sparkles-outline" size={13} color="#E5F3FF" />
+              <Ionicons name="sparkles-outline" size={13} color={C.primarySoft} />
               <Text style={styles.headerPillText}>Smart Quality Entry</Text>
             </View>
             <Text style={styles.headerTitle}>Inspection Report</Text>
@@ -322,7 +325,7 @@ export default function AddEntryScreen({ route, navigation }) {
         {/* Inspector Info Card */}
         <View style={styles.inspectorCard}>
           <View style={styles.inspectorHeader}>
-            <Ionicons name="person-circle-outline" size={24} color="#286DA6" />
+            <Ionicons name="person-circle-outline" size={24} color={C.primarySoft} />
             <Text style={styles.inspectorTitle}>Inspector Details</Text>
           </View>
           <View style={styles.inspectorInfo}>
@@ -347,7 +350,7 @@ export default function AddEntryScreen({ route, navigation }) {
         {/* Part Info Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="cube-outline" size={20} color="#286DA6" />
+            <Ionicons name="cube-outline" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Part Information</Text>
           </View>
           <Image
@@ -387,21 +390,21 @@ export default function AddEntryScreen({ route, navigation }) {
         {/* Shift Selection */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="time-outline" size={20} color="#286DA6" />
+            <Ionicons name="time-outline" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Shift Details</Text>
           </View>
           <View style={styles.pickerWrapper}>
             <Ionicons
               name="time-outline"
               size={20}
-              color="#286DA6"
+              color={C.primarySoft}
               style={styles.pickerIcon}
             />
             <Picker
               selectedValue={form.shift}
               onValueChange={v => setForm({ ...form, shift: v })}
               style={styles.picker}
-              dropdownIconColor="#286DA6"
+              dropdownIconColor={C.primarySoft}
             >
               <Picker.Item label="Select Shift" value="" />
               <Picker.Item label="Day Shift" value="day" />
@@ -414,7 +417,7 @@ export default function AddEntryScreen({ route, navigation }) {
         {/* Dimensions Section */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Ionicons name="resize-outline" size={24} color="#286DA6" />
+            <Ionicons name="resize-outline" size={24} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Dimensions Inspection</Text>
           </View>
 
@@ -439,7 +442,7 @@ export default function AddEntryScreen({ route, navigation }) {
                     <TextInput
                       style={styles.actualInput}
                       placeholder="Enter actual value"
-                      placeholderTextColor="#B0C4D8"
+                      placeholderTextColor={C.textSubtle}
                       value={val}
                       keyboardType="numeric"
                       onChangeText={newVal =>
@@ -453,7 +456,7 @@ export default function AddEntryScreen({ route, navigation }) {
                 style={styles.addSampleBtn}
                 onPress={() => addSample(i)}
               >
-                <Ionicons name="add-circle-outline" size={18} color="#286DA6" />
+                <Ionicons name="add-circle-outline" size={18} color={C.primarySoft} />
                 <Text style={styles.addSampleText}>Add Sample</Text>
               </TouchableOpacity>
             </View>
@@ -466,7 +469,7 @@ export default function AddEntryScreen({ route, navigation }) {
           onPress={handleSaveDraft}
           disabled={loading || draftHydrating}
         >
-          <Ionicons name="save-outline" size={20} color="#286DA6" />
+          <Ionicons name="save-outline" size={20} color={C.primarySoft} />
           <Text style={styles.draftBtnText}>Save as Draft</Text>
         </TouchableOpacity>
 
@@ -479,7 +482,7 @@ export default function AddEntryScreen({ route, navigation }) {
             <Text style={styles.submitBtnText}>Submitting...</Text>
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle" size={22} color={C.surface} />
               <Text style={styles.submitBtnText}>Submit Inspection Report</Text>
             </>
           )}
@@ -503,8 +506,7 @@ export default function AddEntryScreen({ route, navigation }) {
   );
 }
 
-const C = theme.colors;
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -523,7 +525,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -536,14 +538,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EAF4FF',
+    backgroundColor: C.surfaceAlt,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
     marginBottom: 10,
   },
   headerPillText: {
-    color: '#286DA6',
+    color: C.primarySoft,
     fontSize: 11,
     fontWeight: '600',
   },
@@ -573,12 +575,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+    borderBottomColor: C.border,
   },
   inspectorTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
   },
   inspectorInfo: {
     gap: 8,
@@ -589,12 +591,12 @@ const styles = StyleSheet.create({
   },
   inspectorLabel: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.textMuted,
     fontWeight: '500',
   },
   inspectorValue: {
     fontSize: 14,
-    color: '#1F2937',
+    color: C.textBody,
     fontWeight: '600',
   },
   card: {
@@ -615,13 +617,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#123A59',
+    color: C.textStrong,
   },
   partImage: {
     width: '100%',
     height: 200,
     resizeMode: 'contain',
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.surfaceAlt,
     borderRadius: 12,
     marginBottom: 16,
   },
@@ -634,41 +636,41 @@ const styles = StyleSheet.create({
   infoItem: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.surfaceAlt,
     padding: 12,
     borderRadius: 10,
   },
   infoLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
   },
   descriptionBox: {
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.surfaceAlt,
     padding: 12,
     borderRadius: 10,
   },
   descriptionLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginBottom: 4,
   },
   descriptionValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
   },
   pickerWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#F8FBFE',
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
     borderRadius: 12,
     paddingLeft: 12,
   },
@@ -677,15 +679,15 @@ const styles = StyleSheet.create({
   },
   picker: {
     flex: 1,
-    color: '#1F2937',
+    color: C.textBody,
   },
   dimensionCard: {
-    backgroundColor: '#F8FBFE',
+    backgroundColor: C.surfaceAlt,
     padding: 12,
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E3F2FD',
+    borderColor: C.border,
   },
   dimensionHeader: {
     flexDirection: 'row',
@@ -696,14 +698,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dimensionNumberText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: C.surface,
   },
   dimensionInfo: {
     flex: 1,
@@ -711,12 +713,12 @@ const styles = StyleSheet.create({
   dimensionDesc: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 4,
   },
   dimensionSpec: {
     fontSize: 13,
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '500',
   },
   actualInputContainer: {
@@ -724,18 +726,18 @@ const styles = StyleSheet.create({
   },
   actualLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginBottom: 4,
     fontWeight: '500',
   },
   actualInput: {
     borderWidth: 1,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#FFFFFF',
+    borderColor: C.border,
+    backgroundColor: C.surface,
     padding: 12,
     borderRadius: 10,
     fontSize: 15,
-    color: '#1F2937',
+    color: C.textBody,
   },
   addSampleBtn: {
     flexDirection: 'row',
@@ -745,7 +747,7 @@ const styles = StyleSheet.create({
   },
   addSampleText: {
     fontSize: 14,
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '600',
   },
   inputContainer: {
@@ -754,32 +756,32 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textBody,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#F8FBFE',
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
     padding: 14,
     borderRadius: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: C.textBody,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: '#E3F2FD',
-    backgroundColor: '#F8FBFE',
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
     padding: 14,
     borderRadius: 12,
     fontSize: 15,
-    color: '#1F2937',
+    color: C.textBody,
     minHeight: 100,
     textAlignVertical: 'top',
   },
   submitBtn: {
     flexDirection: 'row',
-    backgroundColor: '#114A76',
+    backgroundColor: C.primary,
     marginHorizontal: 20,
     marginTop: 24,
     padding: 18,
@@ -792,15 +794,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitBtnText: {
-    color: '#FFFFFF',
+    color: C.surface,
     fontSize: 16,
     fontWeight: '700',
   },
   draftBtn: {
     flexDirection: 'row',
-    backgroundColor: '#EAF4FF',
+    backgroundColor: C.surfaceAlt,
     borderWidth: 1,
-    borderColor: '#CFE3F8',
+    borderColor: C.border,
     marginHorizontal: 20,
     marginTop: 24,
     padding: 14,
@@ -810,7 +812,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   draftBtnText: {
-    color: '#286DA6',
+    color: C.primarySoft,
     fontSize: 15,
     fontWeight: '700',
   },

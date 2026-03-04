@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const CustomAlert = ({
   visible,
@@ -10,6 +11,10 @@ const CustomAlert = ({
   onHide,
   duration = 2000,
 }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   useEffect(() => {
     if (visible) {
       const timer = setTimeout(() => {
@@ -22,15 +27,15 @@ const CustomAlert = ({
   const config = {
     success: {
       icon: 'checkmark-circle',
-      color: '#286DA6',
+      color: C.primarySoft,
     },
     error: {
       icon: 'close-circle',
-      color: '#FF6B6B',
+      color: C.danger,
     },
     info: {
       icon: 'information-circle',
-      color: '#5A8FBE',
+      color: C.primary,
     },
   };
 
@@ -49,7 +54,7 @@ const CustomAlert = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)',
@@ -57,21 +62,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   alertBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     width: '80%',
     borderRadius: 24,
     padding: 24,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.textStrong,
     marginTop: 12,
   },
   message: {
     fontSize: 14,
-    color: '#00000080',
+    color: C.textMuted,
     textAlign: 'center',
     marginTop: 8,
   },

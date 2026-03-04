@@ -9,7 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image } from 'react-native';
 import AppLogo from '../assets/pictures/AppLogo.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import RoleSelector from '../components/RoleSelector';
 import CustomAlert from '../components/CustomAlert';
 import roleApi from '../utils/roleApi';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const DEFAULT_REGISTER_ROLES = [
   { id: 1, name: 'machine_operator', display_name: 'Machine Operator' },
@@ -26,6 +27,9 @@ const DEFAULT_REGISTER_ROLES = [
 ];
 
 const AuthScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = useMemo(() => createStyles(C), [C]);
   const [roles, setRoles] = useState([]);
 
   const [alert, setAlert] = useState({
@@ -301,12 +305,11 @@ const AuthScreen = ({ navigation }) => {
                     focusedField === 'name' && styles.inputWrapperFocused,
                   ]}
                 >
-                  <Ionicons name="person-outline" size={25} color="#00000053" />
+                  <Ionicons name="person-outline" size={25} color={C.textSubtle} />
                   <TextInput
                     style={styles.input}
                     placeholder="Enter your full name"
-                    // placeholderTextColor="#B0C4D8"
-                    placeholderTextColor="#00000053"
+                    placeholderTextColor={C.textSubtle}
                     value={formData.name}
                     onChangeText={value => handleInputChange('name', value)}
                     onFocus={() => setFocusedField('name')}
@@ -326,12 +329,11 @@ const AuthScreen = ({ navigation }) => {
                   focusedField === 'employeeId' && styles.inputWrapperFocused,
                 ]}
               >
-                <Ionicons name="id-card-outline" size={25} color="#00000053" />
+                <Ionicons name="id-card-outline" size={25} color={C.textSubtle} />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your employee ID"
-                  // placeholderTextColor="#B0C4D8"
-                  placeholderTextColor="#00000053"
+                  placeholderTextColor={C.textSubtle}
                   value={formData.employeeId}
                   onChangeText={value => handleInputChange('employeeId', value)}
                   onFocus={() => setFocusedField('employeeId')}
@@ -345,12 +347,11 @@ const AuthScreen = ({ navigation }) => {
                 <View style={styles.inputContainer}>
                   {/* <Text style={styles.inputLabel}>Email</Text> */}
                   <View style={styles.inputWrapper}>
-                    <Ionicons name="mail-outline" size={25} color="#00000053" />
+                    <Ionicons name="mail-outline" size={25} color={C.textSubtle} />
                     <TextInput
                       style={styles.input}
                       placeholder="Enter email"
-                      // placeholderTextColor="#B0C4D8"
-                      placeholderTextColor="#00000053"
+                      placeholderTextColor={C.textSubtle}
                       value={formData.email}
                       keyboardType="email-address"
                       autoCapitalize="none"
@@ -365,12 +366,11 @@ const AuthScreen = ({ navigation }) => {
                   {/* <Text style={styles.inputLabel}>Phone</Text> */}
 
                   <View style={styles.inputWrapper}>
-                    <Ionicons name="call-outline" size={25} color="#00000053" />
+                    <Ionicons name="call-outline" size={25} color={C.textSubtle} />
                     <TextInput
                       style={styles.input}
                       placeholder="Enter phone number"
-                      // placeholderTextColor="#B0C4D8"
-                      placeholderTextColor="#00000053"
+                      placeholderTextColor={C.textSubtle}
                       keyboardType="phone-pad"
                       value={formData.phone}
                       onChangeText={v => handleInputChange('phone', v)}
@@ -431,13 +431,12 @@ const AuthScreen = ({ navigation }) => {
                 <Ionicons
                   name="lock-closed-outline"
                   size={25}
-                  color="#00000053"
+                  color={C.textSubtle}
                 />
                 <TextInput
                   style={[styles.input, styles.inputWithIcon]}
                   placeholder="Enter your password"
-                  // placeholderTextColor="#B0C4D8"
-                  placeholderTextColor="#00000053"
+                  placeholderTextColor={C.textSubtle}
                   value={formData.password}
                   onChangeText={value => handleInputChange('password', value)}
                   onFocus={() => setFocusedField('password')}
@@ -452,7 +451,7 @@ const AuthScreen = ({ navigation }) => {
                   <Ionicons
                     name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                     size={25}
-                    color="#00000053"
+                    color={C.textSubtle}
                   />
                 </Pressable>
               </View>
@@ -475,13 +474,12 @@ const AuthScreen = ({ navigation }) => {
                   <Ionicons
                     name="lock-closed-outline"
                     size={25}
-                    color="#00000053"
+                    color={C.textSubtle}
                   />
                   <TextInput
                     style={[styles.input, styles.inputWithIcon]}
                     placeholder="Re-enter your password"
-                    // placeholderTextColor="#B0C4D8"
-                    placeholderTextColor="#00000053"
+                    placeholderTextColor={C.textSubtle}
                     value={formData.confirmPassword}
                     onChangeText={value =>
                       handleInputChange('confirmPassword', value)
@@ -500,7 +498,7 @@ const AuthScreen = ({ navigation }) => {
                         showConfirmPassword ? 'eye-outline' : 'eye-off-outline'
                       }
                       size={25}
-                      color="#00000053"
+                      color={C.textSubtle}
                     />
                   </Pressable>
                 </View>
@@ -567,7 +565,7 @@ const AuthScreen = ({ navigation }) => {
               ]}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#FFF" />
+                <ActivityIndicator size="small" color={C.surface} />
               ) : (
                 <Text style={styles.submitButtonText}>
                   {isLogin ? 'Sign In' : 'Create Account'}
@@ -623,11 +621,10 @@ const AuthScreen = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#F8FBFE',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.bg,
   },
   scrollContent: {
     flexGrow: 1,
@@ -680,22 +677,17 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginBottom: 4,
     letterSpacing: -0.5,
   },
   subtitleText: {
     fontSize: 15,
-    // color: '#5A8FBE',
     textAlign: 'center',
-    color: '#00000053',
+    color: C.textMuted,
   },
   formCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
     padding: 24,
-    // borderWidth: 1,
-    // borderColor: '#0000000d',
     width: '100%',
     maxWidth: 600,
     alignSelf: 'center',
@@ -706,23 +698,21 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#286DA6',
+    color: C.primarySoft,
     marginBottom: 8,
     letterSpacing: 0.3,
   },
   inputWrapper: {
-    // backgroundColor: '#F8FBFE',
     borderRadius: 16,
     borderWidth: 1,
-    // borderColor: '#E3F2FD',
-    borderColor: '#00000053',
+    borderColor: C.border,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
   },
   inputWrapperFocused: {
-    borderColor: '#286DA6',
-    backgroundColor: '#FFFFFF',
+    borderColor: C.primarySoft,
+    backgroundColor: C.surface,
   },
   inputWrapperError: {
     borderColor: '#FF6B6B',
@@ -732,7 +722,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#286DA6',
+    color: C.textBody,
   },
   inputWithIcon: {
     paddingRight: 50,
@@ -753,7 +743,7 @@ const styles = StyleSheet.create({
   },
   picker: {
     flex: 1,
-    color: '#286DA6',
+    color: C.textBody,
     height: 56,
     marginLeft: 8,
   },
@@ -764,11 +754,11 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     paddingVertical: 15,
     borderRadius: 40,
     alignItems: 'center',
@@ -778,7 +768,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: C.surface,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -791,11 +781,11 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 15,
-    color: '#5A8FBE',
+    color: C.textMuted,
   },
   toggleLink: {
     fontSize: 15,
-    color: '#286DA6',
+    color: C.primarySoft,
     fontWeight: '700',
   },
   footer: {
@@ -804,7 +794,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#B0C4D8',
+    color: C.textSubtle,
     textAlign: 'center',
     lineHeight: 18,
   },

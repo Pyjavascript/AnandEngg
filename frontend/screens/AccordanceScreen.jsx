@@ -14,6 +14,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import reportApi from '../utils/reportApi';
 import BASE_URL from '../config/api';
+import { useAppTheme } from '../theme/ThemeProvider';
 
 const resolveImageUri = imageUri => {
   if (!imageUri || typeof imageUri !== 'string') return null;
@@ -24,6 +25,10 @@ const resolveImageUri = imageUri => {
 };
 
 const AccordanceScreen = ({ navigation }) => {
+  const { theme } = useAppTheme();
+  const C = theme.colors;
+  const styles = React.useMemo(() => createStyles(C), [C]);
+
   const [category, setCategory] = useState('');
   const [customer, setCustomer] = useState('');
   const [part, setPart] = useState(null);
@@ -103,13 +108,13 @@ const AccordanceScreen = ({ navigation }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={20} color="#286DA6" />
+            <Ionicons name="arrow-back" size={20} color={C.primarySoft} />
           </Pressable>
           <Text style={styles.loadingHeaderText}>Create Inspection Report</Text>
           <View style={styles.backButtonGhost} />
         </View>
         <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color="#286DA6" />
+          <ActivityIndicator size="large" color={C.primarySoft} />
         </View>
       </View>
     );
@@ -119,7 +124,7 @@ const AccordanceScreen = ({ navigation }) => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={20} color="#286DA6" />
+          <Ionicons name="arrow-back" size={20} color={C.primarySoft} />
         </Pressable>
         <View style={styles.headerText}>
           <Text style={styles.title}>Create Inspection Report</Text>
@@ -149,7 +154,7 @@ const AccordanceScreen = ({ navigation }) => {
                     {new Date(draft.created_at).toLocaleDateString('en-GB')}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color="#64748B" />
+                <Ionicons name="chevron-forward" size={18} color={C.textMuted} />
               </Pressable>
             ))
           )}
@@ -157,7 +162,7 @@ const AccordanceScreen = ({ navigation }) => {
 
         {Object.keys(reportsData).length === 0 ? (
           <View style={styles.emptyWrap}>
-            <Ionicons name="document-outline" size={48} color="#c3c3c3" />
+            <Ionicons name="document-outline" size={48} color={C.textSubtle} />
             <Text style={styles.emptyTitle}>No inspection templates available</Text>
             <Text style={styles.emptySub}>Ask your admin to create templates</Text>
           </View>
@@ -175,7 +180,7 @@ const AccordanceScreen = ({ navigation }) => {
                     setPart(null);
                   }}
                   style={styles.picker}
-                  dropdownIconColor="#286DA6"
+                  dropdownIconColor={C.primarySoft}
                 >
                   <Picker.Item label="Select report type" value="" />
                   {Object.keys(reportsData).map(r => (
@@ -197,7 +202,7 @@ const AccordanceScreen = ({ navigation }) => {
                       setPart(null);
                     }}
                     style={styles.picker}
-                    dropdownIconColor="#286DA6"
+                    dropdownIconColor={C.primarySoft}
                   >
                     <Picker.Item label="Choose customer" value="" />
                     {Object.keys(reportsData[category].customers).map(c => (
@@ -222,7 +227,7 @@ const AccordanceScreen = ({ navigation }) => {
                       setPart(selected);
                     }}
                     style={styles.picker}
-                    dropdownIconColor="#286DA6"
+                    dropdownIconColor={C.primarySoft}
                   >
                     <Picker.Item label="Choose part specification" value="" />
                     {reportsData[category].customers[customer].map(p => (
@@ -279,7 +284,7 @@ const AccordanceScreen = ({ navigation }) => {
 
       {part ? (
         <Pressable style={styles.submitBtn} onPress={handleGoToReport}>
-          <Ionicons name="add-circle" size={22} color="#FFFFFF" />
+          <Ionicons name="add-circle" size={22} color={C.surface} />
           <Text style={styles.submitBtnText}>Create Report</Text>
         </Pressable>
       ) : null}
@@ -291,18 +296,18 @@ const AccordanceScreen = ({ navigation }) => {
 
 export default AccordanceScreen;
 
-const styles = StyleSheet.create({
+const createStyles = C => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F8FC',
+    backgroundColor: C.bg,
   },
   header: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     paddingTop: 56,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5ECF4',
+    borderBottomColor: C.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -313,12 +318,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 25,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 13,
-    color: '#6B7280',
+    color: C.textMuted,
   },
   pageWrap: {
     paddingTop: 14,
@@ -329,11 +334,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#D9E7F7',
+    borderColor: C.border,
   },
   backButtonGhost: {
     width: 40,
@@ -342,7 +347,7 @@ const styles = StyleSheet.create({
   loadingHeaderText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
     flex: 1,
     textAlign: 'center',
   },
@@ -352,31 +357,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   savedReportsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#E6EDF5',
+    borderColor: C.border,
     borderRadius: 14,
     padding: 14,
   },
   savedReportsTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
   },
   savedReportsSub: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.textMuted,
     marginTop: 4,
   },
   savedEmptyText: {
     marginTop: 10,
     fontSize: 12,
-    color: '#94A3B8',
+    color: C.textSubtle,
   },
   savedDraftItem: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#E5ECF4',
+    borderColor: C.border,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -387,51 +392,51 @@ const styles = StyleSheet.create({
   savedDraftTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#1F2937',
+    color: C.textStrong,
   },
   savedDraftMeta: {
     fontSize: 11,
-    color: '#64748B',
+    color: C.textMuted,
     marginTop: 2,
   },
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#E6EDF5',
+    borderColor: C.border,
     borderRadius: 14,
     padding: 14,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
     marginBottom: 10,
   },
   fieldLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
     marginBottom: 8,
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#D7E3EF',
+    borderColor: C.border,
     borderRadius: 10,
     paddingHorizontal: 2,
-    backgroundColor: '#F9FBFE',
+    backgroundColor: C.surfaceAlt,
   },
   picker: {
     width: '100%',
-    color: '#1F2937',
+    color: C.textBody,
   },
   previewImage: {
     width: '100%',
     height: 190,
     resizeMode: 'contain',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E4EBF3',
+    borderColor: C.border,
     marginBottom: 12,
   },
   previewInfo: {
@@ -444,19 +449,19 @@ const styles = StyleSheet.create({
   },
   previewLabel: {
     fontSize: 15,
-    color: '#6B7280',
+    color: C.textMuted,
     fontWeight: '500',
   },
   previewValue: {
     fontSize: 12,
-    color: '#1F2937',
+    color: C.textBody,
     fontWeight: '600',
     flex: 1,
     textAlign: 'right',
   },
   submitBtn: {
     flexDirection: 'row',
-    backgroundColor: '#286DA6',
+    backgroundColor: C.primary,
     marginHorizontal: 20,
     marginTop: 18,
     padding: 15,
@@ -466,27 +471,27 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitBtnText: {
-    color: '#FFFFFF',
+    color: C.surface,
     fontSize: 16,
     fontWeight: '700',
   },
   emptyWrap: {
     padding: 20,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderWidth: 1,
-    borderColor: '#E6EDF5',
+    borderColor: C.border,
     borderRadius: 14,
   },
   emptyTitle: {
     marginTop: 16,
-    color: '#4B5563',
+    color: C.textStrong,
     fontSize: 16,
     fontWeight: '600',
   },
   emptySub: {
     marginTop: 8,
-    color: '#94A3B8',
+    color: C.textSubtle,
     fontSize: 14,
   },
   bottomGap: {

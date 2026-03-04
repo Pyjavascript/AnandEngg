@@ -25,6 +25,7 @@ const DashboardScreen = ({ navigation }) => {
     'https://ui-avatars.com/api/?name=User&background=286DA6&color=fff&size=200';
 
   const [userData, setUserData] = useState({
+    id: null,
     name: '',
     role: '',
     employeeId: '',
@@ -45,6 +46,7 @@ const DashboardScreen = ({ navigation }) => {
           const user = JSON.parse(storedUser);
 
           setUserData({
+            id: user.id || null,
             name: user.name || '',
             role: user.role || '',
             employeeId: user.employee_id || user.employeeId || '',
@@ -69,10 +71,12 @@ const DashboardScreen = ({ navigation }) => {
         try {
           const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
           const all = await reportApi.getAllSubmissions();
-          const mine = Array.isArray(all)
-            ? all.filter(r => Number(r.submitted_by) === Number(user.id))
-            : [];
-          setReports(mine);
+          const data = Array.isArray(all) ? all : [];
+          if (user?.role === 'machine_operator') {
+            setReports(data.filter(r => Number(r.submitted_by) === Number(user.id)));
+          } else {
+            setReports(data);
+          }
         } catch (err) {
           console.log('Failed to fetch reports', err);
         } finally {
@@ -84,13 +88,51 @@ const DashboardScreen = ({ navigation }) => {
     }, []),
   );
 
-  // Calculate stats from reports
-  const totalReports = reports.length;
-  const approvedReports = reports.filter(r => r.status === 'manager_approved').length;
-  const pendingReports = reports.filter(
-    r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
-  ).length;
-  const rejectedReports = reports.filter(r => r.status === 'rejected').length;
+  const isInspector = userData.role === 'quality_inspector';
+  const isManager = userData.role === 'quality_manager';
+  const currentUserId = Number(userData.id || 0);
+
+  // Calculate stats from reports based on workflow role.
+  let approvedReports = 0;
+  let pendingReports = 0;
+  let rejectedReports = 0;
+  let totalReports = 0;
+
+  if (isInspector) {
+    approvedReports = reports.filter(
+      r =>
+        Number(r.inspector_id) === currentUserId &&
+        (r.status === 'inspector_reviewed' || r.status === 'manager_approved'),
+    ).length;
+    rejectedReports = reports.filter(
+      r =>
+        r.status === 'rejected' &&
+        Number(r.inspector_id) === currentUserId &&
+        !r.manager_id,
+    ).length;
+    pendingReports = reports.filter(r =>
+      ['submitted', 'pending', 'pending_inspector'].includes(r.status || 'submitted'),
+    ).length;
+    totalReports = approvedReports + pendingReports + rejectedReports;
+  } else if (isManager) {
+    approvedReports = reports.filter(
+      r => r.status === 'manager_approved' && Number(r.manager_id) === currentUserId,
+    ).length;
+    rejectedReports = reports.filter(
+      r => r.status === 'rejected' && Number(r.manager_id) === currentUserId,
+    ).length;
+    pendingReports = reports.filter(r =>
+      ['inspector_reviewed', 'inspector_approved'].includes(r.status || ''),
+    ).length;
+    totalReports = approvedReports + pendingReports + rejectedReports;
+  } else {
+    totalReports = reports.length;
+    approvedReports = reports.filter(r => r.status === 'manager_approved').length;
+    pendingReports = reports.filter(
+      r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
+    ).length;
+    rejectedReports = reports.filter(r => r.status === 'rejected').length;
+  }
 
   const quickActions = [
     {
@@ -227,7 +269,9 @@ const DashboardScreen = ({ navigation }) => {
                 >
                   <Ionicons name={action.icon} size={24} color={action.color} />
                 </View>
-                <Text style={styles.quickActionLabel}>{action.label}</Text>
+                <Text style={styles.quickActionLabel} numberOfLines={2}>
+                  {action.label}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -496,10 +540,12 @@ const createStyles = C => StyleSheet.create({
   },
   quickActionLabel: {
     fontSize: 12,
-    color: '#1E293B',
+    color: C.textStrong,
     fontWeight: '600',
     textAlign: 'center',
-    maxWidth: 80,
+    lineHeight: 16,
+    width: '100%',
+    paddingHorizontal: 4,
   },
   loadingContainer: {
     alignItems: 'center',
@@ -543,12 +589,12 @@ const createStyles = C => StyleSheet.create({
   reportTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: C.textStrong,
     marginBottom: 4,
   },
   reportMeta: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
   },
   statusDot: {
     width: 10,
