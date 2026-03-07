@@ -659,9 +659,15 @@ exports.ManagerReview = async (req, res) => {
   if (!requireRole(req.user, 'quality_manager')) return res.status(403).json({ message: 'Manager only' });
   try {
     const id = req.params.id;
-    const { remarks, approved } = req.body;
+    const { observation, remarks, approved } = req.body;
     const ok = approved === true || approved === 'true' || approved === 1;
-    await submissionModel.updateManagerReview(id, req.user.id, remarks, ok);
+    await submissionModel.updateManagerReview(
+      id,
+      req.user.id,
+      observation,
+      remarks,
+      ok,
+    );
     res.json({ message: ok ? 'Manager approved' : 'Manager rejected' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -671,12 +677,25 @@ exports.ManagerReview = async (req, res) => {
 exports.RejectSubmission = async (req, res) => {
   try {
     const id = req.params.id;
+    const { observation, remarks } = req.body || {};
     const actorRole = req.user.role;
     if (actorRole === 'quality_inspector') {
-      await submissionModel.updateInspectorReview(id, req.user.id, null, 'rejected');
+      await submissionModel.updateInspectorReview(
+        id,
+        req.user.id,
+        observation || null,
+        remarks || 'rejected',
+        'rejected',
+      );
       return res.json({ message: 'Rejected by inspector' });
     } else if (actorRole === 'quality_manager') {
-      await submissionModel.updateManagerReview(id, req.user.id, 'rejected', false);
+      await submissionModel.updateManagerReview(
+        id,
+        req.user.id,
+        observation || null,
+        remarks || 'rejected',
+        false,
+      );
       return res.json({ message: 'Rejected by manager' });
     }
     res.status(403).json({ message: 'Only inspector or manager can reject' });
@@ -886,10 +905,16 @@ function toCsv(rows) {
     'Part No',
     'Status',
     'Inspection Date',
+    'Template Created At',
+    'Report Submitted At',
     'Shift',
     'Submitted By',
     'Inspector',
     'Manager',
+    'Inspector Observation',
+    'Inspector Remarks',
+    'Manager Observation',
+    'Manager Remarks',
     'Created At',
     'Actual Values',
   ];
@@ -904,10 +929,16 @@ function toCsv(rows) {
       r.part_no || '',
       r.status || '',
       r.inspection_date ? new Date(r.inspection_date).toISOString().slice(0, 10) : '',
+      r.template_created_at ? new Date(r.template_created_at).toISOString() : '',
+      r.created_at ? new Date(r.created_at).toISOString() : '',
       r.shift || '',
       r.submitted_by_name || '',
       r.inspector_name || '',
       r.manager_name || '',
+      r.inspector_observation || '',
+      r.inspector_remarks || '',
+      r.manager_observation || '',
+      r.manager_remarks || '',
       r.created_at ? new Date(r.created_at).toISOString() : '',
       r.actual_values || '',
     ].map(escapeCsv).join(','));
@@ -1031,12 +1062,13 @@ async function buildDetailedPdf(detail) {
       ['Part No', detail.part_no || '-'],
       ['Doc No / Rev No', `${detail.doc_no || '-'} / ${detail.rev_no || '-'}`],
       ['Inspection Date', formatDate(detail.inspection_date)],
+      ['Template Created Date', formatDate(detail.template_created_at, true)],
+      ['Report Submitted Date', formatDate(detail.created_at, true)],
       ['Shift', detail.shift || '-'],
       ['Status', detail.status || '-'],
       ['Submitted By', detail.submitted_by_name || '-'],
       ['Inspector', detail.inspector_name || '-'],
       ['Manager', detail.manager_name || '-'],
-      ['Created At', formatDate(detail.created_at)],
     ];
 
     let y = 84;
@@ -1109,16 +1141,48 @@ async function buildDetailedPdf(detail) {
       });
     }
 
+    if (y > doc.page.height - 140) {
+      doc.addPage();
+      y = doc.page.margins.top;
+    }
+    y += 12;
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#123A59')
+      .text('Review Notes', left, y);
+    y += 16;
+
+    const reviewPairs = [
+      ['Inspector Observation', detail.inspector_observation || 'Unavailable'],
+      ['Inspector Remarks', detail.inspector_remarks || 'Unavailable'],
+      ['Manager Observation', detail.manager_observation || 'Unavailable'],
+      ['Manager Remarks', detail.manager_remarks || 'Unavailable'],
+    ];
+
+    reviewPairs.forEach(([label, value]) => {
+      if (y > doc.page.height - 56) {
+        doc.addPage();
+        y = doc.page.margins.top;
+      }
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#334155').text(`${label}:`, left, y);
+      y += 12;
+      doc.font('Helvetica').fontSize(9).fillColor('#111827').text(String(value), left, y, {
+        width: pageWidth,
+      });
+      y += 18;
+    });
+
     doc.end();
   });
 }
 
-function formatDate(value) {
-  if (!value) return '-';
+function formatDate(value, unavailableAsWord = false) {
+  if (!value) return unavailableAsWord ? 'Unavailable' : '-';
   try {
     return new Date(value).toLocaleDateString('en-GB');
   } catch {
-    return String(value);
+    return unavailableAsWord ? 'Unavailable' : String(value);
   }
 }
 
@@ -1133,6 +1197,8 @@ function toDetailedReportLines(detail) {
   lines.push(`Part No: ${detail.part_no || '-'}`);
   lines.push(`Doc No / Rev No: ${detail.doc_no || '-'} / ${detail.rev_no || '-'}`);
   lines.push(`Inspection Date: ${formatDate(detail.inspection_date)}`);
+  lines.push(`Template Created Date: ${formatDate(detail.template_created_at, true)}`);
+  lines.push(`Report Submitted Date: ${formatDate(detail.created_at, true)}`);
   lines.push(`Shift: ${detail.shift || '-'}`);
   lines.push(`Status: ${detail.status || '-'}`);
   lines.push(`Submitted By: ${detail.submitted_by_name || '-'}`);
@@ -1146,6 +1212,12 @@ function toDetailedReportLines(detail) {
       ? `Diagram URL: ${detail.diagram_url}`
       : 'Diagram URL: Not attached',
   );
+  lines.push('------------------------------------------------------------');
+  lines.push('Review Notes');
+  lines.push(`Inspector Observation: ${detail.inspector_observation || 'Unavailable'}`);
+  lines.push(`Inspector Remarks: ${detail.inspector_remarks || 'Unavailable'}`);
+  lines.push(`Manager Observation: ${detail.manager_observation || 'Unavailable'}`);
+  lines.push(`Manager Remarks: ${detail.manager_remarks || 'Unavailable'}`);
   lines.push('------------------------------------------------------------');
   lines.push('Dimensions & Measurements');
   lines.push('No | Dimension | Specification | Actual Values');

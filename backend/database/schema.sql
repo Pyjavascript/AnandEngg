@@ -137,6 +137,7 @@ CREATE TABLE report_submissions (
   inspector_reviewed_at TIMESTAMP,
 
   manager_id INT,
+  manager_observation TEXT,
   manager_remarks TEXT,
   manager_approved_at TIMESTAMP,
 

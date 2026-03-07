@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import reportApi from '../utils/reportApi';
 import BASE_URL from '../config/api';
 import { useAppTheme } from '../theme/ThemeProvider';
+import ZoomableImageModal from '../components/ZoomableImageModal';
 
 const resolveImageUri = imageUri => {
   if (!imageUri || typeof imageUri !== 'string') return null;
@@ -35,6 +36,12 @@ const AccordanceScreen = ({ navigation }) => {
   const [reportsData, setReportsData] = useState({});
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [diagramViewerVisible, setDiagramViewerVisible] = useState(false);
+
+  const partDiagramSource =
+    resolveImageUri(part?.img?.uri)
+      ? { uri: resolveImageUri(part.img.uri) }
+      : require('../assets/pictures/AppLogo.png');
 
   const loadTemplatesData = useCallback(async () => {
     try {
@@ -245,17 +252,16 @@ const AccordanceScreen = ({ navigation }) => {
             {part ? (
               <View style={styles.sectionCard}>
                 <Text style={styles.sectionTitle}>Part Diagram</Text>
-                <Image
-                  source={
-                    resolveImageUri(part?.img?.uri)
-                      ? { uri: resolveImageUri(part.img.uri) }
-                      : require('../assets/pictures/AppLogo.png')
-                  }
-                  style={styles.previewImage}
-                  onError={e =>
-                    console.log('Part preview image load error:', e.nativeEvent)
-                  }
-                />
+                <Pressable onPress={() => setDiagramViewerVisible(true)}>
+                  <Image
+                    source={partDiagramSource}
+                    style={styles.previewImage}
+                    onError={e =>
+                      console.log('Part preview image load error:', e.nativeEvent)
+                    }
+                  />
+                  <Text style={styles.imageTapHint}>Tap diagram to enlarge and zoom</Text>
+                </Pressable>
                 <View style={styles.previewInfo}>
                   <View style={styles.previewRow}>
                     <Text style={styles.previewLabel}>Part No:</Text>
@@ -290,6 +296,12 @@ const AccordanceScreen = ({ navigation }) => {
       ) : null}
 
       <View style={styles.bottomGap} />
+      <ZoomableImageModal
+        visible={diagramViewerVisible}
+        onClose={() => setDiagramViewerVisible(false)}
+        imageSource={partDiagramSource}
+        title={`${part?.partNo || 'Part'} Diagram`}
+      />
     </ScrollView>
   );
 };
@@ -441,6 +453,14 @@ const createStyles = C => StyleSheet.create({
   },
   previewInfo: {
     gap: 8,
+  },
+  imageTapHint: {
+    marginTop: -4,
+    marginBottom: 10,
+    color: C.primarySoft,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   previewRow: {
     flexDirection: 'row',

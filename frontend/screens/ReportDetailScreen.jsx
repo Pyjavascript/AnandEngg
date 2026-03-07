@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   TextInput,
   Alert,
 } from 'react-native';
@@ -14,6 +13,58 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import reportApi from '../utils/reportApi';
 import { useAppTheme } from '../theme/ThemeProvider';
+
+const UNAVAILABLE_TEXT = 'Unavailable';
+
+const isUnavailable = value =>
+  value === null ||
+  value === undefined ||
+  String(value).trim() === '' ||
+  String(value).trim().toLowerCase() === UNAVAILABLE_TEXT.toLowerCase();
+
+const toDisplayDate = value => {
+  if (isUnavailable(value)) return UNAVAILABLE_TEXT;
+  try {
+    return new Date(value).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  } catch {
+    return UNAVAILABLE_TEXT;
+  }
+};
+
+const getStatusLabel = submission => {
+  const status = submission?.status;
+  if (status === 'inspector_reviewed') return 'Approved by Inspector';
+  if (status === 'manager_approved') return 'Approved';
+  if (status === 'rejected' && submission?.manager_id) {
+    return `Rejected by Manager${submission?.manager_name ? `: ${submission.manager_name}` : ''}`;
+  }
+  if (status === 'rejected' && submission?.inspector_id) {
+    return `Rejected by Inspector${submission?.inspector_name ? `: ${submission.inspector_name}` : ''}`;
+  }
+  return status || '-';
+};
+
+const getStatusStyle = status => {
+  switch (status) {
+    case 'approved':
+    case 'manager_approved':
+      return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
+    case 'pending':
+    case 'submitted':
+      return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
+    case 'rejected':
+      return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
+    case 'inspector_approved':
+    case 'inspector_reviewed':
+      return { bg: '#EFF6FF', text: '#2563EB', icon: 'checkmark-done-circle' };
+    default:
+      return { bg: '#F3F4F6', text: '#6B7280', icon: 'help-circle' };
+  }
+};
 
 export default function ReportDetailScreen({ route, navigation }) {
   const { theme } = useAppTheme();
@@ -26,18 +77,14 @@ export default function ReportDetailScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Editable fields for inspector/manager
-  const [visualObservation, setVisualObservation] = useState('');
-  const [remarks, setRemarks] = useState('');
+  const [inspectorObservation, setInspectorObservation] = useState('');
+  const [inspectorRemarks, setInspectorRemarks] = useState('');
+  const [managerObservation, setManagerObservation] = useState('');
+  const [managerRemarks, setManagerRemarks] = useState('');
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
-
       setRole(user.role);
 
       const res = await reportApi.getSubmissionById(reportId);
@@ -49,7 +96,7 @@ export default function ReportDetailScreen({ route, navigation }) {
       try {
         const tplRes = await reportApi.getTemplatesByCategory(submission.template_id);
         templateData = tplRes?.template || null;
-      } catch (e) {
+      } catch {
         templateData = null;
       }
 
@@ -80,41 +127,63 @@ export default function ReportDetailScreen({ route, navigation }) {
           partDescription: templateData?.part_description || '',
           dimensions: Object.values(grouped),
           shift: submission.shift,
-          visualObservation: submission.inspector_observation || '',
-          remarks: submission.inspector_remarks || submission.manager_remarks || '',
+          inspectorObservation: submission.inspector_observation || '',
+          inspectorRemarks: submission.inspector_remarks || '',
+          managerObservation: submission.manager_observation || '',
+          managerRemarks: submission.manager_remarks || '',
+          templateCreatedAt: submission.template_created_at || templateData?.created_at || '',
+          reportSubmittedAt: submission.created_at || '',
           qa: submission.employee_name || '',
           reviewedBy: submission.inspector_name || '',
           approvedBy: submission.manager_name || '',
+          rejectedBy:
+            submission.status === 'rejected'
+              ? submission.manager_name || submission.inspector_name || ''
+              : '',
+          rejectedByRole:
+            submission.status === 'rejected'
+              ? submission.manager_id
+                ? 'Manager'
+                : submission.inspector_id
+                ? 'Inspector'
+                : ''
+              : '',
           submittedBy: submission.employee_name || '',
         },
       };
 
       setReport(reportData);
-      setVisualObservation(submission.inspector_observation || '');
-      setRemarks(submission.inspector_remarks || submission.manager_remarks || '');
+      setInspectorObservation(submission.inspector_observation || '');
+      setInspectorRemarks(submission.inspector_remarks || '');
+      setManagerObservation(submission.manager_observation || '');
+      setManagerRemarks(submission.manager_remarks || '');
     } catch (error) {
       console.log('Load error:', error);
       Alert.alert('Error', 'Failed to load report');
     } finally {
       setLoading(false);
     }
-  };
+  }, [reportId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleApprove = async () => {
     setSubmitting(true);
     try {
       if (role === 'quality_inspector') {
         await reportApi.inspectorReviewSubmission(reportId, {
-          observation: visualObservation,
-          remarks,
+          observation: inspectorObservation,
+          remarks: inspectorRemarks,
         });
       } else {
         await reportApi.managerReviewSubmission(reportId, {
           approved: true,
-          remarks,
+          observation: managerObservation,
+          remarks: managerRemarks,
         });
       }
-
       Alert.alert('Success', 'Report approved successfully', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
@@ -136,15 +205,22 @@ export default function ReportDetailScreen({ route, navigation }) {
           text: 'Reject',
           style: 'destructive',
           onPress: async () => {
-            if (!remarks.trim()) {
+            const remarkText =
+              role === 'quality_inspector' ? inspectorRemarks : managerRemarks;
+            if (!String(remarkText || '').trim()) {
               Alert.alert('Required', 'Please add remarks before rejecting');
               return;
             }
 
             setSubmitting(true);
             try {
-              await reportApi.rejectSubmission(reportId, { remarks });
-
+              await reportApi.rejectSubmission(reportId, {
+                observation:
+                  role === 'quality_inspector'
+                    ? inspectorObservation
+                    : managerObservation,
+                remarks: remarkText,
+              });
               Alert.alert('Success', 'Report rejected', [
                 { text: 'OK', onPress: () => navigation.goBack() },
               ]);
@@ -156,64 +232,8 @@ export default function ReportDetailScreen({ route, navigation }) {
             }
           },
         },
-      ]
+      ],
     );
-  };
-
-  const getStatusStyle = status => {
-    switch (status) {
-      case 'approved':
-      case 'manager_approved':
-        return { bg: '#ECFDF5', text: '#059669', icon: 'checkmark-circle' };
-      case 'pending':
-      case 'submitted':
-        return { bg: '#FEF3C7', text: '#D97706', icon: 'time-outline' };
-      case 'rejected':
-        return { bg: '#FEE2E2', text: '#DC2626', icon: 'close-circle' };
-      case 'inspector_approved':
-      case 'inspector_reviewed':
-        return {
-          bg: '#EFF6FF',
-          text: '#2563EB',
-          icon: 'checkmark-done-circle',
-        };
-      default:
-        return { bg: '#F3F4F6', text: '#6B7280', icon: 'help-circle' };
-    }
-  };
-
-  // Determine if current user can edit this report
-  const canEdit = () => {
-    if (!report || !role) return false;
-
-    // Inspector can edit when status is submitted
-    if (role === 'quality_inspector' && report.status === 'submitted') {
-      return true;
-    }
-
-    // Manager can edit when status is inspector reviewed
-    if (role === 'quality_manager' && report.status === 'inspector_reviewed') {
-      return true;
-    }
-
-    return false;
-  };
-
-  // Determine if current user can take action
-  const canTakeAction = () => {
-    if (!report || !role) return false;
-
-    // Inspector can approve/reject when submitted
-    if (role === 'quality_inspector' && report.status === 'submitted') {
-      return true;
-    }
-
-    // Manager can approve/reject when inspector reviewed
-    if (role === 'quality_manager' && report.status === 'inspector_reviewed') {
-      return true;
-    }
-
-    return false;
   };
 
   if (loading) {
@@ -229,12 +249,14 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const data = report.report_data;
   const statusStyle = getStatusStyle(report.status);
-  const isEditable = canEdit();
-  const showActions = canTakeAction();
+  const inspectorCanEdit =
+    role === 'quality_inspector' && report.status === 'submitted';
+  const managerCanEdit =
+    role === 'quality_manager' && report.status === 'inspector_reviewed';
+  const showActions = inspectorCanEdit || managerCanEdit;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -246,28 +268,14 @@ export default function ReportDetailScreen({ route, navigation }) {
         <View style={styles.placeholder} />
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Title & Status Card */}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.titleCard}>
           <View style={styles.titleRow}>
             <Text style={styles.reportTitle}>{report.title}</Text>
-            <View
-              style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}
-            >
-              <Ionicons
-                name={statusStyle.icon}
-                size={14}
-                color={statusStyle.text}
-              />
+            <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+              <Ionicons name={statusStyle.icon} size={14} color={statusStyle.text} />
               <Text style={[styles.statusText, { color: statusStyle.text }]}>
-                {report.status === 'inspector_reviewed'
-                  ? 'Approved by Inspector'
-                  : report.status === 'manager_approved'
-                  ? 'Approved'
-                  : report.status}
+                {getStatusLabel(report)}
               </Text>
             </View>
           </View>
@@ -275,16 +283,17 @@ export default function ReportDetailScreen({ route, navigation }) {
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Ionicons name="cube-outline" size={16} color={C.textMuted} />
-              <Text style={styles.metaText}>Part: {report.part_no}</Text>
+              <Text style={styles.metaText}>Part: {report.part_no || '-'}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name="calendar-outline" size={16} color={C.textMuted} />
-              <Text style={styles.metaText}>
-                {new Date(report.created_at).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
+              <Text
+                style={[
+                  styles.metaText,
+                  isUnavailable(data.reportSubmittedAt) && styles.unavailableText,
+                ]}
+              >
+                {toDisplayDate(data.reportSubmittedAt)}
               </Text>
             </View>
           </View>
@@ -301,45 +310,8 @@ export default function ReportDetailScreen({ route, navigation }) {
               </Text>
             </View>
           )}
-
-          {/* Workflow Progress */}
-          <View style={styles.workflowContainer}>
-            <Text style={styles.workflowTitle}>Approval Workflow</Text>
-            <View style={styles.workflowSteps}>
-              <WorkflowStep
-                C={C}
-                styles={styles}
-                label="Operator"
-                icon="create-outline"
-                completed={true}
-                active={false}
-              />
-              <View style={styles.workflowLine} />
-              <WorkflowStep
-                C={C}
-                styles={styles}
-                label="Inspector"
-                icon="search-outline"
-                completed={
-                  report.status === 'inspector_reviewed' ||
-                  report.status === 'manager_approved'
-                }
-                active={report.status === 'submitted'}
-              />
-              <View style={styles.workflowLine} />
-              <WorkflowStep
-                C={C}
-                styles={styles}
-                label="Manager"
-                icon="checkmark-done-outline"
-                completed={report.status === 'manager_approved'}
-                active={report.status === 'inspector_reviewed'}
-              />
-            </View>
-          </View>
         </View>
 
-        {/* Part Information */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons name="information-circle" size={20} color={C.primarySoft} />
@@ -352,6 +324,16 @@ export default function ReportDetailScreen({ route, navigation }) {
             <InfoItem styles={styles} label="Part Number" value={data.partNumber} />
             <InfoItem styles={styles} label="Doc Number" value={data.docNo} />
             <InfoItem styles={styles} label="Rev Number" value={data.revNo} />
+            <InfoItem
+              styles={styles}
+              label="Template Created Date"
+              value={toDisplayDate(data.templateCreatedAt)}
+            />
+            <InfoItem
+              styles={styles}
+              label="Report Submitted Date"
+              value={toDisplayDate(data.reportSubmittedAt)}
+            />
           </View>
 
           {data.partDescription && (
@@ -362,7 +344,6 @@ export default function ReportDetailScreen({ route, navigation }) {
           )}
         </View>
 
-        {/* Dimensions Inspection */}
         {data.dimensions && data.dimensions.length > 0 && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -381,9 +362,13 @@ export default function ReportDetailScreen({ route, navigation }) {
               </View>
               {data.dimensions.map((dim, index) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, styles.colSl]}>{dim.slNo || index + 1}</Text>
-                  <Text style={[styles.tableCell, styles.colDesc]} numberOfLines={2}>{dim.desc || '-'}</Text>
-                  <Text style={[styles.tableCell, styles.colSpec]} numberOfLines={2}>{dim.spec || '-'}</Text>
+                  <Text style={[styles.tableCell, styles.colSl]}>{index + 1}</Text>
+                  <Text style={[styles.tableCell, styles.colDesc]} numberOfLines={2}>
+                    {dim.desc || '-'}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.colSpec]} numberOfLines={2}>
+                    {dim.spec || '-'}
+                  </Text>
                   <Text style={[styles.tableCell, styles.colUnit]}>{dim.unit || '-'}</Text>
                   <Text style={[styles.tableCell, styles.colActual]} numberOfLines={2}>
                     {Array.isArray(dim.actual) && dim.actual.length > 0
@@ -396,71 +381,28 @@ export default function ReportDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        {/* Visual Observation - Editable by Inspector/Manager */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="eye-outline" size={20} color={C.primarySoft} />
-            <Text style={styles.cardTitle}>Visual Observation</Text>
-            {isEditable && (
-              <View style={styles.editableBadge}>
-                <Ionicons name="create-outline" size={12} color={C.primarySoft} />
-                <Text style={styles.editableText}>Editable</Text>
-              </View>
-            )}
-          </View>
+        <ReviewCard
+          C={C}
+          styles={styles}
+          title="Inspector Review"
+          canEdit={inspectorCanEdit}
+          observationValue={inspectorObservation}
+          remarksValue={inspectorRemarks}
+          setObservation={setInspectorObservation}
+          setRemarks={setInspectorRemarks}
+        />
 
-          {isEditable ? (
-            <TextInput
-              style={styles.textArea}
-              placeholder="Add your visual observations..."
-              placeholderTextColor={C.textSubtle}
-              value={visualObservation}
-              onChangeText={setVisualObservation}
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <View style={styles.textBox}>
-              <Text style={styles.textContent}>
-                {data.visualObservation || 'No observations recorded'}
-              </Text>
-            </View>
-          )}
-        </View>
+        <ReviewCard
+          C={C}
+          styles={styles}
+          title="Manager Review"
+          canEdit={managerCanEdit}
+          observationValue={managerObservation}
+          remarksValue={managerRemarks}
+          setObservation={setManagerObservation}
+          setRemarks={setManagerRemarks}
+        />
 
-        {/* Remarks - Editable by Inspector/Manager */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="chatbox-outline" size={20} color={C.primarySoft} />
-            <Text style={styles.cardTitle}>Remarks</Text>
-            {isEditable && (
-              <View style={styles.editableBadge}>
-                <Ionicons name="create-outline" size={12} color={C.primarySoft} />
-                <Text style={styles.editableText}>Editable</Text>
-              </View>
-            )}
-          </View>
-
-          {isEditable ? (
-            <TextInput
-              style={styles.textArea}
-              placeholder="Add your remarks..."
-              placeholderTextColor={C.textSubtle}
-              value={remarks}
-              onChangeText={setRemarks}
-              multiline
-              textAlignVertical="top"
-            />
-          ) : (
-            <View style={styles.textBox}>
-              <Text style={styles.textContent}>
-                {data.remarks || 'No remarks added'}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Approvals */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Ionicons
@@ -472,31 +414,25 @@ export default function ReportDetailScreen({ route, navigation }) {
           </View>
 
           <View style={styles.approvalsList}>
-            <ApprovalItem
-              C={C}
-              styles={styles}
-              icon="person-outline"
-              label="QA Inspector"
-              value={data.qa}
-            />
-            <ApprovalItem
-              C={C}
-              styles={styles}
-              icon="eye-outline"
-              label="Reviewed By"
-              value={data.reviewedBy}
-            />
-            <ApprovalItem
-              C={C}
-              styles={styles}
-              icon="checkmark-circle-outline"
-              label="Approved By"
-              value={data.approvedBy}
-            />
+            <ApprovalItem C={C} styles={styles} icon="person-outline" label="QA Inspector" value={data.qa} />
+            <ApprovalItem C={C} styles={styles} icon="eye-outline" label="Reviewed By" value={data.reviewedBy} />
+            <ApprovalItem C={C} styles={styles} icon="checkmark-circle-outline" label="Approved By" value={data.approvedBy} />
+            {report.status === 'rejected' && (
+              <ApprovalItem
+                C={C}
+                styles={styles}
+                icon="close-circle-outline"
+                label="Rejected By"
+                value={
+                  data.rejectedByRole && data.rejectedBy
+                    ? `${data.rejectedByRole}: ${data.rejectedBy}`
+                    : data.rejectedBy || UNAVAILABLE_TEXT
+                }
+              />
+            )}
           </View>
         </View>
 
-        {/* Action Buttons */}
         {showActions && (
           <View style={styles.actionContainer}>
             <Text style={styles.actionTitle}>
@@ -506,8 +442,8 @@ export default function ReportDetailScreen({ route, navigation }) {
             </Text>
             <Text style={styles.actionSubtitle}>
               {role === 'quality_inspector'
-                ? 'Review the measurements and add your observations before approving'
-                : 'Provide final approval after reviewing inspector comments'}
+                ? 'Add inspector observation and remarks before taking action.'
+                : 'Add manager observation and remarks before final action.'}
             </Text>
 
             <View style={styles.actionButtons}>
@@ -520,11 +456,7 @@ export default function ReportDetailScreen({ route, navigation }) {
                   <ActivityIndicator size="small" color={C.surface} />
                 ) : (
                   <>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color={C.surface}
-                    />
+                    <Ionicons name="checkmark-circle" size={20} color={C.surface} />
                     <Text style={styles.actionBtnText}>Approve Report</Text>
                   </>
                 )}
@@ -542,529 +474,463 @@ export default function ReportDetailScreen({ route, navigation }) {
           </View>
         )}
 
-        <View style={{ height: 30 }} />
+        <View style={styles.bottomGap} />
       </ScrollView>
     </View>
   );
 }
 
-const InfoItem = ({ label, value, styles }) => (
-  <View style={styles.infoItem}>
-    <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={styles.infoValue}>{value || '-'}</Text>
-  </View>
-);
-
-const ApprovalItem = ({ icon, label, value, styles, C }) => (
-  <View style={styles.approvalItem}>
-    <View style={styles.approvalIcon}>
-      <Ionicons name={icon} size={18} color={C.primarySoft} />
+const InfoItem = ({ label, value, styles }) => {
+  const unavailable = isUnavailable(value);
+  return (
+    <View style={styles.infoItem}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={[styles.infoValue, unavailable && styles.unavailableText]}>
+        {unavailable ? UNAVAILABLE_TEXT : value}
+      </Text>
     </View>
-    <View style={styles.approvalContent}>
-      <Text style={styles.approvalLabel}>{label}</Text>
-      <Text style={styles.approvalValue}>{value || 'Pending'}</Text>
-    </View>
-  </View>
-);
+  );
+};
 
-const WorkflowStep = ({ label, icon, completed, active, styles, C }) => (
-  <View style={styles.workflowStep}>
-    <View
-      style={[
-        styles.workflowIcon,
-        completed && styles.workflowIconCompleted,
-        active && styles.workflowIconActive,
-      ]}
-    >
-      <Ionicons
-        name={completed ? 'checkmark' : icon}
-        size={16}
-        color={completed ? C.surface : active ? C.primarySoft : C.textSubtle}
+const ApprovalItem = ({ icon, label, value, styles, C }) => {
+  const unavailable = isUnavailable(value);
+  return (
+    <View style={styles.approvalItem}>
+      <View style={styles.approvalIcon}>
+        <Ionicons name={icon} size={18} color={C.primarySoft} />
+      </View>
+      <View style={styles.approvalContent}>
+        <Text style={styles.approvalLabel}>{label}</Text>
+        <Text style={[styles.approvalValue, unavailable && styles.unavailableText]}>
+          {unavailable ? UNAVAILABLE_TEXT : value}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const ReviewCard = ({
+  C,
+  styles,
+  title,
+  canEdit,
+  observationValue,
+  remarksValue,
+  setObservation,
+  setRemarks,
+}) => (
+  <View style={styles.card}>
+    <View style={styles.cardHeader}>
+      <Ionicons name="document-text-outline" size={20} color={C.primarySoft} />
+      <Text style={styles.cardTitle}>{title}</Text>
+      {canEdit && (
+        <View style={styles.editableBadge}>
+          <Ionicons name="create-outline" size={12} color={C.primarySoft} />
+          <Text style={styles.editableText}>Editable</Text>
+        </View>
+      )}
+    </View>
+
+    <Text style={styles.subFieldTitle}>Observation</Text>
+    {canEdit ? (
+      <TextInput
+        style={styles.textArea}
+        placeholder="Add observation..."
+        placeholderTextColor={C.textSubtle}
+        value={observationValue}
+        onChangeText={setObservation}
+        multiline
+        textAlignVertical="top"
       />
-    </View>
-    <Text
-      style={[
-        styles.workflowLabel,
-        completed && styles.workflowLabelCompleted,
-        active && styles.workflowLabelActive,
-      ]}
-    >
-      {label}
-    </Text>
+    ) : (
+      <View style={styles.textBox}>
+        <Text
+          style={[
+            styles.textContent,
+            isUnavailable(observationValue) && styles.unavailableText,
+          ]}
+        >
+          {isUnavailable(observationValue) ? UNAVAILABLE_TEXT : observationValue}
+        </Text>
+      </View>
+    )}
+
+    <Text style={[styles.subFieldTitle, styles.subFieldSpacing]}>Remarks</Text>
+    {canEdit ? (
+      <TextInput
+        style={styles.textArea}
+        placeholder="Add remarks..."
+        placeholderTextColor={C.textSubtle}
+        value={remarksValue}
+        onChangeText={setRemarks}
+        multiline
+        textAlignVertical="top"
+      />
+    ) : (
+      <View style={styles.textBox}>
+        <Text
+          style={[
+            styles.textContent,
+            isUnavailable(remarksValue) && styles.unavailableText,
+          ]}
+        >
+          {isUnavailable(remarksValue) ? UNAVAILABLE_TEXT : remarksValue}
+        </Text>
+      </View>
+    )}
   </View>
 );
 
-const createStyles = C => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: C.bg,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: C.bg,
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: C.textMuted,
-  },
-  header: {
-    backgroundColor: C.primary,
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.surfaceAlt,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.surface,
-  },
-  placeholder: {
-    width: 40,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  titleCard: {
-    backgroundColor: C.surface,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-    gap: 12,
-  },
-  reportTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.textBody,
-    lineHeight: 24,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-    gap: 5,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  metaText: {
-    fontSize: 13,
-    color: C.textMuted,
-    fontWeight: '500',
-  },
-  shiftTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: C.surfaceAlt,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  shiftText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.primarySoft,
-  },
-  workflowContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  workflowTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: C.textMuted,
-    marginBottom: 12,
-  },
-  workflowSteps: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  workflowStep: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  workflowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.surfaceAlt,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  workflowIconCompleted: {
-    backgroundColor: C.success,
-  },
-  workflowIconActive: {
-    backgroundColor: C.surfaceAlt,
-    borderWidth: 2,
-    borderColor: C.primarySoft,
-  },
-  workflowLabel: {
-    fontSize: 11,
-    color: C.textSubtle,
-    fontWeight: '500',
-  },
-  workflowLabelCompleted: {
-    color: C.success,
-    fontWeight: '600',
-  },
-  workflowLabelActive: {
-    color: C.primarySoft,
-    fontWeight: '600',
-  },
-  workflowLine: {
-    height: 2,
-    flex: 1,
-    backgroundColor: C.border,
-    marginHorizontal: 4,
-    marginBottom: 24,
-  },
-  card: {
-    backgroundColor: C.surface,
-    marginHorizontal: 20,
-    marginTop: 12,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 14,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.primarySoft,
-    flex: 1,
-  },
-  editableBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: C.surfaceAlt,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  editableText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: C.primarySoft,
-  },
-  infoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-  },
-  infoItem: {
-    width: '50%',
-    paddingHorizontal: 6,
-    marginBottom: 12,
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: C.textMuted,
-    marginBottom: 4,
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.textBody,
-  },
-  descriptionBox: {
-    marginTop: 4,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  descLabel: {
-    fontSize: 12,
-    color: C.textMuted,
-    marginBottom: 6,
-    fontWeight: '500',
-  },
-  descValue: {
-    fontSize: 14,
-    color: C.textBody,
-    lineHeight: 20,
-  },
-  dimensionCard: {
-    backgroundColor: C.bg,
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  dimensionHeader: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    gap: 12,
-  },
-  dimensionNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: C.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dimensionNumberText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.surface,
-  },
-  dimensionInfo: {
-    flex: 1,
-  },
-  dimensionDesc: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: C.textBody,
-    marginBottom: 4,
-  },
-  dimensionSpec: {
-    fontSize: 13,
-    color: C.primarySoft,
-    fontWeight: '500',
-  },
-  actualValues: {
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: C.border,
-  },
-  actualLabel: {
-    fontSize: 12,
-    color: C.textMuted,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  actualChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  actualChip: {
-    backgroundColor: C.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  actualChipLabel: {
-    fontSize: 10,
-    color: C.textMuted,
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  actualChipValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.primarySoft,
-  },
-  noData: {
-    fontSize: 13,
-    color: C.textSubtle,
-    fontStyle: 'italic',
-  },
-  tableWrap: {
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: C.surfaceAlt,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-  },
-  tableHeadCell: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    fontSize: 11,
-    color: C.primarySoft,
-    fontWeight: '700',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
-    backgroundColor: C.surface,
-  },
-  tableCell: {
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    fontSize: 12,
-    color: C.textBody,
-  },
-  colSl: {
-    width: '10%',
-  },
-  colDesc: {
-    width: '26%',
-  },
-  colSpec: {
-    width: '24%',
-  },
-  colUnit: {
-    width: '12%',
-  },
-  colActual: {
-    width: '28%',
-  },
-  textBox: {
-    backgroundColor: C.bg,
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  textContent: {
-    fontSize: 14,
-    color: C.textBody,
-    lineHeight: 20,
-  },
-  textArea: {
-    backgroundColor: C.bg,
-    borderWidth: 1,
-    borderColor: C.primarySoft,
-    padding: 14,
-    borderRadius: 12,
-    fontSize: 14,
-    color: C.textBody,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  approvalsList: {
-    gap: 10,
-  },
-  approvalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.bg,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  approvalIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: C.surfaceAlt,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  approvalContent: {
-    flex: 1,
-  },
-  approvalLabel: {
-    fontSize: 12,
-    color: C.textMuted,
-    marginBottom: 2,
-    fontWeight: '500',
-  },
-  approvalValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: C.textBody,
-  },
-  actionContainer: {
-    marginHorizontal: 20,
-    marginTop: 20,
-    backgroundColor: C.surface,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: C.border,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: C.primarySoft,
-    marginBottom: 6,
-  },
-  actionSubtitle: {
-    fontSize: 13,
-    color: C.textMuted,
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  actionButtons: {
-    gap: 12,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  approveBtn: {
-    backgroundColor: C.success,
-  },
-  rejectBtn: {
-    backgroundColor: C.danger,
-  },
-  actionBtnText: {
-    color: C.surface,
-    fontSize: 15,
-    fontWeight: '700',
-  },
-});
-
+const createStyles = C =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: C.bg,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: C.bg,
+    },
+    loadingText: {
+      marginTop: 12,
+      fontSize: 14,
+      color: C.textMuted,
+    },
+    header: {
+      backgroundColor: C.primary,
+      paddingTop: 60,
+      paddingBottom: 20,
+      paddingHorizontal: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    backBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: C.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: C.surface,
+    },
+    placeholder: {
+      width: 40,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    titleCard: {
+      backgroundColor: C.surface,
+      marginHorizontal: 20,
+      marginTop: 20,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 12,
+      gap: 12,
+    },
+    reportTitle: {
+      flex: 1,
+      fontSize: 18,
+      fontWeight: '700',
+      color: C.textBody,
+      lineHeight: 24,
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      gap: 5,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '700',
+      textTransform: 'capitalize',
+    },
+    metaRow: {
+      flexDirection: 'row',
+      gap: 16,
+      paddingBottom: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+    },
+    metaItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    metaText: {
+      fontSize: 13,
+      color: C.textMuted,
+      fontWeight: '500',
+    },
+    shiftTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 12,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      backgroundColor: C.surfaceAlt,
+      borderRadius: 8,
+      alignSelf: 'flex-start',
+    },
+    shiftText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: C.primarySoft,
+    },
+    card: {
+      backgroundColor: C.surface,
+      marginHorizontal: 20,
+      marginTop: 12,
+      borderRadius: 16,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginBottom: 14,
+    },
+    cardTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: C.primarySoft,
+      flex: 1,
+    },
+    editableBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: C.surfaceAlt,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    editableText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: C.primarySoft,
+    },
+    infoGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginHorizontal: -6,
+    },
+    infoItem: {
+      width: '50%',
+      paddingHorizontal: 6,
+      marginBottom: 12,
+    },
+    infoLabel: {
+      fontSize: 12,
+      color: C.textMuted,
+      marginBottom: 4,
+      fontWeight: '500',
+    },
+    infoValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: C.textBody,
+    },
+    unavailableText: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      color: C.textSubtle,
+      fontWeight: '500',
+    },
+    descriptionBox: {
+      marginTop: 4,
+      paddingTop: 12,
+      borderTopWidth: 1,
+      borderTopColor: C.border,
+    },
+    descLabel: {
+      fontSize: 12,
+      color: C.textMuted,
+      marginBottom: 6,
+      fontWeight: '500',
+    },
+    descValue: {
+      fontSize: 14,
+      color: C.textBody,
+      lineHeight: 20,
+    },
+    tableWrap: {
+      borderWidth: 1,
+      borderColor: C.border,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: C.surfaceAlt,
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+    },
+    tableHeadCell: {
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      fontSize: 11,
+      color: C.primarySoft,
+      fontWeight: '700',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: C.border,
+      backgroundColor: C.surface,
+    },
+    tableCell: {
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      fontSize: 12,
+      color: C.textBody,
+    },
+    colSl: {
+      width: '10%',
+    },
+    colDesc: {
+      width: '26%',
+    },
+    colSpec: {
+      width: '24%',
+    },
+    colUnit: {
+      width: '12%',
+    },
+    colActual: {
+      width: '28%',
+    },
+    subFieldTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: C.textMuted,
+      marginBottom: 8,
+    },
+    subFieldSpacing: {
+      marginTop: 12,
+    },
+    textBox: {
+      backgroundColor: C.bg,
+      padding: 14,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    textContent: {
+      fontSize: 14,
+      color: C.textBody,
+      lineHeight: 20,
+    },
+    textArea: {
+      backgroundColor: C.bg,
+      borderWidth: 1,
+      borderColor: C.primarySoft,
+      padding: 14,
+      borderRadius: 12,
+      fontSize: 14,
+      color: C.textBody,
+      minHeight: 92,
+      textAlignVertical: 'top',
+    },
+    approvalsList: {
+      gap: 10,
+    },
+    approvalItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      backgroundColor: C.bg,
+      padding: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    approvalIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: C.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    approvalContent: {
+      flex: 1,
+    },
+    approvalLabel: {
+      fontSize: 12,
+      color: C.textMuted,
+      marginBottom: 2,
+      fontWeight: '500',
+    },
+    approvalValue: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: C.textBody,
+    },
+    actionContainer: {
+      marginHorizontal: 20,
+      marginTop: 20,
+      backgroundColor: C.surface,
+      padding: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    actionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: C.primarySoft,
+      marginBottom: 6,
+    },
+    actionSubtitle: {
+      fontSize: 13,
+      color: C.textMuted,
+      marginBottom: 16,
+      lineHeight: 18,
+    },
+    actionButtons: {
+      gap: 12,
+    },
+    actionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 16,
+      borderRadius: 12,
+      gap: 8,
+    },
+    approveBtn: {
+      backgroundColor: C.success,
+    },
+    rejectBtn: {
+      backgroundColor: C.danger,
+    },
+    actionBtnText: {
+      color: C.surface,
+      fontSize: 15,
+      fontWeight: '700',
+    },
+    bottomGap: {
+      height: 30,
+    },
+  });

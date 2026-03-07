@@ -414,7 +414,7 @@ const UserDetailScreen = ({ navigation, route }) => {
           style={({ pressed }) => [
             styles.actionButton,
             {
-              backgroundColor: user.status === 'active' ? '#FEF3C7' : '#DCFCE7',
+              
             },
             pressed && styles.actionButtonPressed,
           ]}
@@ -426,7 +426,8 @@ const UserDetailScreen = ({ navigation, route }) => {
             })
           }
         >
-          <Ionicons
+          <View style={[styles.deactivateButton, { backgroundColor: user.status === 'active' ? '#FEF3C7' : '#DCFCE7' }]}>
+            <Ionicons
             name={user.status === 'active' ? 'pause-circle' : 'play-circle'}
             size={20}
             color={user.status === 'active' ? '#F59E0B' : '#10B981'}
@@ -440,10 +441,11 @@ const UserDetailScreen = ({ navigation, route }) => {
           >
             {user.status === 'active' ? 'Deactivate User' : 'Activate User'}
           </Text>
+          </View>
         </Pressable>
 
         {/* Admin Actions */}
-        <View style={styles.actionsCard}>
+        {/* <View style={styles.actionsCard}>
           <Text style={styles.cardTitle}>Admin Actions</Text>
 
           <Pressable
@@ -457,7 +459,7 @@ const UserDetailScreen = ({ navigation, route }) => {
             <Ionicons name="trash" size={20} color="#EF4444" />
             <Text style={styles.deleteActionText}>Delete User</Text>
           </Pressable>
-        </View>
+        </View> */}
 
         <View style={{ height: 24 }} />
       </ScrollView>
@@ -802,4 +804,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
+  deactivateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+    width: '95%',
+  }
 });

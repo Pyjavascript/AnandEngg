@@ -15,6 +15,7 @@ import { KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
 import { useAppTheme } from '../theme/ThemeProvider';
+import ZoomableImageModal from '../components/ZoomableImageModal';
 
 
 const resolveImageUri = (imageUri) => {
@@ -31,6 +32,9 @@ export default function AddEntryScreen({ route, navigation }) {
   const { part, customer, reportType, draftSubmissionId } = route.params;
   const rawImageUri = typeof part?.img === 'string' ? part.img : part?.img?.uri;
   const partImageUri = resolveImageUri(rawImageUri);
+  const diagramSource = partImageUri
+    ? { uri: partImageUri }
+    : require('../assets/pictures/AppLogo.png');
   const [alert, setAlert] = useState({
     visible: false,
     type: 'success', // success | error | info
@@ -84,6 +88,7 @@ export default function AddEntryScreen({ route, navigation }) {
 
   const [loading, setLoading] = useState(false);
   const [draftHydrating, setDraftHydrating] = useState(false);
+  const [diagramViewerVisible, setDiagramViewerVisible] = useState(false);
 
   const buildSubmissionValues = async () => {
     const templateRes = await reportApi.getTemplatesByCategory(part.templateId);
@@ -353,14 +358,13 @@ export default function AddEntryScreen({ route, navigation }) {
             <Ionicons name="cube-outline" size={20} color={C.primarySoft} />
             <Text style={styles.cardTitle}>Part Information</Text>
           </View>
-          <Image
-            source={
-              partImageUri
-                ? { uri: partImageUri }
-                : require('../assets/pictures/AppLogo.png')
-            }
-            style={styles.partImage}
-          />
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setDiagramViewerVisible(true)}
+          >
+            <Image source={diagramSource} style={styles.partImage} />
+            <Text style={styles.imageTapHint}>Tap diagram to enlarge and zoom</Text>
+          </TouchableOpacity>
 
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
@@ -499,6 +503,12 @@ export default function AddEntryScreen({ route, navigation }) {
             }))
           }
         />
+        <ZoomableImageModal
+          visible={diagramViewerVisible}
+          onClose={() => setDiagramViewerVisible(false)}
+          imageSource={diagramSource}
+          title={`${form.partNumber || 'Part'} Diagram`}
+        />
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -626,6 +636,14 @@ const createStyles = C => StyleSheet.create({
     backgroundColor: C.surfaceAlt,
     borderRadius: 12,
     marginBottom: 16,
+  },
+  imageTapHint: {
+    marginTop: -6,
+    marginBottom: 8,
+    color: C.primarySoft,
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   infoGrid: {
     flexDirection: 'row',
