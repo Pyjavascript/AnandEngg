@@ -869,6 +869,7 @@ exports.GetAllTemplatesWithParts = async (req, res) => {
       // Add template as a part entry
       const partEntry = {
         partNo: template.part_no || template.code || `PART-${template.id}`,
+        customer: template.customer || '',
         img: { uri: imageUrl },
         description: template.part_description || template.description || '',
         docNo: template.doc_no || '',

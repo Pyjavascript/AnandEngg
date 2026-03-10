@@ -254,6 +254,13 @@ export default function ReportDetailScreen({ route, navigation }) {
   const managerCanEdit =
     role === 'quality_manager' && report.status === 'inspector_reviewed';
   const showActions = inspectorCanEdit || managerCanEdit;
+  const inspectorCompleted =
+    report.status === 'inspector_reviewed' ||
+    report.status === 'manager_approved' ||
+    (report.status === 'rejected' && !!report.inspector_id);
+  const managerCompleted =
+    report.status === 'manager_approved' ||
+    (report.status === 'rejected' && !!report.manager_id);
 
   return (
     <View style={styles.container}>
@@ -310,6 +317,38 @@ export default function ReportDetailScreen({ route, navigation }) {
               </Text>
             </View>
           )}
+
+          <View style={styles.workflowContainer}>
+            <Text style={styles.workflowTitle}>Approval Workflow</Text>
+            <View style={styles.workflowSteps}>
+              <WorkflowStep
+                C={C}
+                styles={styles}
+                label="Operator"
+                icon="create-outline"
+                completed={true}
+                active={false}
+              />
+              <View style={styles.workflowLine} />
+              <WorkflowStep
+                C={C}
+                styles={styles}
+                label="Inspector"
+                icon="search-outline"
+                completed={inspectorCompleted}
+                active={report.status === 'submitted'}
+              />
+              <View style={styles.workflowLine} />
+              <WorkflowStep
+                C={C}
+                styles={styles}
+                label="Manager"
+                icon="checkmark-done-outline"
+                completed={managerCompleted}
+                active={report.status === 'inspector_reviewed'}
+              />
+            </View>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -581,6 +620,33 @@ const ReviewCard = ({
   </View>
 );
 
+const WorkflowStep = ({ label, icon, completed, active, styles, C }) => (
+  <View style={styles.workflowStep}>
+    <View
+      style={[
+        styles.workflowIcon,
+        completed && styles.workflowIconCompleted,
+        active && styles.workflowIconActive,
+      ]}
+    >
+      <Ionicons
+        name={completed ? 'checkmark' : icon}
+        size={16}
+        color={completed ? C.surface : active ? C.primarySoft : C.textSubtle}
+      />
+    </View>
+    <Text
+      style={[
+        styles.workflowLabel,
+        completed && styles.workflowLabelCompleted,
+        active && styles.workflowLabelActive,
+      ]}
+    >
+      {label}
+    </Text>
+  </View>
+);
+
 const createStyles = C =>
   StyleSheet.create({
     container: {
@@ -694,6 +760,64 @@ const createStyles = C =>
       fontSize: 12,
       fontWeight: '600',
       color: C.primarySoft,
+    },
+    workflowContainer: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: C.border,
+    },
+    workflowTitle: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: C.textMuted,
+      marginBottom: 12,
+    },
+    workflowSteps: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    workflowStep: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    workflowIcon: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: C.surfaceAlt,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    workflowIconCompleted: {
+      backgroundColor: C.success,
+    },
+    workflowIconActive: {
+      backgroundColor: C.surfaceAlt,
+      borderWidth: 2,
+      borderColor: C.primarySoft,
+    },
+    workflowLabel: {
+      fontSize: 11,
+      color: C.textSubtle,
+      fontWeight: '500',
+    },
+    workflowLabelCompleted: {
+      color: C.success,
+      fontWeight: '600',
+    },
+    workflowLabelActive: {
+      color: C.primarySoft,
+      fontWeight: '600',
+    },
+    workflowLine: {
+      height: 2,
+      flex: 1,
+      backgroundColor: C.border,
+      marginHorizontal: 4,
+      marginBottom: 24,
     },
     card: {
       backgroundColor: C.surface,

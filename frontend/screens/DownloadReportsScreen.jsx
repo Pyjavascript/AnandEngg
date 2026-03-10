@@ -17,6 +17,8 @@ import reportApi from '../utils/reportApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
 import { useAppTheme } from '../theme/ThemeProvider';
+import axios from 'axios';
+import { Buffer } from 'buffer';
 
 const DownloadReportsScreen = () => {
   const { theme } = useAppTheme();
@@ -127,20 +129,34 @@ const DownloadReportsScreen = () => {
         return;
       }
 
-      const query = [
-        `format=${encodeURIComponent(format)}`,
-        `reportType=${encodeURIComponent(reportType)}`,
-        `status=${encodeURIComponent(status)}`,
-        `fromDate=${encodeURIComponent(fromDate.toISOString().split('T')[0])}`,
-        `toDate=${encodeURIComponent(toDate.toISOString().split('T')[0])}`,
-        `submissionId=${encodeURIComponent(selectedReportId)}`,
-        `token=${encodeURIComponent(token)}`,
-      ].join('&');
-      const url = `${BASE_URL}/api/report/download?${query}`;
-      await Linking.openURL(url);
+      const response = await axios.get(`${BASE_URL}/api/report/download`, {
+        params: {
+          format,
+          reportType,
+          status,
+          fromDate: fromDate.toISOString().split('T')[0],
+          toDate: toDate.toISOString().split('T')[0],
+          submissionId: selectedReportId,
+        },
+        responseType: 'arraybuffer',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        timeout: 60000,
+      });
+
+      const mimeType =
+        format === 'pdf' ? 'application/pdf' : 'text/csv';
+      const base64 = Buffer.from(response.data).toString('base64');
+      const dataUri = `data:${mimeType};base64,${base64}`;
+
+      await Linking.openURL(dataUri);
     } catch (err) {
       console.log('Download error:', err);
-      Alert.alert('Error', 'Failed to download report. Please try again.');
+      Alert.alert(
+        'Download Failed',
+        'This device policy may block opening exported files. Please try CSV or ask IT to allow a PDF viewer app for data:// files.',
+      );
     } finally {
       setDownloading(false);
     }

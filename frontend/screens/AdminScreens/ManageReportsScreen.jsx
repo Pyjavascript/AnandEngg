@@ -1510,14 +1510,25 @@ import {
   Modal,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { pick, isCancel, types } from '@react-native-documents/picker';
 
+import BASE_URL from '../../config/api';
 import reportApi from '../../utils/reportApi';
 import CustomAlert from '../../components/CustomAlert';
+import ZoomableImageModal from '../../components/ZoomableImageModal';
 import { useAppTheme } from '../../theme/ThemeProvider';
+
+const resolveDiagramUri = imageUri => {
+  if (!imageUri || typeof imageUri !== 'string') return null;
+  if (/^https?:\/\//i.test(imageUri)) return imageUri;
+  const normalizedBase = BASE_URL.replace(/\/+$/, '');
+  const normalizedPath = imageUri.startsWith('/') ? imageUri : `/${imageUri}`;
+  return `${normalizedBase}${normalizedPath}`;
+};
 
 const ManageReportsScreen = ({ navigation }) => {
   const { theme } = useAppTheme();
@@ -1554,6 +1565,8 @@ const ManageReportsScreen = ({ navigation }) => {
     part_description: '',
   });
   const [diagramFile, setDiagramFile] = useState(null);
+  const [currentDiagramUri, setCurrentDiagramUri] = useState(null);
+  const [diagramViewerVisible, setDiagramViewerVisible] = useState(false);
   const [fields, setFields] = useState([]);
   const [fieldInput, setFieldInput] = useState({
     label: '',
@@ -1568,10 +1581,49 @@ const ManageReportsScreen = ({ navigation }) => {
     title: '',
     message: '',
   });
+  const [submissionSearch, setSubmissionSearch] = useState('');
+  const [submissionFilter, setSubmissionFilter] = useState('all');
+  const [templateSearch, setTemplateSearch] = useState('');
 
   const showAlert = (type, title, message = '') => {
     setAlert({ visible: true, type, title, message });
   };
+
+  const diagramPreviewUri =
+    (diagramFile && typeof diagramFile.uri === 'string' && diagramFile.uri) ||
+    resolveDiagramUri(currentDiagramUri);
+  const diagramPreviewSource = diagramPreviewUri ? { uri: diagramPreviewUri } : null;
+  const filteredSubmissions = submissions.filter(item => {
+    const query = submissionSearch.trim().toLowerCase();
+    const reportName = String(
+      item.template_label || item.part_description || item.title || item.report_type || '',
+    ).toLowerCase();
+    const categoryName = String(item.category_name || '').toLowerCase();
+    const matchesSearch =
+      !query || reportName.includes(query) || categoryName.includes(query);
+
+    const status = String(item.status || '').toLowerCase();
+    const matchesFilter =
+      submissionFilter === 'all' ||
+      (submissionFilter === 'approved' &&
+        (status === 'manager_approved' || status === 'inspector_reviewed')) ||
+      (submissionFilter === 'pending' && status === 'submitted') ||
+      (submissionFilter === 'rejected' && status === 'rejected');
+
+    return matchesSearch && matchesFilter;
+  });
+  const filteredTemplates = templates.filter(item => {
+    const query = templateSearch.trim().toLowerCase();
+    if (!query) return true;
+
+    const name = String(item.partDescription || '').toLowerCase();
+    const docNo = String(item.docNo || '').toLowerCase();
+    const customer = String(item.customer || '').toLowerCase();
+
+    return (
+      name.includes(query) || docNo.includes(query) || customer.includes(query)
+    );
+  });
 
   const openCategoryModal = () => {
     setModalMode('category');
@@ -1609,6 +1661,8 @@ const ManageReportsScreen = ({ navigation }) => {
       type: 'measurement',
     });
     setDiagramFile(null);
+    setCurrentDiagramUri(null);
+    setTemplateSearch('');
     setShowAddModal(true);
   };
 
@@ -1652,6 +1706,7 @@ const ManageReportsScreen = ({ navigation }) => {
         type: 'measurement',
       });
       setDiagramFile(null);
+      setCurrentDiagramUri(template.diagram_url || null);
       setStep(2);
       setShowAddModal(true);
     } catch (err) {
@@ -1668,49 +1723,61 @@ const ManageReportsScreen = ({ navigation }) => {
   const loadAll = React.useCallback(async () => {
     setLoading(true);
     try {
-      const [cats, subs] = await Promise.all([
+      const [cats, subs, templatesWithParts] = await Promise.all([
         reportApi.getCategories(),
         reportApi.getAllSubmissions().catch(() => []),
+        reportApi.getTemplatesWithParts().catch(() => ({})),
       ]);
-      setCategories(cats || []);
-      setSubmissions(subs || []);
-
-      if (Array.isArray(subs) && subs.length > 0) {
-        const statMap = subs.reduce((acc, s) => {
-          const key = s.template_label || 'Unknown';
-          if (!acc[key]) {
-            acc[key] = {
-              submission_count: 0,
-              first_created: s.created_at,
-              last_created: s.created_at,
-            };
-          }
-          acc[key].submission_count += 1;
-          if (s.created_at && s.created_at < acc[key].first_created) {
-            acc[key].first_created = s.created_at;
-          }
-          if (s.created_at && s.created_at > acc[key].last_created) {
-            acc[key].last_created = s.created_at;
-          }
+      const safeCats = Array.isArray(cats) ? cats : [];
+      const safeSubs = Array.isArray(subs) ? subs : [];
+      setSubmissions(safeSubs);
+      const templateMap = Object.entries(templatesWithParts || {}).reduce(
+        (acc, [categoryName, categoryData]) => {
+          const ids = new Set();
+          const customers = categoryData?.customers || {};
+          Object.values(customers).forEach(parts => {
+            (Array.isArray(parts) ? parts : []).forEach(part => {
+              const templateId = Number(part?.templateId);
+              if (!Number.isNaN(templateId) && templateId > 0) {
+                ids.add(templateId);
+              }
+            });
+          });
+          acc[String(categoryName || '').trim().toLowerCase()] = ids;
           return acc;
-        }, {});
-
-        const baseCats = Array.isArray(cats) ? cats.slice() : [];
-        const merged = baseCats.map(cat => {
-          const key = cat.name || cat.code || String(cat.id);
-          const s = statMap[key];
-          return {
-            ...cat,
-            submission_count: s
-              ? s.submission_count
-              : cat.submission_count || 0,
-            first_created: s ? s.first_created : cat.first_created || null,
-            last_created: s ? s.last_created : cat.last_created || null,
-          };
+        },
+        {},
+      );
+      const merged = safeCats.map(cat => {
+        const key = String(cat.name || cat.code || cat.id || '')
+          .trim()
+          .toLowerCase();
+        const templateIds = templateMap[key] || new Set();
+        const matchedSubs = safeSubs.filter(sub => {
+          const subTemplateId = Number(sub?.template_id);
+          const byTemplate =
+            !Number.isNaN(subTemplateId) && templateIds.has(subTemplateId);
+          const byCategoryName =
+            String(sub?.category_name || '')
+              .trim()
+              .toLowerCase() === key;
+          return byTemplate || byCategoryName;
         });
 
-        setCategories(merged);
-      }
+        const createdDates = matchedSubs
+          .map(sub => sub?.created_at)
+          .filter(Boolean);
+
+        return {
+          ...cat,
+          report_count: templateIds.size,
+          submission_count: matchedSubs.length,
+          first_created: createdDates.length ? createdDates.reduce((a, b) => (a < b ? a : b)) : null,
+          last_created: createdDates.length ? createdDates.reduce((a, b) => (a > b ? a : b)) : null,
+        };
+      });
+
+      setCategories(merged);
     } catch (err) {
       showAlert('error', 'Failed to load data');
       console.log('Load error:', err);
@@ -1752,6 +1819,7 @@ const ManageReportsScreen = ({ navigation }) => {
   const handleCategoryPress = async category => {
     setSelectedCategory(category);
     setLoadingTemplates(true);
+    setTemplateSearch('');
 
     try {
       const data = await reportApi.getTemplatesWithParts();
@@ -1946,6 +2014,8 @@ const ManageReportsScreen = ({ navigation }) => {
       type: 'measurement',
     });
     setDiagramFile(null);
+    setCurrentDiagramUri(null);
+    setDiagramViewerVisible(false);
     loadAll(); // Refresh main list
   };
 
@@ -2057,9 +2127,15 @@ const ManageReportsScreen = ({ navigation }) => {
           <View style={{ flex: 1 }}>
             <Text style={styles.cardTitle}>{item.name}</Text>
             <View style={styles.categoryMetaRow}>
-              <View style={styles.metaChip}>
+              {/* <View style={styles.metaChip}>
                 <Ionicons name="layers-outline" size={12} color="#1D4D77" />
                 <Text style={styles.metaChipText}>Category</Text>
+              </View> */}
+              <View style={styles.metaChip}>
+                <Ionicons name="document-text-outline" size={12} color="#1D4D77" />
+                <Text style={styles.metaChipText}>
+                  {item.report_count || 0} reports
+                </Text>
               </View>
               <View style={styles.metaChip}>
                 <Ionicons name="stats-chart-outline" size={12} color="#1D4D77" />
@@ -2078,35 +2154,86 @@ const ManageReportsScreen = ({ navigation }) => {
         </Pressable>
 
         {isExpanded && (
-          <View style={{ marginTop: 12 }}>
-            {loadingTemplates ? (
-              <ActivityIndicator color="#286DA6" />
-            ) : templates.length === 0 ? (
-              <Text style={{ color: '#9CA3AF', paddingLeft: 10 }}>
-                No reports created yet
-              </Text>
-            ) : (
-              templates.map(tpl => (
-                <Pressable
-                  key={tpl.id}
-                  style={styles.templateItem}
-                  onPress={() => openEditTemplateModal(tpl.templateId)}
-                >
-                  <Ionicons
-                    name="document-text-outline"
-                    size={16}
-                    color="#6B7280"
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.templateText}>
-                      {tpl.docNo || 'DOC'} - {tpl.partDescription || 'No description'}
-                    </Text>
-                    <Text style={styles.templateEditHint}>Tap to view / edit</Text>
+          <View style={styles.expandedContent}>
+            <View style={styles.expandedSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeaderLeft}>
+                  <View style={[styles.sectionIconBadge, styles.sectionIconBadgeBlue]}>
+                    <Ionicons name="albums-outline" size={16} color="#1D4ED8" />
                   </View>
-                  <Ionicons name="create-outline" size={15} color="#6B7280" />
-                </Pressable>
-              ))
-            )}
+                  <View>
+                    <Text style={styles.inlineSectionTitle}>Report Templates</Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {templates.length} template{templates.length === 1 ? '' : 's'} available in this category
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.categorySearchWrap}>
+                <View style={styles.categorySearchInputWrap}>
+                  <Ionicons name="search-outline" size={16} color="#64748B" />
+                  <TextInput
+                    style={styles.categorySearchInput}
+                    placeholder="Search report, doc no, or company"
+                    value={templateSearch}
+                    onChangeText={setTemplateSearch}
+                    placeholderTextColor="#94A3B8"
+                  />
+                  {templateSearch ? (
+                    <Pressable onPress={() => setTemplateSearch('')}>
+                      <Ionicons name="close-circle" size={17} color="#94A3B8" />
+                    </Pressable>
+                  ) : null}
+                </View>
+              </View>
+
+              {loadingTemplates ? (
+                <View style={styles.loadingInlineState}>
+                  <ActivityIndicator color="#286DA6" />
+                </View>
+              ) : templates.length === 0 ? (
+                <View style={styles.emptyInlineState}>
+                  <Ionicons name="documents-outline" size={22} color="#94A3B8" />
+                  <Text style={styles.emptyInlineText}>No reports created yet</Text>
+                </View>
+              ) : filteredTemplates.length === 0 ? (
+                <View style={styles.emptyInlineState}>
+                  <Ionicons name="search-outline" size={22} color="#94A3B8" />
+                  <Text style={styles.emptyInlineText}>No reports match this filter</Text>
+                </View>
+              ) : (
+                filteredTemplates.map(tpl => (
+                  <Pressable
+                    key={tpl.id}
+                    style={styles.templateListRow}
+                    onPress={() => openEditTemplateModal(tpl.templateId)}
+                  >
+                    <View style={styles.templateListIndex}>
+                      <Ionicons name="document-text-outline" size={15} color="#286DA6" />
+                    </View>
+                    <View style={styles.templateListContent}>
+                      <Text style={styles.templateListTitle} numberOfLines={1}>
+                        {tpl.partDescription || 'Untitled Report'}
+                      </Text>
+                      <Text style={styles.templateListMeta} numberOfLines={1}>
+                        {[
+                          tpl.docNo || 'No doc no',
+                          tpl.customer ? tpl.customer : null,
+                          `ID ${tpl.templateId || tpl.id}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' | ')}
+                      </Text>
+                    </View>
+                    <View style={styles.templateListActions}>
+                      <Ionicons name="create-outline" size={16} color="#64748B" />
+                    </View>
+                  </Pressable>
+                ))
+              )}
+            </View>
+
             <Pressable
               style={styles.createReportBtn}
               onPress={() => openCreateReportModal(item)}
@@ -2257,22 +2384,79 @@ const ManageReportsScreen = ({ navigation }) => {
           <ActivityIndicator size="large" color="#286DA6" />
         </View>
       ) : (
-        <FlatList
-          data={activeTab === 'types' ? categories : submissions}
-          renderItem={
-            activeTab === 'types' ? renderCategoryItem : renderSubmissionItem
-          }
-          keyExtractor={item => String(item.id)}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshing={refreshing}
-          onRefresh={loadAll}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-outline" size={48} color="#D1D5DB" />
-              <Text style={styles.emptyText}>No data found</Text>
+        <View style={{ flex: 1 }}>
+          {activeTab === 'submissions' && (
+            <View style={styles.searchPanel}>
+              <View style={styles.searchInputWrap}>
+                <Ionicons name="search-outline" size={18} color="#64748B" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search by category or report name"
+                  value={submissionSearch}
+                  onChangeText={setSubmissionSearch}
+                  placeholderTextColor="#94A3B8"
+                />
+                {submissionSearch ? (
+                  <Pressable onPress={() => setSubmissionSearch('')}>
+                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                  </Pressable>
+                ) : null}
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterRow}
+              >
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'approved', label: 'Approved' },
+                  { key: 'pending', label: 'Pending' },
+                  { key: 'rejected', label: 'Rejected' },
+                ].map(filter => (
+                  <Pressable
+                    key={filter.key}
+                    style={[
+                      styles.filterChip,
+                      submissionFilter === filter.key && styles.filterChipActive,
+                    ]}
+                    onPress={() => setSubmissionFilter(filter.key)}
+                  >
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        submissionFilter === filter.key && styles.filterChipTextActive,
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
             </View>
-          }
-        />
+          )}
+
+          <FlatList
+            data={activeTab === 'types' ? categories : filteredSubmissions}
+            renderItem={
+              activeTab === 'types' ? renderCategoryItem : renderSubmissionItem
+            }
+            keyExtractor={item => String(item.id)}
+            contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+            refreshing={refreshing}
+            onRefresh={loadAll}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                <Text style={styles.emptyText}>
+                  {activeTab === 'submissions'
+                    ? 'No submissions match your search'
+                    : 'No data found'}
+                </Text>
+              </View>
+            }
+          />
+        </View>
       )}
 
       {/* {activeTab === 'types' && selectedCategory && (
@@ -2323,7 +2507,7 @@ const ManageReportsScreen = ({ navigation }) => {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
                 {modalMode === 'category'
-                  ? 'Create Category'
+                  ? 'Create Report Type'
                   : step === 2
                   ? isEditingTemplate
                     ? 'View / Edit Template'
@@ -2506,6 +2690,39 @@ const ManageReportsScreen = ({ navigation }) => {
                       </Text>
                       <Text style={styles.uploadSub}>PNG, JPG up to 5MB</Text>
                     </Pressable>
+
+                    {diagramPreviewSource ? (
+                      <View style={styles.diagramPreviewCard}>
+                        <View style={styles.diagramPreviewHeader}>
+                          <View style={styles.diagramPreviewTitleWrap}>
+                            <Ionicons name="image-outline" size={16} color="#286DA6" />
+                            <Text style={styles.diagramPreviewTitle}>
+                              {diagramFile ? 'Selected Diagram Preview' : 'Uploaded Diagram'}
+                            </Text>
+                          </View>
+                          <Pressable
+                            style={styles.diagramReuploadBtn}
+                            onPress={pickDiagram}
+                          >
+                            <Ionicons name="cloud-upload-outline" size={15} color="#286DA6" />
+                            <Text style={styles.diagramReuploadText}>Reupload</Text>
+                          </Pressable>
+                        </View>
+
+                        <Pressable
+                          onPress={() => setDiagramViewerVisible(true)}
+                          style={styles.diagramImageWrap}
+                        >
+                          <Image
+                            source={diagramPreviewSource}
+                            style={styles.diagramImage}
+                            resizeMode="contain"
+                          />
+                        </Pressable>
+
+                        <Text style={styles.diagramHint}>Tap diagram to enlarge and zoom</Text>
+                      </View>
+                    ) : null}
                   </View>
 
                   <Pressable
@@ -2622,6 +2839,13 @@ const ManageReportsScreen = ({ navigation }) => {
         {...alert}
         onHide={() => setAlert(prev => ({ ...prev, visible: false }))}
       />
+
+      <ZoomableImageModal
+        visible={diagramViewerVisible}
+        onClose={() => setDiagramViewerVisible(false)}
+        imageSource={diagramPreviewSource}
+        title={`${templateForm.part_no || templateForm.part_description || 'Part'} Diagram`}
+      />
     </View>
   );
 };
@@ -2671,6 +2895,51 @@ const createStyles = C => StyleSheet.create({
   tabActive: { backgroundColor: '#114A76' },
   tabText: { fontWeight: '700', color: '#5C7488', fontSize: 13 },
   tabTextActive: { color: '#FFFFFF' },
+  searchPanel: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 6,
+    backgroundColor: '#F8FBFE',
+    gap: 10,
+  },
+  searchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D8E4EF',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1F2937',
+    paddingVertical: 0,
+  },
+  filterRow: {
+    gap: 8,
+    paddingRight: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#E8EFF5',
+  },
+  filterChipActive: {
+    backgroundColor: '#114A76',
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5C7488',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
   card: {
     backgroundColor: '#FFF',
     padding: 16,
@@ -2787,6 +3056,65 @@ const createStyles = C => StyleSheet.create({
   uploadSub: {
     fontSize: 11,
     color: '#94A3B8',
+  },
+  diagramPreviewCard: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#D7E3EF',
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#FAFCFF',
+  },
+  diagramPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 10,
+  },
+  diagramPreviewTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  diagramPreviewTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#123A59',
+  },
+  diagramReuploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#E8F1F8',
+  },
+  diagramReuploadText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#286DA6',
+  },
+  diagramImageWrap: {
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  diagramImage: {
+    width: '100%',
+    height: 220,
+    backgroundColor: '#FFFFFF',
+  },
+  diagramHint: {
+    marginTop: 8,
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+    fontWeight: '600',
   },
   previewWrap: {
     borderWidth: 1,
@@ -2977,6 +3305,116 @@ const createStyles = C => StyleSheet.create({
   createReportBtnText: {
     color: '#286DA6',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  expandedContent: {
+    marginTop: 12,
+    gap: 12,
+  },
+  expandedSection: {
+    backgroundColor: '#F8FBFE',
+    borderWidth: 1,
+    borderColor: '#DCE7F2',
+    borderRadius: 14,
+    padding: 12,
+  },
+  sectionHeader: {
+    marginBottom: 10,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#CCFBF1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sectionIconBadgeBlue: {
+    backgroundColor: '#DBEAFE',
+  },
+  inlineSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#123A59',
+    marginBottom: 2,
+  },
+  sectionSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  categorySearchWrap: {
+    gap: 8,
+    marginBottom: 8,
+  },
+  categorySearchInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D8E4EF',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  categorySearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1F2937',
+    paddingVertical: 0,
+  },
+  templateListRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  templateListIndex: {
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  templateListContent: {
+    flex: 1,
+  },
+  templateListTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  templateListMeta: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  templateListActions: {
+    width: 24,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  emptyInlineState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 6,
+  },
+  loadingInlineState: {
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyInlineText: {
+    fontSize: 12,
+    color: '#94A3B8',
     fontWeight: '700',
   },
   deleteCategoryBtn: {
