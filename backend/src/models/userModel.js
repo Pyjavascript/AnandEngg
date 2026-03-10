@@ -109,41 +109,11 @@ exports.createUser = async ({ name, employeeId, email, phone, role, password }) 
 };
 
 exports.updateProfile = async (employeeId, payload) => {
-  const fields = [];
-  const values = [];
-
-  if (payload.name !== undefined) {
-    fields.push('name = ?');
-    values.push(payload.name);
-  }
-  if (payload.email !== undefined) {
-    fields.push('email = ?');
-    values.push(payload.email);
-  }
-  if (payload.phone !== undefined) {
-    fields.push('phone = ?');
-    values.push(payload.phone);
-  }
-  if (payload.department !== undefined) {
-    fields.push('department = ?');
-    values.push(payload.department || null);
-  }
-  if (payload.join_date !== undefined) {
-    fields.push('join_date = ?');
-    values.push(payload.join_date || null);
-  }
-
-  if (fields.length === 0) {
-    return { affectedRows: 0 };
-  }
-
-  values.push(employeeId);
-
   const [result] = await db.query(
     `UPDATE users 
-     SET ${fields.join(', ')}
+     SET name = ?, email = ?, phone = ?, department = ?
      WHERE employee_id = ?`,
-    values
+    [payload.name, payload.email, payload.phone, payload.department || null, employeeId]
   );
   return result;
 };
@@ -164,7 +134,7 @@ exports.updateProfile = async (employeeId, payload) => {
 
 exports.getAllUsers = async () => {
   const [rows] = await db.query(
-    `SELECT id, name, employee_id, email, phone, role, status 
+    `SELECT id, name, employee_id, email, phone, department, role, status 
      FROM users`
   );
   return rows;

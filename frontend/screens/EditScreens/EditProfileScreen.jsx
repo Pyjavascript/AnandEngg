@@ -28,7 +28,6 @@ const EditProfileScreen = ({ navigation }) => {
     email: '',
     phone: '',
     department: '',
-    joinDate: '',
     employeeId: '',
     role: '',
   });
@@ -84,7 +83,6 @@ const EditProfileScreen = ({ navigation }) => {
           email: liveUser.email || '',
           phone: liveUser.phone || '',
           department: liveUser.department || '',
-          joinDate: String(liveUser.join_date || liveUser.joinDate || '').slice(0, 10),
           employeeId: liveUser.employeeId || liveUser.employee_id || '',
           role: liveUser.role || '',
         });
@@ -128,18 +126,12 @@ const EditProfileScreen = ({ navigation }) => {
 
       // 🔹 API CALL (real update)
       const user = JSON.parse(storedUser);
-      const originalJoinDate = String(
-        user.join_date || user.joinDate || '',
-      ).slice(0, 10);
       const profilePayload = {};
       if (form.name !== (user.name || '')) profilePayload.name = form.name;
       if (form.email !== (user.email || '')) profilePayload.email = form.email;
       if (form.phone !== (user.phone || '')) profilePayload.phone = form.phone;
       if (form.department !== (user.department || '')) {
         profilePayload.department = form.department;
-      }
-      if ((form.joinDate || '') !== originalJoinDate) {
-        profilePayload.join_date = form.joinDate || null;
       }
 
       if (!Object.keys(profilePayload).length && !hasPasswordInput) {
@@ -177,10 +169,6 @@ const EditProfileScreen = ({ navigation }) => {
           updatedFromApi.department !== undefined
             ? updatedFromApi.department
             : form.department,
-        join_date:
-          updatedFromApi.join_date !== undefined
-            ? updatedFromApi.join_date
-            : form.joinDate || null,
       };
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
@@ -327,20 +315,6 @@ const EditProfileScreen = ({ navigation }) => {
                   value={form.department}
                   onChangeText={text => setForm({ ...form, department: text })}
                   placeholder="Enter your department"
-                  placeholderTextColor={C.textSubtle}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Join Date</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="calendar-outline" size={20} color={C.textMuted} />
-                <TextInput
-                  style={styles.input}
-                  value={form.joinDate}
-                  onChangeText={text => setForm({ ...form, joinDate: text })}
-                  placeholder="YYYY-MM-DD"
                   placeholderTextColor={C.textSubtle}
                 />
               </View>

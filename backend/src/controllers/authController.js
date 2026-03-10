@@ -349,7 +349,6 @@ const login = async (req, res) => {
         email: user.email,
         phone: user.phone,
         department: user.department,
-        join_date: user.join_date || null,
         employee_id: user.employee_id,
         status: user.status, // optional but useful
       },
@@ -362,27 +361,23 @@ const login = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, email, phone, department, join_date, joinDate } = req.body;
+    const { name, email, phone, department } = req.body;
     const employeeId = req.user.employee_id; // JWT source of truth
 
     if (
       name === undefined &&
       email === undefined &&
       phone === undefined &&
-      department === undefined &&
-      join_date === undefined &&
-      joinDate === undefined
+      department === undefined
     ) {
       return res.status(400).json({ message: "No profile changes provided" });
     }
 
-    const normalizedJoinDate = join_date || joinDate || null;
     await User.updateProfile(employeeId, {
       name,
       email,
       phone,
       department,
-      join_date: normalizedJoinDate,
     });
 
     const users = await User.findByEmployeeId(employeeId);
