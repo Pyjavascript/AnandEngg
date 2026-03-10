@@ -17,7 +17,7 @@ import { useAppTheme } from '../../theme/ThemeProvider';
 const AdminDashboardScreen = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useAppTheme();
   const C = theme.colors;
-  const styles = React.useMemo(() => createStyles(C), [C]);
+  const styles = React.useMemo(() => createStyles(C, isDark), [C, isDark]);
 
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState({ name: 'Admin' });
@@ -162,8 +162,16 @@ const AdminDashboardScreen = ({ navigation }) => {
             <Text style={styles.greeting}>Admin Dashboard</Text>
             <Text style={styles.subtitle}>Inspection Control Panel - {userData.name}</Text>
           </View>
-          <View style={styles.headerIcon}>
-            <Ionicons name="shield-checkmark" size={28} color="#2F5BFF" />
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.editProfileBtn}
+              onPress={() => navigation.navigate('EditProfile')}
+            >
+              <Ionicons name="create-outline" size={18} color={C.primarySoft} />
+            </Pressable>
+            <View style={styles.headerIcon}>
+              <Ionicons name="shield-checkmark" size={28} color={C.primarySoft} />
+            </View>
           </View>
         </View>
         <Pressable style={styles.themeSwitch} onPress={toggleTheme}>
@@ -330,7 +338,7 @@ const AdminDashboardScreen = ({ navigation }) => {
 
 export default AdminDashboardScreen;
 
-const createStyles = C => StyleSheet.create({
+const createStyles = (C, isDark) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -350,6 +358,11 @@ const createStyles = C => StyleSheet.create({
     borderBottomRightRadius: 26,
   },
   headerTextWrap: { flex: 1, paddingRight: 10 },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   headerPill: {
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
@@ -369,7 +382,7 @@ const createStyles = C => StyleSheet.create({
   greeting: {
     fontSize: 27,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
     marginBottom: 4,
   },
   subtitle: {
@@ -381,6 +394,16 @@ const createStyles = C => StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
+    backgroundColor: C.surface,
+    borderWidth: 1,
+    borderColor: C.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editProfileBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     backgroundColor: C.surface,
     borderWidth: 1,
     borderColor: C.border,
@@ -425,12 +448,17 @@ const createStyles = C => StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: isDark ? '#000000' : '#0F172A',
+    shadowOpacity: isDark ? 0 : 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: isDark ? 0 : 2,
   },
   statIcon: {
     width: 40,
@@ -466,6 +494,11 @@ const createStyles = C => StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     overflow: 'hidden',
+    shadowColor: isDark ? '#000000' : '#0F172A',
+    shadowOpacity: isDark ? 0 : 0.05,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: isDark ? 0 : 2,
   },
   moduleCardPressed: {
     opacity: 0.95,
@@ -496,7 +529,7 @@ const createStyles = C => StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: C.surfaceAlt,
     justifyContent: 'center',
     alignItems: 'center',
   },

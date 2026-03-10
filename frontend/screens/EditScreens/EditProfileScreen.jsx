@@ -28,8 +28,14 @@ const EditProfileScreen = ({ navigation }) => {
     email: '',
     phone: '',
     department: '',
+    joinDate: '',
     employeeId: '',
     role: '',
+  });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
   });
   const [alert, setAlert] = useState({
     visible: false,
@@ -51,16 +57,36 @@ const EditProfileScreen = ({ navigation }) => {
 
   const loadUserData = async () => {
     try {
+      const token = await AsyncStorage.getItem('token');
       const storedUser = await AsyncStorage.getItem('user');
       if (storedUser) {
         const user = JSON.parse(storedUser);
+        let liveUser = user;
+
+        if (token && (user.employee_id || user.employeeId)) {
+          try {
+            const res = await axios.get(
+              `${BASE_URL}/api/users/${user.employee_id || user.employeeId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
+            liveUser = res.data || user;
+          } catch (err) {
+            console.log('Failed to fetch latest profile', err?.response?.data || err?.message);
+          }
+        }
+
         setForm({
-          name: user.name || '',
-          email: user.email || '',
-          phone: user.phone || '',
-          department: user.department || '',
-          employeeId: user.employeeId || user.employee_id || '',
-          role: user.role || '',
+          name: liveUser.name || '',
+          email: liveUser.email || '',
+          phone: liveUser.phone || '',
+          department: liveUser.department || '',
+          joinDate: String(liveUser.join_date || liveUser.joinDate || '').slice(0, 10),
+          employeeId: liveUser.employeeId || liveUser.employee_id || '',
+          role: liveUser.role || '',
         });
       }
     } catch (error) {
@@ -68,9 +94,28 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.phone) {
-      showAlert('error', 'Invalid Input', 'All fields are required');
+    if (!form.name || !form.email || !form.phone || !form.department) {
+      showAlert('error', 'Invalid Input', 'Name, email, phone, and department are required');
       return;
+    }
+
+    const hasPasswordInput =
+      passwordForm.currentPassword ||
+      passwordForm.newPassword ||
+      passwordForm.confirmPassword;
+    if (hasPasswordInput) {
+      if (
+        !passwordForm.currentPassword ||
+        !passwordForm.newPassword ||
+        !passwordForm.confirmPassword
+      ) {
+        showAlert('error', 'Password Incomplete', 'Fill current, new, and confirm password fields.');
+        return;
+      }
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        showAlert('error', 'Password Mismatch', 'New password and confirm password must match.');
+        return;
+      }
     }
 
     setLoading(true);
@@ -93,6 +138,8 @@ const EditProfileScreen = ({ navigation }) => {
           name: form.name,
           email: form.email,
           phone: form.phone,
+          department: form.department,
+          join_date: form.joinDate || null,
         },
         {
           headers: {
@@ -104,19 +151,42 @@ const EditProfileScreen = ({ navigation }) => {
 
       // 🔹 Update local storage only AFTER backend success
       const user = JSON.parse(storedUser);
+      const updatedFromApi = response.data?.user || {};
       const updatedUser = {
         ...user,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
+        ...updatedFromApi,
+        name: updatedFromApi.name || form.name,
+        email: updatedFromApi.email || form.email,
+        phone: updatedFromApi.phone || form.phone,
+        department: updatedFromApi.department || form.department,
+        join_date: updatedFromApi.join_date || form.joinDate || null,
       };
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
 
-      // Alert.alert('Success', response.data.message, [
-      //   { text: 'OK', onPress: () => navigation.goBack() },
-      // ]);
-      showAlert('success', 'Profile Updated');
+      if (hasPasswordInput) {
+        await axios.put(
+          `${BASE_URL}/api/auth/change-password`,
+          {
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword,
+            confirmPassword: passwordForm.confirmPassword,
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+      }
+
+      showAlert('success', 'Profile Updated', 'Your profile changes were saved successfully.');
+      setPasswordForm({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
 
       setTimeout(() => {
         navigation.goBack();
@@ -227,19 +297,85 @@ const EditProfileScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* <View style={styles.inputGroup}>
-            <Text style={styles.label}>Department</Text>
-            <View style={styles.inputWrapper}>
-              <Ionicons name="briefcase-outline" size={20} color="#6B7280" />
-              <TextInput
-                style={styles.input}
-                value={form.department}
-                onChangeText={(text) => setForm({ ...form, department: text })}
-                placeholder="Enter your department"
-                placeholderTextColor="#B0C4D8"
-              />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Department *</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="briefcase-outline" size={20} color={C.textMuted} />
+                <TextInput
+                  style={styles.input}
+                  value={form.department}
+                  onChangeText={text => setForm({ ...form, department: text })}
+                  placeholder="Enter your department"
+                  placeholderTextColor={C.textSubtle}
+                />
+              </View>
             </View>
-          </View> */}
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Join Date</Text>
+              <View style={styles.inputWrapper}>
+                <Ionicons name="calendar-outline" size={20} color={C.textMuted} />
+                <TextInput
+                  style={styles.input}
+                  value={form.joinDate}
+                  onChangeText={text => setForm({ ...form, joinDate: text })}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={C.textSubtle}
+                />
+              </View>
+            </View>
+
+            <View style={styles.readOnlySection}>
+              <Text style={styles.sectionTitle}>Password</Text>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Current Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="lock-closed-outline" size={20} color={C.textMuted} />
+                  <TextInput
+                    style={styles.input}
+                    value={passwordForm.currentPassword}
+                    onChangeText={text =>
+                      setPasswordForm(prev => ({ ...prev, currentPassword: text }))
+                    }
+                    placeholder="Enter current password"
+                    placeholderTextColor={C.textSubtle}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>New Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="key-outline" size={20} color={C.textMuted} />
+                  <TextInput
+                    style={styles.input}
+                    value={passwordForm.newPassword}
+                    onChangeText={text =>
+                      setPasswordForm(prev => ({ ...prev, newPassword: text }))
+                    }
+                    placeholder="Enter new password"
+                    placeholderTextColor={C.textSubtle}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+              <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                <Text style={styles.label}>Confirm Password</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="shield-checkmark-outline" size={20} color={C.textMuted} />
+                  <TextInput
+                    style={styles.input}
+                    value={passwordForm.confirmPassword}
+                    onChangeText={text =>
+                      setPasswordForm(prev => ({ ...prev, confirmPassword: text }))
+                    }
+                    placeholder="Confirm new password"
+                    placeholderTextColor={C.textSubtle}
+                    secureTextEntry
+                  />
+                </View>
+              </View>
+            </View>
 
             {/* Read-only fields */}
             <View style={styles.readOnlySection}>

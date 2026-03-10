@@ -108,12 +108,42 @@ exports.createUser = async ({ name, employeeId, email, phone, role, password }) 
   return result;
 };
 
-exports.updateProfile = async (employeeId, name, email, phone) => {
+exports.updateProfile = async (employeeId, payload) => {
+  const fields = [];
+  const values = [];
+
+  if (payload.name !== undefined) {
+    fields.push('name = ?');
+    values.push(payload.name);
+  }
+  if (payload.email !== undefined) {
+    fields.push('email = ?');
+    values.push(payload.email);
+  }
+  if (payload.phone !== undefined) {
+    fields.push('phone = ?');
+    values.push(payload.phone);
+  }
+  if (payload.department !== undefined) {
+    fields.push('department = ?');
+    values.push(payload.department || null);
+  }
+  if (payload.join_date !== undefined) {
+    fields.push('join_date = ?');
+    values.push(payload.join_date || null);
+  }
+
+  if (fields.length === 0) {
+    return { affectedRows: 0 };
+  }
+
+  values.push(employeeId);
+
   const [result] = await db.query(
     `UPDATE users 
-     SET name = ?, email = ?, phone = ?
+     SET ${fields.join(', ')}
      WHERE employee_id = ?`,
-    [name, email, phone, employeeId]
+    values
   );
   return result;
 };

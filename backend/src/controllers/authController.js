@@ -348,6 +348,8 @@ const login = async (req, res) => {
         role: user.role,
         email: user.email,
         phone: user.phone,
+        department: user.department,
+        join_date: user.join_date || null,
         employee_id: user.employee_id,
         status: user.status, // optional but useful
       },
@@ -360,16 +362,27 @@ const login = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, email, phone } = req.body;
+    const { name, email, phone, department, join_date, joinDate } = req.body;
     const employeeId = req.user.employee_id; // JWT source of truth
 
-    if (!name || !email || !phone) {
-      return res.status(400).json({ message: "All fields required" });
+    if (!name || !email || !phone || !department) {
+      return res.status(400).json({ message: "Name, email, phone, and department are required" });
     }
 
-    await User.updateProfile(employeeId, name, email, phone);
+    const normalizedJoinDate = join_date || joinDate || null;
+    await User.updateProfile(employeeId, {
+      name,
+      email,
+      phone,
+      department,
+      join_date: normalizedJoinDate,
+    });
 
-    res.json({ message: "Profile updated successfully" });
+    const users = await User.findByEmployeeId(employeeId);
+    const user = users[0];
+    if (user) delete user.password;
+
+    res.json({ message: "Profile updated successfully", user });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
