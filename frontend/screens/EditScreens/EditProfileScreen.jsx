@@ -94,11 +94,6 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
   const handleSave = async () => {
-    if (!form.name || !form.email || !form.phone || !form.department) {
-      showAlert('error', 'Invalid Input', 'Name, email, phone, and department are required');
-      return;
-    }
-
     const hasPasswordInput =
       passwordForm.currentPassword ||
       passwordForm.newPassword ||
@@ -132,34 +127,60 @@ const EditProfileScreen = ({ navigation }) => {
       }
 
       // 🔹 API CALL (real update)
-      const response = await axios.put(
-        `${BASE_URL}/api/auth/profile`,
-        {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          department: form.department,
-          join_date: form.joinDate || null,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+      const user = JSON.parse(storedUser);
+      const originalJoinDate = String(
+        user.join_date || user.joinDate || '',
+      ).slice(0, 10);
+      const profilePayload = {};
+      if (form.name !== (user.name || '')) profilePayload.name = form.name;
+      if (form.email !== (user.email || '')) profilePayload.email = form.email;
+      if (form.phone !== (user.phone || '')) profilePayload.phone = form.phone;
+      if (form.department !== (user.department || '')) {
+        profilePayload.department = form.department;
+      }
+      if ((form.joinDate || '') !== originalJoinDate) {
+        profilePayload.join_date = form.joinDate || null;
+      }
+
+      if (!Object.keys(profilePayload).length && !hasPasswordInput) {
+        showAlert('info', 'No Changes', 'Update one or more fields to save.');
+        setLoading(false);
+        return;
+      }
+
+      let response = { data: { user } };
+      if (Object.keys(profilePayload).length) {
+        response = await axios.put(
+          `${BASE_URL}/api/auth/profile`,
+          profilePayload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           },
-        },
-      );
+        );
+      }
 
       // 🔹 Update local storage only AFTER backend success
-      const user = JSON.parse(storedUser);
       const updatedFromApi = response.data?.user || {};
       const updatedUser = {
         ...user,
         ...updatedFromApi,
-        name: updatedFromApi.name || form.name,
-        email: updatedFromApi.email || form.email,
-        phone: updatedFromApi.phone || form.phone,
-        department: updatedFromApi.department || form.department,
-        join_date: updatedFromApi.join_date || form.joinDate || null,
+        name:
+          updatedFromApi.name !== undefined ? updatedFromApi.name : form.name,
+        email:
+          updatedFromApi.email !== undefined ? updatedFromApi.email : form.email,
+        phone:
+          updatedFromApi.phone !== undefined ? updatedFromApi.phone : form.phone,
+        department:
+          updatedFromApi.department !== undefined
+            ? updatedFromApi.department
+            : form.department,
+        join_date:
+          updatedFromApi.join_date !== undefined
+            ? updatedFromApi.join_date
+            : form.joinDate || null,
       };
 
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));

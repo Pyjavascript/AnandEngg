@@ -365,8 +365,15 @@ const updateProfile = async (req, res) => {
     const { name, email, phone, department, join_date, joinDate } = req.body;
     const employeeId = req.user.employee_id; // JWT source of truth
 
-    if (!name || !email || !phone || !department) {
-      return res.status(400).json({ message: "Name, email, phone, and department are required" });
+    if (
+      name === undefined &&
+      email === undefined &&
+      phone === undefined &&
+      department === undefined &&
+      join_date === undefined &&
+      joinDate === undefined
+    ) {
+      return res.status(400).json({ message: "No profile changes provided" });
     }
 
     const normalizedJoinDate = join_date || joinDate || null;
