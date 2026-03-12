@@ -359,7 +359,7 @@ const db = require('../config/db');
 const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
-const { uploadRoot } = require('../config/uploads');
+const { uploadRoot, exportsDir } = require('../config/uploads');
 
 function requireRole(user, roleName) {
   return user && user.role === roleName;
@@ -1424,8 +1424,12 @@ function toDetailedReportLines(detail) {
 exports.DownloadSubmissions = async (req, res) => {
   try {
     const format = String(req.query.format || 'csv').toLowerCase();
+    const delivery = String(req.query.delivery || 'inline').toLowerCase();
     if (!['csv', 'pdf'].includes(format)) {
       return res.status(400).json({ message: 'format must be csv or pdf' });
+    }
+    if (!['inline', 'link'].includes(delivery)) {
+      return res.status(400).json({ message: 'delivery must be inline or link' });
     }
 
     const filters = {
@@ -1441,6 +1445,16 @@ exports.DownloadSubmissions = async (req, res) => {
 
     if (format === 'csv') {
       const csv = toCsv(rows);
+      if (delivery === 'link') {
+        const filename = `report-export-${now}.csv`;
+        const filePath = path.join(exportsDir, filename);
+        fs.writeFileSync(filePath, csv, 'utf8');
+        return res.status(200).json({
+          url: `${req.protocol}://${req.get('host')}/uploads/exports/${filename}`,
+          filename,
+          format,
+        });
+      }
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="report-export-${now}.csv"`);
       return res.status(200).send(csv);
@@ -1479,6 +1493,16 @@ exports.DownloadSubmissions = async (req, res) => {
     const pdfBuffer = filters.submissionId
       ? await buildDetailedPdf(detail || { id: filters.submissionId, values: [] })
       : buildSimplePdf(lines);
+    if (delivery === 'link') {
+      const filename = `report-export-${now}.pdf`;
+      const filePath = path.join(exportsDir, filename);
+      fs.writeFileSync(filePath, pdfBuffer);
+      return res.status(200).json({
+        url: `${req.protocol}://${req.get('host')}/uploads/exports/${filename}`,
+        filename,
+        format,
+      });
+    }
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="report-export-${now}.pdf"`);
     return res.status(200).send(pdfBuffer);

@@ -18,7 +18,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
 import { useAppTheme } from '../theme/ThemeProvider';
 import axios from 'axios';
-import { Buffer } from 'buffer';
 
 const DownloadReportsScreen = () => {
   const { theme } = useAppTheme();
@@ -132,30 +131,37 @@ const DownloadReportsScreen = () => {
       const response = await axios.get(`${BASE_URL}/api/report/download`, {
         params: {
           format,
+          delivery: 'link',
           reportType,
           status,
           fromDate: fromDate.toISOString().split('T')[0],
           toDate: toDate.toISOString().split('T')[0],
           submissionId: selectedReportId,
         },
-        responseType: 'arraybuffer',
         headers: {
           Authorization: `Bearer ${token}`,
         },
         timeout: 60000,
       });
 
-      const mimeType =
-        format === 'pdf' ? 'application/pdf' : 'text/csv';
-      const base64 = Buffer.from(response.data).toString('base64');
-      const dataUri = `data:${mimeType};base64,${base64}`;
+      const fileUrl = response?.data?.url;
+      if (!fileUrl) {
+        throw new Error('Download link was not returned by the server');
+      }
 
-      await Linking.openURL(dataUri);
+      const supported = await Linking.canOpenURL(fileUrl);
+      if (!supported) {
+        throw new Error('This device cannot open the generated file URL');
+      }
+
+      await Linking.openURL(fileUrl);
     } catch (err) {
       console.log('Download error:', err);
       Alert.alert(
         'Download Failed',
-        'This device policy may block opening exported files. Please try CSV or ask IT to allow a PDF viewer app for data:// files.',
+        err?.response?.data?.message ||
+          err?.message ||
+          'The exported file could not be opened on this device.',
       );
     } finally {
       setDownloading(false);
