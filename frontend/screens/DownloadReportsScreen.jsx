@@ -149,11 +149,6 @@ const DownloadReportsScreen = () => {
         throw new Error('Download link was not returned by the server');
       }
 
-      const supported = await Linking.canOpenURL(fileUrl);
-      if (!supported) {
-        throw new Error('This device cannot open the generated file URL');
-      }
-
       await Linking.openURL(fileUrl);
     } catch (err) {
       console.log('Download error:', err);
