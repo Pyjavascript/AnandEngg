@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,6 +26,12 @@ const ReportsScreen = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [reports, setReports] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const [reportOptions, setReportOptions] = useState({
+    visible: false,
+    report: null,
+  });
 
   useEffect(() => {
     const getRole = async () => {
@@ -37,8 +44,12 @@ const ReportsScreen = () => {
   const fetchReports = async () => {
     try {
       const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
-      const res = await reportApi.getAllSubmissions();
-      const data = Array.isArray(res) ? res : [];
+      const [submissionRes, notificationRes] = await Promise.all([
+        reportApi.getAllSubmissions(),
+        reportApi.getNotifications().catch(() => []),
+      ]);
+      const data = Array.isArray(submissionRes) ? submissionRes : [];
+      setNotifications(Array.isArray(notificationRes) ? notificationRes : []);
 
       if (user?.role === 'machine_operator' && user?.id) {
         setReports(data.filter(r => Number(r.submitted_by) === Number(user.id)));
@@ -128,19 +139,23 @@ const ReportsScreen = () => {
 
   const handleReportLongPress = report => {
     if (role !== 'machine_operator') return;
-    Alert.alert(
-      'Report Options',
-      'Choose an action for this report',
-      [
-        { text: 'View', onPress: () => handleViewReport(report.id) },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => handleDeleteReport(report.id),
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    setReportOptions({ visible: true, report });
+  };
+
+  const unreadNotificationCount = notifications.filter(
+    item => Number(item.is_read) !== 1,
+  ).length;
+
+  const openNotifications = async () => {
+    setNotificationsVisible(true);
+    if (unreadNotificationCount > 0) {
+      try {
+        await reportApi.markNotificationsRead();
+        setNotifications(prev => prev.map(item => ({ ...item, is_read: 1 })));
+      } catch (err) {
+        console.log('Failed to mark notifications read', err);
+      }
+    }
   };
 
   const counts = {
@@ -207,6 +222,19 @@ const ReportsScreen = () => {
             </Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={openNotifications}
+            >
+              <Ionicons name="notifications-outline" size={20} color="#286DA6" />
+              {unreadNotificationCount > 0 ? (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.downloadNavBtn}
               onPress={() => navigation.navigate('DownloadReports')}
@@ -409,6 +437,99 @@ const ReportsScreen = () => {
 
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      <Modal
+        visible={notificationsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setNotificationsVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setNotificationsVisible(false)}>
+                <Ionicons name="close" size={22} color={C.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {notifications.length === 0 ? (
+                <Text style={styles.modalEmptyText}>No notifications yet.</Text>
+              ) : (
+                notifications.map(item => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.notificationItem}
+                    onPress={() => {
+                      setNotificationsVisible(false);
+                      if (item.related_submission_id) {
+                        navigation.navigate('ReportDetail', {
+                          reportId: item.related_submission_id,
+                        });
+                      }
+                    }}
+                  >
+                    <View style={styles.notificationDot} />
+                    <View style={styles.notificationTextWrap}>
+                      <Text style={styles.notificationItemTitle}>{item.title}</Text>
+                      <Text style={styles.notificationItemMessage}>{item.message}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={reportOptions.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReportOptions({ visible: false, report: null })}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.actionSheet}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Report Options</Text>
+                <Text style={styles.actionSheetSubtitle}>
+                  {reportOptions.report?.template_label || 'Inspection Submission'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setReportOptions({ visible: false, report: null })}>
+                <Ionicons name="close" size={22} color={C.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.optionRow}
+              onPress={() => {
+                const reportId = reportOptions.report?.id;
+                setReportOptions({ visible: false, report: null });
+                if (reportId) {
+                  handleViewReport(reportId);
+                }
+              }}
+            >
+              <Ionicons name="eye-outline" size={18} color={C.primarySoft} />
+              <Text style={styles.optionRowText}>View report</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.optionRow, styles.optionRowDanger]}
+              onPress={() => {
+                const reportId = reportOptions.report?.id;
+                setReportOptions({ visible: false, report: null });
+                if (reportId) {
+                  handleDeleteReport(reportId);
+                }
+              }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#DC2626" />
+              <Text style={styles.optionRowDangerText}>Delete report</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -478,6 +599,33 @@ const createStyles = C => StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: C.border,
+  },
+  notificationBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 999,
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   searchInput: {
     flex: 1,
@@ -652,6 +800,99 @@ const createStyles = C => StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  modalCard: {
+    maxHeight: '70%',
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 18,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: C.textStrong,
+  },
+  modalEmptyText: {
+    fontSize: 14,
+    color: C.textMuted,
+    paddingVertical: 18,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  notificationDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: C.primarySoft,
+    marginTop: 5,
+  },
+  notificationTextWrap: {
+    flex: 1,
+  },
+  notificationItemTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.textBody,
+  },
+  notificationItemMessage: {
+    marginTop: 4,
+    fontSize: 12,
+    color: C.textMuted,
+    lineHeight: 17,
+  },
+  actionSheet: {
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 18,
+  },
+  actionSheetSubtitle: {
+    marginTop: 3,
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: '500',
+  },
+  optionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  optionRowDanger: {
+    marginTop: 2,
+  },
+  optionRowText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.textBody,
+  },
+  optionRowDangerText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
   },
 });
 

@@ -303,15 +303,6 @@ const UserDetailScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={styles.infoItem}>
-            <View style={styles.infoIconContainer}>
-              <Ionicons name="calendar" size={18} color="#286DA6" />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoLabel}>Join Date</Text>
-              <Text style={styles.infoValue}>{user.joinDate}</Text>
-            </View>
-          </View>
         </View>
 
         {/* Role Management Card */}

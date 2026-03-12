@@ -65,6 +65,21 @@ export const getAllSubmissions = async () => {
   return res.data;
 };
 
+export const getAvailableReviewers = async () => {
+  const res = await axios.get(`${API}/reviewers`, await authHeader());
+  return res.data;
+};
+
+export const getNotifications = async () => {
+  const res = await axios.get(`${API}/notifications`, await authHeader());
+  return res.data;
+};
+
+export const markNotificationsRead = async () => {
+  const res = await axios.put(`${API}/notifications/read`, {}, await authHeader());
+  return res.data;
+};
+
 export const getMyDraftSubmissions = async userId => {
   const rows = await getAllSubmissions();
   return (Array.isArray(rows) ? rows : []).filter(
@@ -151,6 +166,9 @@ export default {
   getTemplatesByCategory,
   getTemplateById,
   getAllSubmissions,
+  getAvailableReviewers,
+  getNotifications,
+  markNotificationsRead,
   getMyDraftSubmissions,
   createSubmission,
   getSubmissionById,

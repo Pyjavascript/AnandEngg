@@ -1,1504 +1,4 @@
-// // import React, { useState } from 'react';
-// // import {
-// //   View,
-// //   Text,
-// //   StyleSheet,
-// //   ScrollView,
-// //   Pressable,
-// //   ActivityIndicator,
-// //   FlatList,
-// //   Modal,
-// //   TextInput,
-// //   Dimensions,
-
-// // } from 'react-native';
-// // import Ionicons from 'react-native-vector-icons/Ionicons';
-// // import { useFocusEffect } from '@react-navigation/native';
-// // import reportApi from '../../utils/reportApi';
-// // import ConfirmationDialog from '../../components/ConfirmationDialog';
-// // import CustomAlert from '../../components/CustomAlert';
-
-// // const { width } = Dimensions.get('window');
-
-// // const ManageReportsScreen = ({ navigation }) => {
-// //   const [activeTab, setActiveTab] = useState('types'); // 'types' or 'submissions'
-// //   const [reportTypes, setReportTypes] = useState([]);
-// //   const [allReports, setAllReports] = useState([]);
-// //   const [loading, setLoading] = useState(true);
-// //   const [refreshing, setRefreshing] = useState(false);
-// //   const [alert, setAlert] = useState({
-// //     visible: false,
-// //     type: 'success',
-// //     title: '',
-// //     message: '',
-// //   });
-// //   const [addReportModal, setAddReportModal] = useState({
-// //     visible: false,
-// //     name: '',
-// //     code: '',
-// //     description: '',
-// //     frequency: 'Daily',
-// //     isLoading: false,
-// //     fields: [],
-// //   });
-// //   // fields: array of { label, specification, unit, position }
-// //   const [confirmDialog, setConfirmDialog] = useState({
-// //     visible: false,
-// //     reportId: null,
-// //     reportName: '',
-// //     isLoading: false,
-// //   });
-
-// //   const showAlert = (type, title, message = '') => {
-// //     setAlert({ visible: true, type, title, message });
-// //   };
-
-// //   // Load data
-// //   useFocusEffect(
-// //     React.useCallback(() => {
-// //       loadAll();
-// //       // eslint-disable-next-line react-hooks/exhaustive-deps
-// //     }, []),
-// //   );
-
-// //   const loadAll = async () => {
-// //     setLoading(true);
-// //     try {
-// //       const [typesData, submissionsData] = await Promise.all([
-// //         reportApi.getCategories(),
-// //         reportApi.getAllSubmissions().catch(() => []),
-// //       ]);
-// //       const mapped = (typesData || []).map(c => ({
-// //         id: c.id,
-// //         name: c.name,
-// //         code: c.code || '',
-// //         description: c.description || '',
-// //         frequency: c.frequency || 'Custom',
-// //         status: c.status || 'active',
-// //         submittedCount: 0,
-// //       }));
-// //       setReportTypes(mapped);
-
-// //       const mappedSubs = (submissionsData || []).map(s => ({
-// //         id: s.id,
-// //         title: s.template_label || 'Submission',
-// //         submittedBy: s.submitted_by_name || s.submitted_by || 'Unknown',
-// //         type: s.template_label || '',
-// //         submittedDate: s.created_at ? new Date(s.created_at).toLocaleString() : '',
-// //         status: s.status || 'pending',
-// //         approvedBy: s.manager_id ? 'Manager' : s.inspector_id ? 'Inspector' : null,
-// //       }));
-// //       setAllReports(mappedSubs);
-// //     } catch (err) {
-// //       showAlert('error', 'Failed to load data');
-// //       console.log('Failed to load', err);
-// //     } finally {
-// //       setLoading(false);
-// //       setRefreshing(false);
-// //     }
-// //   };
-
-// //   const onRefresh = async () => {
-// //     setRefreshing(true);
-// //     await loadAll();
-// //   };
-
-// //   const handleAddReportType = async () => {
-// //     if (!addReportModal.name || !addReportModal.code) {
-// //       showAlert('error', 'Validation Error', 'Name and Code are required');
-// //       return;
-// //     }
-
-// //     setAddReportModal(prev => ({ ...prev, isLoading: true }));
-
-// //     try {
-// //       // create category first
-// //       const catRes = await reportApi.createCategory(addReportModal.name);
-// //       const categoryId = catRes.id || catRes.insertId;
-
-// //       // create template referencing the new category
-// //       const tplRes = await reportApi.createTemplate({
-// //         category_id: categoryId,
-// //         doc_no: addReportModal.code.toUpperCase(),
-// //         customer: '',
-// //         part_no: '',
-// //         part_description: addReportModal.description,
-// //         rev_no: '',
-// //       });
-// //       const templateId = tplRes.id || tplRes.insertId;
-
-// //       // create fields if any
-// //       if (Array.isArray(addReportModal.fields) && addReportModal.fields.length > 0) {
-// //         for (const f of addReportModal.fields) {
-// //           if (!f.label) continue;
-// //           try {
-// //             await reportApi.createField(templateId, {
-// //               label: f.label,
-// //               specification: f.specification || null,
-// //               unit: f.unit || null,
-// //               position: f.position || null,
-// //             });
-// //           } catch (err) {
-// //             console.warn('Failed to create field', f, err);
-// //           }
-// //         }
-// //       }
-
-// //       // update UI list by reloading categories
-// //       const typesData = await reportApi.getCategories();
-// //       const mapped = typesData.map(c => ({
-// //         id: c.id,
-// //         name: c.name,
-// //         code: c.code || '',
-// //         description: '',
-// //         frequency: 'Custom',
-// //         status: 'active',
-// //         submittedCount: 0,
-// //       }));
-// //       setReportTypes(mapped);
-// //       showAlert('success', 'Success', 'Report template created');
-// //       setAddReportModal({
-// //         visible: false,
-// //         name: '',
-// //         code: '',
-// //         description: '',
-// //         frequency: 'Daily',
-// //         isLoading: false,
-// //         fields: [],
-// //       });
-// //     } catch (err) {
-// //       showAlert('error', 'Error', 'Failed to add report type');
-// //       console.log('Error:', err);
-// //     } finally {
-// //       setAddReportModal(prev => ({ ...prev, isLoading: false }));
-// //     }
-// //   };
-
-// //   const handleDeleteReportType = async () => {
-// //     if (!confirmDialog.reportId) return;
-
-// //     setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-// //     try {
-// //       await reportApi.deleteCategory(confirmDialog.reportId);
-// //       setReportTypes(reportTypes.filter(r => r.id !== confirmDialog.reportId));
-// //       showAlert('success', 'Success', 'Report type deleted successfully');
-// //     } catch (err) {
-// //       showAlert('error', 'Error', 'Failed to delete');
-// //       console.log('Error:', err);
-// //     } finally {
-// //       setConfirmDialog({
-// //         visible: false,
-// //         reportId: null,
-// //         reportName: '',
-// //         isLoading: false,
-// //       });
-// //     }
-// //   };
-
-// //   const openDeleteConfirm = (reportId, reportName) => {
-// //     setConfirmDialog({
-// //       visible: true,
-// //       reportId,
-// //       reportName,
-// //       isLoading: false,
-// //     });
-// //   };
-
-// //   const renderReportTypeItem = ({ item }) => {
-// //     return (
-// //       <View style={styles.reportTypeCard}>
-// //         <View style={styles.reportTypeHeader}>
-// //           <View style={styles.reportTypeIcon}>
-// //             <Ionicons name="document-text" size={22} color="#286DA6" />
-// //           </View>
-
-// //           <View style={styles.reportTypeInfo}>
-// //             <Text style={styles.reportTypeName}>{item.name}</Text>
-// //             <Text style={styles.reportTypeCode}>{item.code}</Text>
-// //             <Text style={styles.reportTypeDesc} numberOfLines={1}>
-// //               {item.description}
-// //             </Text>
-// //           </View>
-// //         </View>
-
-// //         <View style={styles.reportTypeMeta}>
-// //           <View style={styles.metaItem}>
-// //             <Ionicons name="repeat" size={14} color="#6B7280" />
-// //             <Text style={styles.metaText}>{item.frequency}</Text>
-// //           </View>
-// //           <View style={styles.metaItem}>
-// //             <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-// //             <Text style={styles.metaText}>{item.submittedCount} submitted</Text>
-// //           </View>
-// //           <View
-// //             style={[
-// //               styles.statusTag,
-// //               {
-// //                 backgroundColor: item.status === 'active' ? '#DCFCE7' : '#F3F4F6',
-// //               },
-// //             ]}
-// //           >
-// //             <Text
-// //               style={[
-// //                 styles.statusTagText,
-// //                 {
-// //                   color: item.status === 'active' ? '#059669' : '#6B7280',
-// //                 },
-// //               ]}
-// //             >
-// //               {item.status}
-// //             </Text>
-// //           </View>
-// //         </View>
-
-// //         <Pressable
-// //           style={({ pressed }) => [
-// //             styles.deleteReportBtn,
-// //             pressed && styles.deleteReportBtnPressed,
-// //           ]}
-// //           onPress={() => openDeleteConfirm(item.id, item.name)}
-// //         >
-// //           <Ionicons name="trash-outline" size={16} color="#EF4444" />
-// //           <Text style={styles.deleteReportBtnText}>Delete</Text>
-// //         </Pressable>
-// //       </View>
-// //     );
-// //   };
-
-// //   const renderReportSubmissionItem = ({ item }) => {
-// //     const statusColor =
-// //       item.status === 'approved'
-// //         ? '#10B981'
-// //         : item.status === 'pending'
-// //         ? '#F59E0B'
-// //         : '#EF4444';
-
-// //     return (
-// //       <View style={styles.submissionCard}>
-// //         <View style={styles.submissionHeader}>
-// //           <View
-// //             style={[
-// //               styles.submissionStatusDot,
-// //               { backgroundColor: statusColor },
-// //             ]}
-// //           />
-// //           <Text style={styles.submissionTitle}>{item.title}</Text>
-// //         </View>
-
-// //         <View style={styles.submissionDetails}>
-// //           <View style={styles.detailRow}>
-// //             <Ionicons name="person" size={14} color="#6B7280" />
-// //             <Text style={styles.detailText}>{item.submittedBy}</Text>
-// //           </View>
-// //           <View style={styles.detailRow}>
-// //             <Ionicons name="document-outline" size={14} color="#6B7280" />
-// //             <Text style={styles.detailText}>{item.type}</Text>
-// //           </View>
-// //           <View style={styles.detailRow}>
-// //             <Ionicons name="calendar" size={14} color="#6B7280" />
-// //             <Text style={styles.detailText}>{item.submittedDate}</Text>
-// //           </View>
-// //         </View>
-
-// //         <View style={styles.submissionFooter}>
-// //           <View
-// //             style={[
-// //               styles.statusBadge,
-// //               { backgroundColor: `${statusColor}20` },
-// //             ]}
-// //           >
-// //             <Text style={[styles.statusBadgeText, { color: statusColor }]}>
-// //               {item.status.toUpperCase()}
-// //             </Text>
-// //           </View>
-// //           {item.approvedBy && (
-// //             <Text style={styles.approvedByText}>
-// //               by {item.approvedBy}
-// //             </Text>
-// //           )}
-// //         </View>
-// //       </View>
-// //     );
-// //   };
-
-// //   if (loading) {
-// //     return (
-// //       <View style={styles.loadingContainer}>
-// //         <ActivityIndicator size="large" color="#286DA6" />
-// //         <Text style={styles.loadingText}>Loading reports...</Text>
-// //       </View>
-// //     );
-// //   }
-
-// //   return (
-// //     <View style={styles.container}>
-// //       {/* Header */}
-// //       <View style={styles.header}>
-// //         <View style={styles.headerLeft}>
-// //           <Pressable
-// //             onPress={() => navigation.goBack()}
-// //             style={({ pressed }) => [
-// //               styles.backButton,
-// //               pressed && styles.backButtonPressed,
-// //             ]}
-// //           >
-// //             <Ionicons name="chevron-back" size={24} color="#286DA6" />
-// //           </Pressable>
-// //           <Text style={styles.headerTitle}>Manage Reports</Text>
-// //         </View>
-
-// //         {activeTab === 'types' && (
-// //           <Pressable
-// //             style={({ pressed }) => [
-// //               styles.addButton,
-// //               pressed && styles.addButtonPressed,
-// //             ]}
-// //             onPress={() => setAddReportModal({ ...addReportModal, visible: true, fields: addReportModal.fields || [] })}
-// //           >
-// //             <Ionicons name="add" size={20} color="#FFFFFF" />
-// //           </Pressable>
-// //         )}
-// //       </View>
-
-// //       {/* Tabs */}
-// //       <View style={styles.tabsContainer}>
-// //         <Pressable
-// //           style={[styles.tab, activeTab === 'types' && styles.tabActive]}
-// //           onPress={() => setActiveTab('types')}
-// //         >
-// //           <Ionicons
-// //             name="layers-outline"
-// //             size={18}
-// //             color={activeTab === 'types' ? '#286DA6' : '#B0C4D8'}
-// //           />
-// //           <Text
-// //             style={[
-// //               styles.tabText,
-// //               activeTab === 'types' && styles.tabTextActive,
-// //             ]}
-// //           >
-// //             Report Types
-// //           </Text>
-// //           <View
-// //             style={[
-// //               styles.tabBadge,
-// //               activeTab !== 'types' && styles.tabBadgeInactive,
-// //             ]}
-// //           >
-// //             <Text
-// //               style={[
-// //                 styles.tabBadgeText,
-// //                 activeTab !== 'types' && styles.tabBadgeTextInactive,
-// //               ]}
-// //             >
-// //               {reportTypes.length}
-// //             </Text>
-// //           </View>
-// //         </Pressable>
-
-// //         <Pressable
-// //           style={[styles.tab, activeTab === 'submissions' && styles.tabActive]}
-// //           onPress={() => setActiveTab('submissions')}
-// //         >
-// //           <Ionicons
-// //             name="document-text-outline"
-// //             size={18}
-// //             color={activeTab === 'submissions' ? '#286DA6' : '#B0C4D8'}
-// //           />
-// //           <Text
-// //             style={[
-// //               styles.tabText,
-// //               activeTab === 'submissions' && styles.tabTextActive,
-// //             ]}
-// //           >
-// //             All Submissions
-// //           </Text>
-// //           <View
-// //             style={[
-// //               styles.tabBadge,
-// //               activeTab !== 'submissions' && styles.tabBadgeInactive,
-// //             ]}
-// //           >
-// //             <Text
-// //               style={[
-// //                 styles.tabBadgeText,
-// //                 activeTab !== 'submissions' && styles.tabBadgeTextInactive,
-// //               ]}
-// //             >
-// //               {allReports.length}
-// //             </Text>
-// //           </View>
-// //         </Pressable>
-// //       </View>
-
-// //       {/* Content */}
-// //       {activeTab === 'types' ? (
-// //         <FlatList
-// //           data={reportTypes}
-// //           renderItem={renderReportTypeItem}
-// //           keyExtractor={item => String(item.id)}
-// //           contentContainerStyle={styles.listContent}
-// //           refreshing={refreshing}
-// //           onRefresh={onRefresh}
-// //           ListEmptyComponent={
-// //             <View style={styles.emptyState}>
-// //               <Ionicons name="layers-outline" size={48} color="#B0C4D8" />
-// //               <Text style={styles.emptyStateText}>No report types</Text>
-// //             </View>
-// //           }
-// //         />
-// //       ) : (
-// //         <FlatList
-// //           data={allReports}
-// //           renderItem={renderReportSubmissionItem}
-// //           keyExtractor={item => String(item.id)}
-// //           contentContainerStyle={styles.listContent}
-// //           refreshing={refreshing}
-// //           onRefresh={onRefresh}
-// //           ListEmptyComponent={
-// //             <View style={styles.emptyState}>
-// //               <Ionicons name="document-outline" size={48} color="#B0C4D8" />
-// //               <Text style={styles.emptyStateText}>No submissions</Text>
-// //             </View>
-// //           }
-// //         />
-// //       )}
-
-// //       {/* Add Report Type Modal */}
-// //       <Modal
-// //         visible={addReportModal.visible}
-// //         transparent={true}
-// //         animationType="slide"
-// //         onRequestClose={() =>
-// //           setAddReportModal({
-// //             visible: false,
-// //             name: '',
-// //             code: '',
-// //             description: '',
-// //             frequency: 'Daily',
-// //             isLoading: false,
-// //             fields: [],
-// //           })
-// //         }
-// //       >
-// //         <View style={styles.modalOverlay}>
-// //           <View style={styles.modalContent}>
-// //             {/* Modal Header */}
-// //             <View style={styles.modalHeader}>
-// //               <Text style={styles.modalTitle}>Create Report Type</Text>
-// //               <Pressable
-// //                 onPress={() =>
-// //                   setAddReportModal({
-// //                     visible: false,
-// //                     name: '',
-// //                     code: '',
-// //                     description: '',
-// //                     frequency: 'Daily',
-// //                     isLoading: false,
-// //                     fields: [],
-// //                   })
-// //                 }
-// //                 style={({ pressed }) => [
-// //                   styles.closeButton,
-// //                   pressed && styles.closeButtonPressed,
-// //                 ]}
-// //               >
-// //                 <Ionicons name="close" size={24} color="#6B7280" />
-// //               </Pressable>
-// //             </View>
-
-// //             <ScrollView style={styles.modalScrollView}>
-// //               {/* Report Name */}
-// //               <View style={styles.formGroup}>
-// //                 <Text style={styles.formLabel}>Report Name *</Text>
-// //                 <TextInput
-// //                   style={styles.formInput}
-// //                   placeholder="e.g., Daily Production Report"
-// //                   placeholderTextColor="#B0C4D8"
-// //                   value={addReportModal.name}
-// //                   onChangeText={(text) =>
-// //                     setAddReportModal({ ...addReportModal, name: text })
-// //                   }
-// //                   editable={!addReportModal.isLoading}
-// //                 />
-// //               </View>
-
-// //               {/* Report Code */}
-// //               <View style={styles.formGroup}>
-// //                 <Text style={styles.formLabel}>Report Code *</Text>
-// //                 <TextInput
-// //                   style={styles.formInput}
-// //                   placeholder="e.g., RPT_PROD_001"
-// //                   placeholderTextColor="#B0C4D8"
-// //                   value={addReportModal.code}
-// //                   onChangeText={(text) =>
-// //                     setAddReportModal({ ...addReportModal, code: text })
-// //                   }
-// //                   editable={!addReportModal.isLoading}
-// //                 />
-// //                 <Text style={styles.formHelp}>
-// //                   Unique identifier for this report type
-// //                 </Text>
-// //               </View>
-
-// //               {/* Description */}
-// //               <View style={styles.formGroup}>
-// //                 <Text style={styles.formLabel}>Description</Text>
-// //                 <TextInput
-// //                   style={[styles.formInput, styles.textAreaInput]}
-// //                   placeholder="Enter report description..."
-// //                   placeholderTextColor="#B0C4D8"
-// //                   value={addReportModal.description}
-// //                   onChangeText={(text) =>
-// //                     setAddReportModal({ ...addReportModal, description: text })
-// //                   }
-// //                   multiline={true}
-// //                   numberOfLines={3}
-// //                   editable={!addReportModal.isLoading}
-// //                 />
-// //               </View>
-
-// //               {/* Frequency */}
-// //               <View style={styles.formGroup}>
-// //                 <Text style={styles.formLabel}>Frequency</Text>
-// //                 <View style={styles.frequencyButtons}>
-// //                   {['Daily', 'Weekly', 'Monthly', 'Per Batch', 'As Needed'].map(
-// //                     freq => (
-// //                       <Pressable
-// //                         key={freq}
-// //                         style={[
-// //                           styles.frequencyButton,
-// //                           addReportModal.frequency === freq &&
-// //                             styles.frequencyButtonActive,
-// //                         ]}
-// //                         onPress={() =>
-// //                           setAddReportModal({
-// //                             ...addReportModal,
-// //                             frequency: freq,
-// //                           })
-// //                         }
-// //                       >
-// //                         <Text
-// //                           style={[
-// //                             styles.frequencyButtonText,
-// //                             addReportModal.frequency === freq &&
-// //                               styles.frequencyButtonTextActive,
-// //                           ]}
-// //                         >
-// //                           {freq}
-// //                         </Text>
-// //                       </Pressable>
-// //                     ),
-// //                   )}
-// //                 </View>
-// //               </View>
-
-// //               {/* Fields */}
-// //               <View style={styles.formGroup}>
-// //                 <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-// //                   <Text style={styles.formLabel}>Fields</Text>
-// //                   <Pressable
-// //                     onPress={() => {
-// //                       setAddReportModal(prev => ({
-// //                         ...prev,
-// //                         fields: [ ...(prev.fields || []), { label: '', specification: '', unit: '', position: (prev.fields||[]).length + 1 } ]
-// //                       }));
-// //                     }}
-// //                     style={{padding: 6}}
-// //                   >
-// //                     <Ionicons name="add-circle" size={22} color="#286DA6" />
-// //                   </Pressable>
-// //                 </View>
-
-// //                 {(addReportModal.fields || []).map((f, idx) => (
-// //                   <View key={idx} style={{marginTop: 8, borderWidth: 1, borderColor: '#E5E7EB', padding: 8, borderRadius: 8}}>
-// //                     <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-// //                       <Text style={{fontWeight: '600'}}>Field {idx + 1}</Text>
-// //                       <Pressable onPress={() => {
-// //                         setAddReportModal(prev => ({ ...prev, fields: prev.fields.filter((_,i)=>i!==idx) }));
-// //                       }} style={{padding:4}}>
-// //                         <Ionicons name="trash-outline" size={18} color="#EF4444" />
-// //                       </Pressable>
-// //                     </View>
-// //                     <TextInput
-// //                       style={[styles.formInput, {marginTop:8}]}
-// //                       placeholder="Label (e.g., Length)"
-// //                       value={f.label}
-// //                       onChangeText={(text) => {
-// //                         setAddReportModal(prev => {
-// //                           const fields = [...(prev.fields||[])];
-// //                           fields[idx] = { ...fields[idx], label: text };
-// //                           return { ...prev, fields };
-// //                         });
-// //                       }}
-// //                       editable={!addReportModal.isLoading}
-// //                     />
-// //                     <TextInput
-// //                       style={[styles.formInput, {marginTop:8}]}
-// //                       placeholder="Specification (optional)"
-// //                       value={f.specification}
-// //                       onChangeText={(text) => {
-// //                         setAddReportModal(prev => {
-// //                           const fields = [...(prev.fields||[])];
-// //                           fields[idx] = { ...fields[idx], specification: text };
-// //                           return { ...prev, fields };
-// //                         });
-// //                       }}
-// //                       editable={!addReportModal.isLoading}
-// //                     />
-// //                     <View style={{flexDirection:'row', gap:8, marginTop:8}}>
-// //                       <TextInput
-// //                         style={[styles.formInput, {flex:1}]}
-// //                         placeholder="Unit (e.g., mm)"
-// //                         value={f.unit}
-// //                         onChangeText={(text) => {
-// //                           setAddReportModal(prev => {
-// //                             const fields = [...(prev.fields||[])];
-// //                             fields[idx] = { ...fields[idx], unit: text };
-// //                             return { ...prev, fields };
-// //                           });
-// //                         }}
-// //                         editable={!addReportModal.isLoading}
-// //                       />
-// //                       <TextInput
-// //                         style={[styles.formInput, {width:70}]}
-// //                         placeholder="Pos"
-// //                         keyboardType="numeric"
-// //                         value={String(f.position || idx+1)}
-// //                         onChangeText={(text) => {
-// //                           const num = parseInt(text,10) || idx+1;
-// //                           setAddReportModal(prev => {
-// //                             const fields = [...(prev.fields||[])];
-// //                             fields[idx] = { ...fields[idx], position: num };
-// //                             return { ...prev, fields };
-// //                           });
-// //                         }}
-// //                         editable={!addReportModal.isLoading}
-// //                       />
-// //                     </View>
-// //                   </View>
-// //                 ))}
-// //               </View>
-// //             </ScrollView>
-
-// //             {/* Modal Buttons */}
-// //             <View style={styles.modalFooter}>
-// //               <Pressable
-// //                 style={({ pressed }) => [
-// //                   styles.modalCancelButton,
-// //                   pressed && styles.modalButtonPressed,
-// //                 ]}
-// //                 onPress={() =>
-// //                   setAddReportModal({
-// //                     visible: false,
-// //                     name: '',
-// //                     code: '',
-// //                     description: '',
-// //                     frequency: 'Daily',
-// //                     isLoading: false,
-// //                   })
-// //                 }
-// //                 disabled={addReportModal.isLoading}
-// //               >
-// //                 <Text style={styles.modalCancelText}>Cancel</Text>
-// //               </Pressable>
-
-// //               <Pressable
-// //                 style={({ pressed }) => [
-// //                   styles.modalSaveButton,
-// //                   pressed && styles.modalButtonPressed,
-// //                   addReportModal.isLoading && styles.modalButtonDisabled,
-// //                 ]}
-// //                 onPress={handleAddReportType}
-// //                 disabled={addReportModal.isLoading}
-// //               >
-// //                 {addReportModal.isLoading ? (
-// //                   <ActivityIndicator size="small" color="#FFFFFF" />
-// //                 ) : (
-// //                   <Text style={styles.modalSaveText}>Create Report Type</Text>
-// //                 )}
-// //               </Pressable>
-// //             </View>
-// //           </View>
-// //         </View>
-// //       </Modal>
-
-// //       {/* Confirmation Dialog */}
-// //       <ConfirmationDialog
-// //         visible={confirmDialog.visible}
-// //         title="Delete Report Type?"
-// //         message={`Are you sure you want to delete "${confirmDialog.reportName}"? This action cannot be undone.`}
-// //         confirmText="Delete"
-// //         cancelText="Cancel"
-// //         onConfirm={handleDeleteReportType}
-// //         onCancel={() =>
-// //           setConfirmDialog({
-// //             visible: false,
-// //             reportId: null,
-// //             reportName: '',
-// //             isLoading: false,
-// //           })
-// //         }
-// //         isLoading={confirmDialog.isLoading}
-// //         isDangerous={true}
-// //       />
-
-// //       {/* Alert */}
-// //       <CustomAlert
-// //         visible={alert.visible}
-// //         type={alert.type}
-// //         title={alert.title}
-// //         message={alert.message}
-// //         onClose={() =>
-// //           setAlert({ visible: false, type: 'success', title: '', message: '' })
-// //         }
-// //       />
-// //     </View>
-// //   );
-// // };
-
-// // export default ManageReportsScreen;
-
-// // const styles = StyleSheet.create({
-// //   container: {
-// //     flex: 1,
-// //     backgroundColor: '#F8FBFE',
-// //   },
-// //   loadingContainer: {
-// //     flex: 1,
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //     backgroundColor: '#F8FBFE',
-// //   },
-// //   loadingText: {
-// //     marginTop: 12,
-// //     fontSize: 14,
-// //     color: '#6B7280',
-// //   },
-// //   header: {
-// //     flexDirection: 'row',
-// //     justifyContent: 'space-between',
-// //     alignItems: 'center',
-// //     paddingHorizontal: 16,
-// //     paddingTop: 50,
-// //     paddingBottom: 16,
-// //     backgroundColor: '#FFFFFF',
-// //     borderBottomWidth: 1,
-// //     borderBottomColor: '#E3F2FD',
-// //   },
-// //   headerLeft: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     gap: 12,
-// //   },
-// //   backButton: {
-// //     width: 40,
-// //     height: 40,
-// //     borderRadius: 8,
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   backButtonPressed: {
-// //     backgroundColor: '#F3F4F6',
-// //   },
-// //   headerTitle: {
-// //     fontSize: 18,
-// //     fontWeight: '700',
-// //     color: '#1F2937',
-// //   },
-// //   addButton: {
-// //     width: 34,
-// //     height: 34,
-// //     borderRadius: 10,
-// //     backgroundColor: '#286DA6',
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   addButtonPressed: {
-// //     opacity: 0.8,
-// //   },
-// //   tabsContainer: {
-// //     flexDirection: 'row',
-// //     backgroundColor: '#FFFFFF',
-// //     borderBottomWidth: 1,
-// //     borderBottomColor: '#E3F2FD',
-// //     paddingHorizontal: 8,
-// //   },
-// //   tab: {
-// //     flex: 1,
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     justifyContent: 'center',
-// //     gap: 6,
-// //     paddingVertical: 12,
-// //     borderBottomWidth: 2,
-// //     borderBottomColor: 'transparent',
-// //   },
-// //   tabActive: {
-// //     borderBottomColor: '#286DA6',
-// //   },
-// //   tabText: {
-// //     fontSize: 13,
-// //     fontWeight: '600',
-// //     color: '#B0C4D8',
-// //   },
-// //   tabTextActive: {
-// //     color: '#286DA6',
-// //   },
-// //   tabBadge: {
-// //     paddingHorizontal: 6,
-// //     paddingVertical: 2,
-// //     borderRadius: 4,
-// //     backgroundColor: '#286DA6',
-// //   },
-// //   tabBadgeInactive: {
-// //     backgroundColor: '#E3F2FD',
-// //   },
-// //   tabBadgeText: {
-// //     fontSize: 10,
-// //     fontWeight: '600',
-// //     color: '#FFFFFF',
-// //   },
-// //   tabBadgeTextInactive: {
-// //     color: '#286DA6',
-// //   },
-// //   listContent: {
-// //     paddingHorizontal: 16,
-// //     paddingVertical: 16,
-// //   },
-// //   reportTypeCard: {
-// //     backgroundColor: '#FFFFFF',
-// //     borderRadius: 12,
-// //     padding: 14,
-// //     marginBottom: 12,
-// //     shadowColor: '#286DA6',
-// //     shadowOffset: { width: 0, height: 1 },
-// //     shadowOpacity: 0.04,
-// //     shadowRadius: 4,
-// //     elevation: 1,
-// //   },
-// //   reportTypeHeader: {
-// //     flexDirection: 'row',
-// //     alignItems: 'flex-start',
-// //     gap: 12,
-// //     marginBottom: 12,
-// //   },
-// //   reportTypeIcon: {
-// //     width: 40,
-// //     height: 40,
-// //     borderRadius: 8,
-// //     backgroundColor: '#E3F2FD',
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   reportTypeInfo: {
-// //     flex: 1,
-// //   },
-// //   reportTypeName: {
-// //     fontSize: 14,
-// //     fontWeight: '700',
-// //     color: '#1F2937',
-// //   },
-// //   reportTypeCode: {
-// //     fontSize: 11,
-// //     color: '#9CA3AF',
-// //     marginTop: 2,
-// //     fontFamily: 'monospace',
-// //   },
-// //   reportTypeDesc: {
-// //     fontSize: 12,
-// //     color: '#6B7280',
-// //     marginTop: 4,
-// //     lineHeight: 16,
-// //   },
-// //   reportTypeMeta: {
-// //     flexDirection: 'row',
-// //     gap: 8,
-// //     marginBottom: 10,
-// //     flexWrap: 'wrap',
-// //   },
-// //   metaItem: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     gap: 4,
-// //     paddingHorizontal: 8,
-// //     paddingVertical: 4,
-// //     backgroundColor: '#F9FAFB',
-// //     borderRadius: 6,
-// //   },
-// //   metaText: {
-// //     fontSize: 11,
-// //     color: '#6B7280',
-// //     fontWeight: '500',
-// //   },
-// //   statusTag: {
-// //     paddingHorizontal: 8,
-// //     paddingVertical: 4,
-// //     borderRadius: 6,
-// //   },
-// //   statusTagText: {
-// //     fontSize: 10,
-// //     fontWeight: '600',
-// //     textTransform: 'capitalize',
-// //   },
-// //   deleteReportBtn: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     justifyContent: 'center',
-// //     gap: 6,
-// //     paddingVertical: 8,
-// //     paddingHorizontal: 12,
-// //     backgroundColor: '#FEE2E2',
-// //     borderRadius: 8,
-// //   },
-// //   deleteReportBtnPressed: {
-// //     opacity: 0.8,
-// //   },
-// //   deleteReportBtnText: {
-// //     fontSize: 12,
-// //     fontWeight: '600',
-// //     color: '#EF4444',
-// //   },
-// //   submissionCard: {
-// //     backgroundColor: '#FFFFFF',
-// //     borderRadius: 12,
-// //     padding: 14,
-// //     marginBottom: 12,
-// //     shadowColor: '#286DA6',
-// //     shadowOffset: { width: 0, height: 1 },
-// //     shadowOpacity: 0.04,
-// //     shadowRadius: 4,
-// //     elevation: 1,
-// //   },
-// //   submissionHeader: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     gap: 10,
-// //     marginBottom: 12,
-// //   },
-// //   submissionStatusDot: {
-// //     width: 10,
-// //     height: 10,
-// //     borderRadius: 5,
-// //   },
-// //   submissionTitle: {
-// //     flex: 1,
-// //     fontSize: 14,
-// //     fontWeight: '700',
-// //     color: '#1F2937',
-// //   },
-// //   submissionDetails: {
-// //     gap: 6,
-// //     marginBottom: 10,
-// //   },
-// //   detailRow: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     gap: 8,
-// //   },
-// //   detailText: {
-// //     fontSize: 12,
-// //     color: '#6B7280',
-// //   },
-// //   submissionFooter: {
-// //     flexDirection: 'row',
-// //     alignItems: 'center',
-// //     justifyContent: 'space-between',
-// //     gap: 10,
-// //   },
-// //   statusBadge: {
-// //     paddingHorizontal: 8,
-// //     paddingVertical: 4,
-// //     borderRadius: 6,
-// //   },
-// //   statusBadgeText: {
-// //     fontSize: 10,
-// //     fontWeight: '600',
-// //   },
-// //   approvedByText: {
-// //     fontSize: 11,
-// //     color: '#9CA3AF',
-// //     fontStyle: 'italic',
-// //   },
-// //   emptyState: {
-// //     alignItems: 'center',
-// //     paddingVertical: 60,
-// //   },
-// //   emptyStateText: {
-// //     fontSize: 14,
-// //     color: '#9CA3AF',
-// //     marginTop: 12,
-// //   },
-// //   modalOverlay: {
-// //     flex: 1,
-// //     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-// //     justifyContent: 'flex-end',
-// //   },
-// //   modalContent: {
-// //     backgroundColor: '#FFFFFF',
-// //     borderTopLeftRadius: 20,
-// //     borderTopRightRadius: 20,
-// //     maxHeight: '85%',
-// //   },
-// //   modalHeader: {
-// //     flexDirection: 'row',
-// //     justifyContent: 'space-between',
-// //     alignItems: 'center',
-// //     paddingHorizontal: 20,
-// //     paddingTop: 16,
-// //     paddingBottom: 12,
-// //     borderBottomWidth: 1,
-// //     borderBottomColor: '#E3F2FD',
-// //   },
-// //   modalTitle: {
-// //     fontSize: 18,
-// //     fontWeight: '700',
-// //     color: '#1F2937',
-// //   },
-// //   closeButton: {
-// //     width: 36,
-// //     height: 36,
-// //     borderRadius: 8,
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   closeButtonPressed: {
-// //     backgroundColor: '#F3F4F6',
-// //   },
-// //   modalScrollView: {
-// //     paddingHorizontal: 20,
-// //     paddingVertical: 16,
-// //   },
-// //   formGroup: {
-// //     marginBottom: 20,
-// //   },
-// //   formLabel: {
-// //     fontSize: 13,
-// //     fontWeight: '600',
-// //     color: '#1F2937',
-// //     marginBottom: 8,
-// //   },
-// //   formInput: {
-// //     paddingHorizontal: 12,
-// //     paddingVertical: 10,
-// //     borderWidth: 1,
-// //     borderColor: '#E3F2FD',
-// //     borderRadius: 8,
-// //     fontSize: 14,
-// //     color: '#1F2937',
-// //     backgroundColor: '#F9FAFB',
-// //   },
-// //   textAreaInput: {
-// //     minHeight: 80,
-// //     textAlignVertical: 'top',
-// //     paddingTop: 12,
-// //   },
-// //   formHelp: {
-// //     fontSize: 11,
-// //     color: '#9CA3AF',
-// //     marginTop: 6,
-// //   },
-// //   frequencyButtons: {
-// //     flexDirection: 'row',
-// //     flexWrap: 'wrap',
-// //     gap: 8,
-// //   },
-// //   frequencyButton: {
-// //     paddingHorizontal: 12,
-// //     paddingVertical: 8,
-// //     borderRadius: 8,
-// //     backgroundColor: '#F3F4F6',
-// //     borderWidth: 1,
-// //     borderColor: '#E5E7EB',
-// //   },
-// //   frequencyButtonActive: {
-// //     backgroundColor: '#286DA6',
-// //     borderColor: '#286DA6',
-// //   },
-// //   frequencyButtonText: {
-// //     fontSize: 12,
-// //     fontWeight: '600',
-// //     color: '#6B7280',
-// //   },
-// //   frequencyButtonTextActive: {
-// //     color: '#FFFFFF',
-// //   },
-// //   modalFooter: {
-// //     flexDirection: 'row',
-// //     gap: 12,
-// //     paddingHorizontal: 20,
-// //     paddingTop: 12,
-// //     paddingBottom: 30,
-// //     borderTopWidth: 1,
-// //     borderTopColor: '#E3F2FD',
-// //   },
-// //   modalCancelButton: {
-// //     flex: 1,
-// //     paddingVertical: 12,
-// //     borderRadius: 8,
-// //     backgroundColor: '#F3F4F6',
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   modalSaveButton: {
-// //     flex: 1,
-// //     paddingVertical: 12,
-// //     borderRadius: 8,
-// //     backgroundColor: '#286DA6',
-// //     justifyContent: 'center',
-// //     alignItems: 'center',
-// //   },
-// //   modalButtonPressed: {
-// //     opacity: 0.8,
-// //   },
-// //   modalButtonDisabled: {
-// //     opacity: 0.6,
-// //   },
-// //   modalCancelText: {
-// //     fontSize: 14,
-// //     fontWeight: '600',
-// //     color: '#6B7280',
-// //   },
-// //   modalSaveText: {
-// //     fontSize: 14,
-// //     fontWeight: '600',
-// //     color: '#FFFFFF',
-// //   },
-// // });
-
-// import React, { useEffect, useState } from 'react';
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   ScrollView,
-//   Pressable,
-//   FlatList,
-//   TextInput,
-//   ActivityIndicator,
-// } from 'react-native';
-// import Ionicons from 'react-native-vector-icons/Ionicons';
-// import { useFocusEffect } from '@react-navigation/native';
-// import DocumentPicker from 'react-native-document-picker';
-
-// import reportApi from '../../utils/reportApi';
-// import CustomAlert from '../../components/CustomAlert';
-
-// const ManageReportsScreen = () => {
-//   /* ================= CATEGORY ================= */
-//   const [categories, setCategories] = useState([]);
-//   const [selectedCategory, setSelectedCategory] = useState(null);
-//   const [newCategory, setNewCategory] = useState('');
-
-//   /* ================= TEMPLATE ================= */
-//   const [templateForm, setTemplateForm] = useState({
-//     doc_no: '',
-//     rev_no: '',
-//     customer: '',
-//     part_no: '',
-//     part_description: '',
-//   });
-//   const [templateId, setTemplateId] = useState(null);
-//   const [diagramFile, setDiagramFile] = useState(null);
-
-//   /* ================= FIELDS ================= */
-//   const [fields, setFields] = useState([]);
-//   const [fieldForm, setFieldForm] = useState({
-//     label: '',
-//     specification: '',
-//     unit: 'mm',
-//   });
-
-//   /* ================= SUBMISSIONS ================= */
-//   const [submissions, setSubmissions] = useState([]);
-
-//   /* ================= UI ================= */
-//   const [loading, setLoading] = useState(true);
-//   const [alert, setAlert] = useState({ visible: false });
-
-//   const showAlert = (type, title, message = '') =>
-//     setAlert({ visible: true, type, title, message });
-
-//   /* ================= LOAD ================= */
-//   const loadAll = async () => {
-//     setLoading(true);
-//     try {
-//       const [cats, subs] = await Promise.all([
-//         reportApi.getCategories(),
-//         reportApi.getAllSubmissions(),
-//       ]);
-//       setCategories(cats || []);
-//       setSubmissions(subs || []);
-//     } catch {
-//       showAlert('error', 'Failed to load data');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   useFocusEffect(
-//     React.useCallback(() => {
-//       loadAll();
-//     }, [])
-//   );
-
-//   /* ================= CATEGORY ================= */
-//   const createCategory = async () => {
-//     if (!newCategory.trim()) return;
-//     const res = await reportApi.createCategory(newCategory.trim());
-//     setCategories(prev => [...prev, res]);
-//     setSelectedCategory(res);
-//     setNewCategory('');
-//   };
-
-//   /* ================= TEMPLATE ================= */
-//   const createTemplate = async () => {
-//     if (!selectedCategory) {
-//       showAlert('error', 'Select category first');
-//       return;
-//     }
-
-//     if (!templateForm.doc_no || !templateForm.part_description) {
-//       showAlert('error', 'Doc No & Description required');
-//       return;
-//     }
-
-//     const res = await reportApi.createTemplate({
-//       category_id: selectedCategory.id,
-//       ...templateForm,
-//     });
-
-//     const tid = res.id || res.insertId;
-//     setTemplateId(tid);
-
-//     if (diagramFile) {
-//       await reportApi.uploadDiagram(tid, diagramFile);
-//     }
-
-//     showAlert('success', 'Template created');
-//   };
-
-//   /* ================= DIAGRAM ================= */
-//   const pickDiagram = async () => {
-//     try {
-//       const file = await DocumentPicker.pickSingle({
-//         type: DocumentPicker.types.images,
-//       });
-//       setDiagramFile(file);
-//     } catch (err) {
-//       if (!DocumentPicker.isCancel(err)) {
-//         showAlert('error', 'Failed to pick diagram');
-//       }
-//     }
-//   };
-
-//   /* ================= FIELD ================= */
-//   const addField = async () => {
-//     if (!fieldForm.label || !templateId) return;
-
-//     const payload = {
-//       ...fieldForm,
-//       position: fields.length + 1,
-//     };
-
-//     await reportApi.createField(templateId, payload);
-//     setFields(prev => [...prev, payload]);
-//     setFieldForm({ label: '', specification: '', unit: 'mm' });
-//   };
-
-//   if (loading) {
-//     return (
-//       <View style={styles.center}>
-//         <ActivityIndicator size="large" color="#286DA6" />
-//       </View>
-//     );
-//   }
-
-//   return (
-//     <ScrollView style={styles.container}>
-
-//       {/* ================= CATEGORY ================= */}
-//       <Text style={styles.section}>Categories</Text>
-
-//       {categories.map(cat => (
-//         <Pressable
-//           key={cat.id}
-//           style={[
-//             styles.card,
-//             selectedCategory?.id === cat.id && styles.cardActive,
-//           ]}
-//           onPress={() => {
-//             setSelectedCategory(cat);
-//             setTemplateId(null);
-//             setFields([]);
-//           }}
-//         >
-//           <Text style={styles.cardTitle}>{cat.name}</Text>
-//         </Pressable>
-//       ))}
-
-//       <View style={styles.row}>
-//         <TextInput
-//           placeholder="New Category"
-//           value={newCategory}
-//           onChangeText={setNewCategory}
-//           style={styles.input}
-//         />
-//         <Pressable style={styles.addBtn} onPress={createCategory}>
-//           <Ionicons name="add" size={20} color="#fff" />
-//         </Pressable>
-//       </View>
-
-//       {/* ================= TEMPLATE ================= */}
-//       {selectedCategory && (
-//         <>
-//           <Text style={styles.section}>
-//             Template – {selectedCategory.name}
-//           </Text>
-
-//           {['doc_no', 'rev_no', 'customer', 'part_no', 'part_description'].map(k => (
-//             <TextInput
-//               key={k}
-//               placeholder={k}
-//               value={templateForm[k]}
-//               onChangeText={t =>
-//                 setTemplateForm(p => ({ ...p, [k]: t }))
-//               }
-//               style={styles.input}
-//             />
-//           ))}
-
-//           <Pressable style={styles.secondaryBtn} onPress={pickDiagram}>
-//             <Text style={styles.secondaryText}>
-//               {diagramFile ? 'Diagram Selected' : 'Upload Diagram'}
-//             </Text>
-//           </Pressable>
-
-//           <Pressable style={styles.primaryBtn} onPress={createTemplate}>
-//             <Text style={styles.primaryText}>
-//               {templateId ? 'Template Created' : 'Create Template'}
-//             </Text>
-//           </Pressable>
-//         </>
-//       )}
-
-//       {/* ================= FIELDS ================= */}
-//       {templateId && (
-//         <>
-//           <Text style={styles.section}>Fields</Text>
-
-//           {fields.map((f, i) => (
-//             <Text key={i} style={styles.fieldItem}>
-//               {i + 1}. {f.label} ({f.specification})
-//             </Text>
-//           ))}
-
-//           <TextInput
-//             placeholder="Field label"
-//             value={fieldForm.label}
-//             onChangeText={t => setFieldForm(p => ({ ...p, label: t }))}
-//             style={styles.input}
-//           />
-
-//           <TextInput
-//             placeholder="Specification"
-//             value={fieldForm.specification}
-//             onChangeText={t =>
-//               setFieldForm(p => ({ ...p, specification: t }))
-//             }
-//             style={styles.input}
-//           />
-
-//           <Pressable style={styles.primaryBtn} onPress={addField}>
-//             <Text style={styles.primaryText}>Add Field</Text>
-//           </Pressable>
-//         </>
-//       )}
-
-//       {/* ================= SUBMISSIONS ================= */}
-//       <Text style={styles.section}>Submissions</Text>
-
-//       <FlatList
-//         data={submissions}
-//         keyExtractor={i => String(i.id)}
-//         renderItem={({ item }) => (
-//           <View style={styles.subCard}>
-//             <Text style={{ fontWeight: '600' }}>
-//               {item.template_label || 'Report'}
-//             </Text>
-//             <Text>Status: {item.status}</Text>
-//           </View>
-//         )}
-//       />
-
-//       <CustomAlert
-//         visible={alert.visible}
-//         type={alert.type}
-//         title={alert.title}
-//         message={alert.message}
-//         onClose={() => setAlert({ visible: false })}
-//       />
-//     </ScrollView>
-//   );
-// };
-
-// export default ManageReportsScreen;
-
-// /* ================= STYLES ================= */
-
-// const styles = StyleSheet.create({
-//   container: { flex: 1, padding: 16, backgroundColor: '#F8FBFE' },
-//   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-//   section: { fontSize: 18, fontWeight: '700', marginTop: 20 },
-//   input: {
-//     borderWidth: 1,
-//     borderColor: '#E3F2FD',
-//     padding: 12,
-//     borderRadius: 8,
-//     marginTop: 10,
-//     backgroundColor: '#fff',
-//   },
-//   row: { flexDirection: 'row', gap: 10, marginTop: 10 },
-//   addBtn: {
-//     backgroundColor: '#286DA6',
-//     padding: 12,
-//     borderRadius: 8,
-//     justifyContent: 'center',
-//   },
-//   card: {
-//     backgroundColor: '#fff',
-//     padding: 14,
-//     borderRadius: 10,
-//     marginTop: 10,
-//   },
-//   cardActive: { borderWidth: 2, borderColor: '#286DA6' },
-//   cardTitle: { fontWeight: '600' },
-//   primaryBtn: {
-//     backgroundColor: '#286DA6',
-//     padding: 14,
-//     borderRadius: 10,
-//     marginTop: 14,
-//     alignItems: 'center',
-//   },
-//   primaryText: { color: '#fff', fontWeight: '700' },
-//   secondaryBtn: {
-//     backgroundColor: '#E3F2FD',
-//     padding: 12,
-//     borderRadius: 10,
-//     marginTop: 10,
-//     alignItems: 'center',
-//   },
-//   secondaryText: { color: '#286DA6', fontWeight: '600' },
-//   fieldItem: { marginTop: 6 },
-//   subCard: {
-//     backgroundColor: '#fff',
-//     padding: 12,
-//     borderRadius: 8,
-//     marginTop: 10,
-//   },
-// });
-
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -1510,6 +10,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Animated,
   Image,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -1535,7 +36,9 @@ const ManageReportsScreen = ({ navigation }) => {
   const C = theme.colors;
   const styles = React.useMemo(() => createStyles(C), [C]);
 
-  const [activeTab, setActiveTab] = useState('types'); // 'types' or 'submissions'
+  const [activeSection, setActiveSection] = useState('overview');
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [drawerMounted, setDrawerMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -1584,6 +87,7 @@ const ManageReportsScreen = ({ navigation }) => {
   const [submissionSearch, setSubmissionSearch] = useState('');
   const [submissionFilter, setSubmissionFilter] = useState('all');
   const [templateSearch, setTemplateSearch] = useState('');
+  const drawerProgress = useRef(new Animated.Value(0)).current;
 
   const showAlert = (type, title, message = '') => {
     setAlert({ visible: true, type, title, message });
@@ -1624,6 +128,69 @@ const ManageReportsScreen = ({ navigation }) => {
       name.includes(query) || docNo.includes(query) || customer.includes(query)
     );
   });
+  const approvedSubmissionsCount = submissions.filter(
+    item => item.status === 'manager_approved' || item.status === 'inspector_reviewed',
+  ).length;
+  const pendingSubmissionsCount = submissions.filter(
+    item => item.status === 'submitted',
+  ).length;
+  const rejectedSubmissionsCount = submissions.filter(
+    item => item.status === 'rejected',
+  ).length;
+  const totalTemplatesCount = categories.reduce(
+    (sum, item) => sum + Number(item.report_count || 0),
+    0,
+  );
+  const sectionItems = [
+    {
+      key: 'overview',
+      label: 'Overview',
+      icon: 'grid-outline',
+      count: categories.length + submissions.length,
+    },
+    {
+      key: 'types',
+      label: 'Categories',
+      icon: 'layers-outline',
+      count: categories.length,
+    },
+    {
+      key: 'submissions',
+      label: 'Submissions',
+      icon: 'document-text-outline',
+      count: submissions.length,
+    },
+  ];
+  const overviewCards = [
+    {
+      key: 'categories',
+      label: 'Categories',
+      value: categories.length,
+      icon: 'layers-outline',
+      tone: '#1D4ED8',
+    },
+    {
+      key: 'templates',
+      label: 'Templates',
+      value: totalTemplatesCount,
+      icon: 'albums-outline',
+      tone: '#0F766E',
+    },
+    {
+      key: 'pending',
+      label: 'Pending',
+      value: pendingSubmissionsCount,
+      icon: 'time-outline',
+      tone: '#B45309',
+    },
+    {
+      key: 'approved',
+      label: 'Approved',
+      value: approvedSubmissionsCount,
+      icon: 'checkmark-done-outline',
+      tone: '#15803D',
+    },
+  ];
 
   const openCategoryModal = () => {
     setModalMode('category');
@@ -2316,31 +883,187 @@ const ManageReportsScreen = ({ navigation }) => {
     );
   };
 
+  const renderOverviewSection = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.sectionScrollContent}
+    >
+      <View style={styles.heroCard}>
+        <View style={styles.heroTextWrap}>
+          <Text style={styles.heroEyebrow}>Report Control Room</Text>
+          <Text style={styles.heroTitle}>Manage report sections from one place</Text>
+          <Text style={styles.heroSubtitle}>
+            Create categories, maintain templates, and monitor submissions without
+            jumping between screens.
+          </Text>
+        </View>
+        <View style={styles.heroActions}>
+          <Pressable style={styles.heroPrimaryBtn} onPress={openCategoryModal}>
+            <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.heroPrimaryBtnText}>New Category</Text>
+          </Pressable>
+          <Pressable
+            style={styles.heroSecondaryBtn}
+            onPress={() => setActiveSection('submissions')}
+          >
+            <Ionicons name="reader-outline" size={18} color="#114A76" />
+            <Text style={styles.heroSecondaryBtnText}>View Submissions</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.overviewGrid}>
+        {overviewCards.map(card => (
+          <View key={card.key} style={styles.overviewCard}>
+            <View
+              style={[
+                styles.overviewIconWrap,
+                { backgroundColor: `${card.tone}15` },
+              ]}
+            >
+              <Ionicons name={card.icon} size={18} color={card.tone} />
+            </View>
+            <Text style={styles.overviewValue}>{card.value}</Text>
+            <Text style={styles.overviewLabel}>{card.label}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.workspaceCard}>
+        <Text style={styles.workspaceTitle}>Sections</Text>
+        <Text style={styles.workspaceSubtitle}>
+          Each area is separated so admin tasks stay clearer and faster.
+        </Text>
+        {sectionItems
+          .filter(item => item.key !== 'overview')
+          .map(item => (
+            <Pressable
+              key={item.key}
+              style={styles.workspaceRow}
+              onPress={() => setActiveSection(item.key)}
+            >
+              <View style={styles.workspaceRowLeft}>
+                <View style={styles.workspaceRowIcon}>
+                  <Ionicons name={item.icon} size={16} color="#114A76" />
+                </View>
+                <View>
+                  <Text style={styles.workspaceRowTitle}>{item.label}</Text>
+                  <Text style={styles.workspaceRowMeta}>
+                    {item.count} item{item.count === 1 ? '' : 's'}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+            </Pressable>
+          ))}
+      </View>
+
+      <View style={styles.workspaceCard}>
+        <Text style={styles.workspaceTitle}>Submission status</Text>
+        <View style={styles.statusSummaryRow}>
+          <View style={styles.statusSummaryChip}>
+            <View style={[styles.statusSummaryDot, { backgroundColor: '#F59E0B' }]} />
+            <Text style={styles.statusSummaryText}>{pendingSubmissionsCount} pending</Text>
+          </View>
+          <View style={styles.statusSummaryChip}>
+            <View style={[styles.statusSummaryDot, { backgroundColor: '#10B981' }]} />
+            <Text style={styles.statusSummaryText}>{approvedSubmissionsCount} approved</Text>
+          </View>
+          <View style={styles.statusSummaryChip}>
+            <View style={[styles.statusSummaryDot, { backgroundColor: '#EF4444' }]} />
+            <Text style={styles.statusSummaryText}>{rejectedSubmissionsCount} rejected</Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
+  const handleSectionChange = sectionKey => {
+    setActiveSection(sectionKey);
+    setSidebarVisible(false);
+  };
+
+  const renderSectionNav = () => (
+    <View style={styles.sidebar}>
+      {sectionItems.map(item => {
+        const isActive = activeSection === item.key;
+        return (
+          <Pressable
+            key={item.key}
+            style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
+            onPress={() => handleSectionChange(item.key)}
+          >
+            <View style={[styles.sidebarIconWrap, isActive && styles.sidebarIconWrapActive]}>
+              <Ionicons
+                name={item.icon}
+                size={18}
+                color={isActive ? '#FFFFFF' : '#114A76'}
+              />
+            </View>
+            <View style={styles.sidebarTextWrap}>
+              <Text style={[styles.sidebarLabel, isActive && styles.sidebarLabelActive]}>
+                {item.label}
+              </Text>
+              <Text style={[styles.sidebarMeta, isActive && styles.sidebarMetaActive]}>
+                {item.count}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  useEffect(() => {
+    if (sidebarVisible) {
+      setDrawerMounted(true);
+      Animated.timing(drawerProgress, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    if (!drawerMounted) {
+      return;
+    }
+
+    Animated.timing(drawerProgress, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (finished) {
+        setDrawerMounted(false);
+      }
+    });
+  }, [drawerMounted, drawerProgress, sidebarVisible]);
+
+  const drawerTranslateX = drawerProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-260, 0],
+  });
+
+  const drawerBackdropOpacity = drawerProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-              <Ionicons name="chevron-back" size={24} color="#286DA6" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Manage Reports</Text>
-        </View>
-        <Pressable style={styles.addButton} onPress={() => { 
-           console.log("Add button clicked!"); 
-          setShowAddModal(true)
-
-        }}>
-          <Ionicons name="add" size={26} color="#FFF" />
-        </Pressable>
-      </View> */}
-
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => navigation.navigate('AdminHome')} style={styles.backBtn}>
-            <Ionicons name="grid-outline" size={22} color="#286DA6" />
+          <Pressable
+            onPress={() => setSidebarVisible(true)}
+            style={styles.menuButton}
+          >
+            <Ionicons name="menu-outline" size={22} color="#114A76" />
           </Pressable>
-          <Text style={styles.headerTitle}>Reports</Text>
+          <View>
+            <Text style={styles.headerTitle}>Reports</Text>
+            <Text style={styles.headerSubtitle}>Admin report workspace</Text>
+          </View>
         </View>
         <Pressable
           style={styles.addButton}
@@ -2349,115 +1072,134 @@ const ManageReportsScreen = ({ navigation }) => {
           <Ionicons name="add" size={26} color="#FFF" />
         </Pressable>
       </View>
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <Pressable
-          style={[styles.tab, activeTab === 'types' && styles.tabActive]}
-          onPress={() => setActiveTab('types')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'types' && styles.tabTextActive,
-            ]}
-          >
-            Report Types
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[styles.tab, activeTab === 'submissions' && styles.tabActive]}
-          onPress={() => setActiveTab('submissions')}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'submissions' && styles.tabTextActive,
-            ]}
-          >
-            Submissions
-          </Text>
-        </Pressable>
-      </View>
 
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#286DA6" />
         </View>
       ) : (
-        <View style={{ flex: 1 }}>
-          {activeTab === 'submissions' && (
-            <View style={styles.searchPanel}>
-              <View style={styles.searchInputWrap}>
-                <Ionicons name="search-outline" size={18} color="#64748B" />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Search by category or report name"
-                  value={submissionSearch}
-                  onChangeText={setSubmissionSearch}
-                  placeholderTextColor="#94A3B8"
-                />
-                {submissionSearch ? (
-                  <Pressable onPress={() => setSubmissionSearch('')}>
-                    <Ionicons name="close-circle" size={18} color="#94A3B8" />
-                  </Pressable>
-                ) : null}
-              </View>
-
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filterRow}
+        <View style={styles.workspaceShell}>
+          <View style={styles.sectionPanel}>
+            <View style={styles.mobileSectionBar}>
+              <Pressable
+                style={styles.mobileSectionTrigger}
+                onPress={() => setSidebarVisible(true)}
               >
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'approved', label: 'Approved' },
-                  { key: 'pending', label: 'Pending' },
-                  { key: 'rejected', label: 'Rejected' },
-                ].map(filter => (
-                  <Pressable
-                    key={filter.key}
-                    style={[
-                      styles.filterChip,
-                      submissionFilter === filter.key && styles.filterChipActive,
-                    ]}
-                    onPress={() => setSubmissionFilter(filter.key)}
-                  >
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        submissionFilter === filter.key && styles.filterChipTextActive,
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          <FlatList
-            data={activeTab === 'types' ? categories : filteredSubmissions}
-            renderItem={
-              activeTab === 'types' ? renderCategoryItem : renderSubmissionItem
-            }
-            keyExtractor={item => String(item.id)}
-            contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-            refreshing={refreshing}
-            onRefresh={loadAll}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons name="document-outline" size={48} color="#D1D5DB" />
-                <Text style={styles.emptyText}>
-                  {activeTab === 'submissions'
-                    ? 'No submissions match your search'
-                    : 'No data found'}
+                <Text style={styles.mobileSectionTriggerText}>
+                  {sectionItems.find(item => item.key === activeSection)?.label || 'Sections'}
                 </Text>
+              </Pressable>
+            </View>
+            {activeSection === 'overview' ? (
+              renderOverviewSection()
+            ) : (
+              <View style={{ flex: 1 }}>
+                {activeSection === 'submissions' && (
+                  <View style={styles.searchPanel}>
+                    <View style={styles.searchInputWrap}>
+                      <Ionicons name="search-outline" size={18} color="#64748B" />
+                      <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search by category or report name"
+                        value={submissionSearch}
+                        onChangeText={setSubmissionSearch}
+                        placeholderTextColor="#94A3B8"
+                      />
+                      {submissionSearch ? (
+                        <Pressable onPress={() => setSubmissionSearch('')}>
+                          <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                        </Pressable>
+                      ) : null}
+                    </View>
+
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.filterRow}
+                    >
+                      {[
+                        { key: 'all', label: 'All' },
+                        { key: 'approved', label: 'Approved' },
+                        { key: 'pending', label: 'Pending' },
+                        { key: 'rejected', label: 'Rejected' },
+                      ].map(filter => (
+                        <Pressable
+                          key={filter.key}
+                          style={[
+                            styles.filterChip,
+                            submissionFilter === filter.key && styles.filterChipActive,
+                          ]}
+                          onPress={() => setSubmissionFilter(filter.key)}
+                        >
+                          <Text
+                            style={[
+                              styles.filterChipText,
+                              submissionFilter === filter.key && styles.filterChipTextActive,
+                            ]}
+                          >
+                            {filter.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+
+                <FlatList
+                  data={activeSection === 'types' ? categories : filteredSubmissions}
+                  renderItem={
+                    activeSection === 'types' ? renderCategoryItem : renderSubmissionItem
+                  }
+                  keyExtractor={item => String(item.id)}
+                  contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+                  refreshing={refreshing}
+                  onRefresh={loadAll}
+                  ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                      <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                      <Text style={styles.emptyText}>
+                        {activeSection === 'submissions'
+                          ? 'No submissions match your search'
+                          : 'No data found'}
+                      </Text>
+                    </View>
+                  }
+                />
               </View>
-            }
-          />
+            )}
+          </View>
         </View>
       )}
+
+      <Modal
+        visible={drawerMounted}
+        transparent
+        animationType="none"
+        onRequestClose={() => setSidebarVisible(false)}
+      >
+        <View style={styles.drawerModalRoot}>
+          <Pressable style={styles.drawerDismissArea} onPress={() => setSidebarVisible(false)}>
+            <Animated.View
+              pointerEvents="none"
+              style={[styles.drawerBackdrop, { opacity: drawerBackdropOpacity }]}
+            />
+          </Pressable>
+          <Animated.View
+            style={[
+              styles.drawerSheet,
+              { transform: [{ translateX: drawerTranslateX }] },
+            ]}
+          >
+            <View style={styles.drawerHeader}>
+              <Text style={styles.drawerTitle}>Sections</Text>
+              <Pressable onPress={() => setSidebarVisible(false)}>
+                <Ionicons name="close" size={22} color="#64748B" />
+              </Pressable>
+            </View>
+            {renderSectionNav()}
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* {activeTab === 'types' && selectedCategory && (
         <View style={{ paddingHorizontal: 16 }}>
@@ -2868,7 +1610,20 @@ const createStyles = C => StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: C.textStrong },
-  backBtn: { padding: 4 },
+  headerSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#648197',
+    marginTop: 2,
+  },
+  menuButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EAF2F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   addButton: {
     width: 44,
     height: 44,
@@ -2877,24 +1632,306 @@ const createStyles = C => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tabs: {
+  workspaceShell: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
+  },
+  sidebar: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    gap: 10,
+  },
+  sidebarItem: {
     flexDirection: 'row',
-    backgroundColor: C.bg,
+    alignItems: 'center',
+    borderRadius: 18,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  sidebarItemActive: {
+    backgroundColor: '#114A76',
+  },
+  sidebarIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: '#D8E8F4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sidebarIconWrapActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  sidebarTextWrap: {
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+  sidebarLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#114A76',
+    textAlign: 'left',
+  },
+  sidebarLabelActive: {
+    color: '#FFFFFF',
+  },
+  sidebarMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#648197',
+  },
+  sidebarMetaActive: {
+    color: '#D7E8F5',
+  },
+  sectionPanel: {
+    flex: 1,
+    backgroundColor: '#F7FAFC',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  mobileSectionBar: {
     paddingHorizontal: 16,
     paddingTop: 14,
+    paddingBottom: 4,
+    backgroundColor: '#F7FAFC',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 14,
+  mobileSectionTrigger: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 0,
-    borderRadius: 12,
-    backgroundColor: '#E3ECF4',
-    marginHorizontal: 4,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: '#EAF2F8',
+    borderWidth: 1,
+    borderColor: '#D5E4EF',
   },
-  tabActive: { backgroundColor: '#114A76' },
-  tabText: { fontWeight: '700', color: '#5C7488', fontSize: 13 },
-  tabTextActive: { color: '#FFFFFF' },
+  mobileSectionTriggerText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#114A76',
+  },
+  sectionScrollContent: {
+    padding: 16,
+    paddingBottom: 100,
+    gap: 14,
+  },
+  drawerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+  },
+  drawerModalRoot: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  drawerDismissArea: {
+    flex: 1,
+  },
+  drawerSheet: {
+    width: 240,
+    paddingTop: 92,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFFFFF',
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000000',
+    shadowOpacity: 0.14,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  drawerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#123A59',
+  },
+  heroCard: {
+    backgroundColor: '#114A76',
+    borderRadius: 24,
+    padding: 18,
+    gap: 16,
+  },
+  heroTextWrap: {
+    gap: 6,
+  },
+  heroEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B7D9F1',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  heroTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#D7E8F5',
+    fontWeight: '500',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  heroPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#2C7FBA',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  heroPrimaryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  heroSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  heroSecondaryBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#114A76',
+  },
+  overviewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  overviewCard: {
+    width: '47%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  overviewIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overviewValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  overviewLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  workspaceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 12,
+  },
+  workspaceTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#123A59',
+  },
+  workspaceSubtitle: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  workspaceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  workspaceRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  workspaceRowIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: '#E8F1F8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  workspaceRowTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#123A59',
+  },
+  workspaceRowMeta: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  statusSummaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  statusSummaryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  statusSummaryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  statusSummaryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
   searchPanel: {
     paddingHorizontal: 16,
     paddingTop: 14,

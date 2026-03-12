@@ -353,6 +353,8 @@
 const categoryModel = require('../models/categoryModel');
 const templateModel = require('../models/templateModel');
 const submissionModel = require('../models/submissionModel');
+const notificationModel = require('../models/notificationModel');
+const User = require('../models/userModel');
 const db = require('../config/db');
 const path = require('path');
 const fs = require('fs');
@@ -361,6 +363,62 @@ const { uploadRoot } = require('../config/uploads');
 
 function requireRole(user, roleName) {
   return user && user.role === roleName;
+}
+
+async function resolveAssignedReviewerIds(payload = {}) {
+  const [inspectors, managers] = await Promise.all([
+    User.getActiveUsersByRoles(['quality_inspector']),
+    User.getActiveUsersByRoles(['quality_manager']),
+  ]);
+
+  const requestedInspectorId = payload.assigned_inspector_id
+    ? Number(payload.assigned_inspector_id)
+    : null;
+  const requestedManagerId = payload.assigned_manager_id
+    ? Number(payload.assigned_manager_id)
+    : null;
+
+  const assignedInspectorId =
+    requestedInspectorId || (inspectors.length === 1 ? Number(inspectors[0].id) : null);
+  const assignedManagerId =
+    requestedManagerId || (managers.length === 1 ? Number(managers[0].id) : null);
+
+  if (inspectors.length > 1 && !assignedInspectorId) {
+    const error = new Error('Please select an inspector for this report.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (managers.length > 1 && !assignedManagerId) {
+    const error = new Error('Please select a manager for this report.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (
+    assignedInspectorId &&
+    !inspectors.some(user => Number(user.id) === assignedInspectorId)
+  ) {
+    const error = new Error('Selected inspector is invalid.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (
+    assignedManagerId &&
+    !managers.some(user => Number(user.id) === assignedManagerId)
+  ) {
+    const error = new Error('Selected manager is invalid.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    inspectors,
+    managers,
+    assignedInspectorId,
+    assignedManagerId,
+  };
 }
 
 exports.CreateCategory = async (req, res) => {
@@ -527,9 +585,12 @@ exports.CreateSubmission = async (req, res) => {
         .status(400)
         .json({ message: 'values[] required when submitting a report' });
     }
+    const reviewerAssignments = await resolveAssignedReviewerIds(payload);
     const subRes = await submissionModel.createSubmission({
       template_id: payload.template_id,
       employee_id: employeeId,
+      assigned_inspector_id: reviewerAssignments.assignedInspectorId,
+      assigned_manager_id: reviewerAssignments.assignedManagerId,
       inspection_date: payload.inspection_date,
       shift: payload.shift,
       status,
@@ -543,13 +604,22 @@ exports.CreateSubmission = async (req, res) => {
         v.value,
       );
     }
+    if (status === 'submitted' && reviewerAssignments.assignedInspectorId) {
+      await notificationModel.createNotification({
+        userId: reviewerAssignments.assignedInspectorId,
+        title: 'New report assigned',
+        message: 'A submitted report is waiting for your inspection review.',
+        type: 'submission_assigned',
+        relatedSubmissionId: submissionId,
+      });
+    }
     res.status(201).json({
       message: status === 'draft' ? 'Draft saved' : 'Submitted',
       id: submissionId,
       status,
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(err.statusCode || 500).json({ message: err.message });
   }
 };
 
@@ -648,7 +718,24 @@ exports.InspectorReview = async (req, res) => {
   try {
     const id = req.params.id;
     const { observation, remarks } = req.body;
+    const existing = await submissionModel.getById(id);
+    if (!existing) return res.status(404).json({ message: 'Submission not found' });
+    if (
+      existing.assigned_inspector_id &&
+      Number(existing.assigned_inspector_id) !== Number(req.user.id)
+    ) {
+      return res.status(403).json({ message: 'This report is assigned to another inspector' });
+    }
     await submissionModel.updateInspectorReview(id, req.user.id, observation, remarks);
+    if (existing.assigned_manager_id) {
+      await notificationModel.createNotification({
+        userId: existing.assigned_manager_id,
+        title: 'Report ready for manager review',
+        message: `Report #${id} has been reviewed by the inspector.`,
+        type: 'submission_manager_review',
+        relatedSubmissionId: Number(id),
+      });
+    }
     res.json({ message: 'Marked as inspector_reviewed' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -660,6 +747,14 @@ exports.ManagerReview = async (req, res) => {
   try {
     const id = req.params.id;
     const { observation, remarks, approved } = req.body;
+    const existing = await submissionModel.getById(id);
+    if (!existing) return res.status(404).json({ message: 'Submission not found' });
+    if (
+      existing.assigned_manager_id &&
+      Number(existing.assigned_manager_id) !== Number(req.user.id)
+    ) {
+      return res.status(403).json({ message: 'This report is assigned to another manager' });
+    }
     const ok = approved === true || approved === 'true' || approved === 1;
     await submissionModel.updateManagerReview(
       id,
@@ -668,6 +763,15 @@ exports.ManagerReview = async (req, res) => {
       remarks,
       ok,
     );
+    await notificationModel.createNotification({
+      userId: existing.employee_id,
+      title: ok ? 'Report approved' : 'Report rejected',
+      message: ok
+        ? `Your report #${id} was approved by the manager.`
+        : `Your report #${id} was rejected by the manager.`,
+      type: ok ? 'submission_approved' : 'submission_rejected',
+      relatedSubmissionId: Number(id),
+    });
     res.json({ message: ok ? 'Manager approved' : 'Manager rejected' });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -679,7 +783,15 @@ exports.RejectSubmission = async (req, res) => {
     const id = req.params.id;
     const { observation, remarks } = req.body || {};
     const actorRole = req.user.role;
+    const existing = await submissionModel.getById(id);
+    if (!existing) return res.status(404).json({ message: 'Submission not found' });
     if (actorRole === 'quality_inspector') {
+      if (
+        existing.assigned_inspector_id &&
+        Number(existing.assigned_inspector_id) !== Number(req.user.id)
+      ) {
+        return res.status(403).json({ message: 'This report is assigned to another inspector' });
+      }
       await submissionModel.updateInspectorReview(
         id,
         req.user.id,
@@ -687,8 +799,21 @@ exports.RejectSubmission = async (req, res) => {
         remarks || 'rejected',
         'rejected',
       );
+      await notificationModel.createNotification({
+        userId: existing.employee_id,
+        title: 'Report rejected',
+        message: `Your report #${id} was rejected by the inspector.`,
+        type: 'submission_rejected',
+        relatedSubmissionId: Number(id),
+      });
       return res.json({ message: 'Rejected by inspector' });
     } else if (actorRole === 'quality_manager') {
+      if (
+        existing.assigned_manager_id &&
+        Number(existing.assigned_manager_id) !== Number(req.user.id)
+      ) {
+        return res.status(403).json({ message: 'This report is assigned to another manager' });
+      }
       await submissionModel.updateManagerReview(
         id,
         req.user.id,
@@ -696,6 +821,13 @@ exports.RejectSubmission = async (req, res) => {
         remarks || 'rejected',
         false,
       );
+      await notificationModel.createNotification({
+        userId: existing.employee_id,
+        title: 'Report rejected',
+        message: `Your report #${id} was rejected by the manager.`,
+        type: 'submission_rejected',
+        relatedSubmissionId: Number(id),
+      });
       return res.json({ message: 'Rejected by manager' });
     }
     res.status(403).json({ message: 'Only inspector or manager can reject' });
@@ -706,9 +838,58 @@ exports.RejectSubmission = async (req, res) => {
 
 exports.ListSubmissions = async (req, res) => {
   try {
-    // simple role filtering can be added later; for now return all
     const rows = await submissionModel.listAll();
+    const userId = Number(req.user?.id);
+    const role = req.user?.role;
+
+    let filtered = rows;
+    if (role === 'machine_operator') {
+      filtered = rows.filter(row => Number(row.submitted_by) === userId);
+    } else if (role === 'quality_inspector') {
+      filtered = rows.filter(
+        row =>
+          Number(row.assigned_inspector_id) === userId ||
+          Number(row.inspector_id) === userId,
+      );
+    } else if (role === 'quality_manager') {
+      filtered = rows.filter(
+        row =>
+          Number(row.assigned_manager_id) === userId ||
+          Number(row.manager_id) === userId,
+      );
+    }
+
+    res.json(filtered);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.GetAvailableReviewers = async (_req, res) => {
+  try {
+    const [inspectors, managers] = await Promise.all([
+      User.getActiveUsersByRoles(['quality_inspector']),
+      User.getActiveUsersByRoles(['quality_manager']),
+    ]);
+    res.json({ inspectors, managers });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.ListNotifications = async (req, res) => {
+  try {
+    const rows = await notificationModel.listUserNotifications(req.user.id);
     res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.MarkNotificationsRead = async (req, res) => {
+  try {
+    await notificationModel.markAllRead(req.user.id);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

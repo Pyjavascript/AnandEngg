@@ -96,6 +96,7 @@
 const db = require("../config/db");
 
 let managerObservationSupportPromise = null;
+let reviewerAssignmentSupportPromise = null;
 
 async function ensureManagerObservationSupport() {
   if (managerObservationSupportPromise) return managerObservationSupportPromise;
@@ -136,13 +137,71 @@ async function ensureManagerObservationSupport() {
   return managerObservationSupportPromise;
 }
 
+async function ensureReviewerAssignmentSupport() {
+  if (reviewerAssignmentSupportPromise) return reviewerAssignmentSupportPromise;
+
+  reviewerAssignmentSupportPromise = (async () => {
+    const [columns] = await db.query(`
+      SELECT COLUMN_NAME
+      FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = 'report_submissions'
+        AND COLUMN_NAME IN ('assigned_inspector_id', 'assigned_manager_id')
+    `);
+
+    const existing = new Set((columns || []).map(col => col.COLUMN_NAME));
+
+    if (!existing.has('assigned_inspector_id')) {
+      try {
+        await db.query(
+          `ALTER TABLE report_submissions
+           ADD COLUMN assigned_inspector_id INT NULL AFTER employee_id`
+        );
+      } catch (err) {
+        if (!/Duplicate column name/i.test(String(err?.message || ''))) {
+          throw err;
+        }
+      }
+    }
+
+    if (!existing.has('assigned_manager_id')) {
+      try {
+        await db.query(
+          `ALTER TABLE report_submissions
+           ADD COLUMN assigned_manager_id INT NULL AFTER assigned_inspector_id`
+        );
+      } catch (err) {
+        if (!/Duplicate column name/i.test(String(err?.message || ''))) {
+          throw err;
+        }
+      }
+    }
+
+    return true;
+  })();
+
+  return reviewerAssignmentSupportPromise;
+}
+
 exports.createSubmission = async (data) => {
+  await ensureReviewerAssignmentSupport();
   const [result] = await db.query(
-    `INSERT INTO report_submissions (template_id, employee_id, inspection_date, shift, status, created_at)
-     VALUES (?, ?, ?, ?, ?, NOW())`,
+    `INSERT INTO report_submissions (
+      template_id,
+      employee_id,
+      assigned_inspector_id,
+      assigned_manager_id,
+      inspection_date,
+      shift,
+      status,
+      created_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
     [
       data.template_id,
       data.employee_id,
+      data.assigned_inspector_id || null,
+      data.assigned_manager_id || null,
       data.inspection_date || null,
       data.shift || null,
       data.status || "draft",
@@ -161,17 +220,22 @@ exports.addSubmissionValue = async (submissionId, fieldId, value) => {
 };
 
 exports.getById = async (id) => {
+  await ensureReviewerAssignmentSupport();
   const [rows] = await db.query(
     `SELECT 
       rs.*,
       emp.name AS employee_name,
       insp.name AS inspector_name,
       mgr.name AS manager_name,
+      assigned_insp.name AS assigned_inspector_name,
+      assigned_mgr.name AS assigned_manager_name,
       rt.created_at AS template_created_at
     FROM report_submissions rs
     LEFT JOIN users emp ON emp.id = rs.employee_id
     LEFT JOIN users insp ON insp.id = rs.inspector_id
     LEFT JOIN users mgr ON mgr.id = rs.manager_id
+    LEFT JOIN users assigned_insp ON assigned_insp.id = rs.assigned_inspector_id
+    LEFT JOIN users assigned_mgr ON assigned_mgr.id = rs.assigned_manager_id
     LEFT JOIN report_templates rt ON rt.id = rs.template_id
     WHERE rs.id = ?`,
     [id],
@@ -256,11 +320,14 @@ exports.updateManagerReview = async (
 };
 
 exports.listAll = async () => {
+  await ensureReviewerAssignmentSupport();
   const [rows] = await db.query(
     `SELECT
   rs.id,
   rs.template_id,
   rs.employee_id AS submitted_by,
+  rs.assigned_inspector_id,
+  rs.assigned_manager_id,
   rs.inspector_id,
   rs.manager_id,
   rs.status,
@@ -268,11 +335,15 @@ exports.listAll = async () => {
   u.name AS submitted_by_name,
   insp.name AS inspector_name,
   mgr.name AS manager_name,
+  assigned_insp.name AS assigned_inspector_name,
+  assigned_mgr.name AS assigned_manager_name,
   COALESCE(rt.part_description, rt.doc_no, rt.part_no) AS template_label
 FROM report_submissions rs
 LEFT JOIN users u ON u.id = rs.employee_id
 LEFT JOIN users insp ON insp.id = rs.inspector_id
 LEFT JOIN users mgr ON mgr.id = rs.manager_id
+LEFT JOIN users assigned_insp ON assigned_insp.id = rs.assigned_inspector_id
+LEFT JOIN users assigned_mgr ON assigned_mgr.id = rs.assigned_manager_id
 LEFT JOIN report_templates rt ON rt.id = rs.template_id
 ORDER BY rs.created_at DESC;
 `,
@@ -281,6 +352,7 @@ ORDER BY rs.created_at DESC;
 };
 
 exports.listForExport = async (filters = {}, user = null) => {
+  await ensureReviewerAssignmentSupport();
   const hasManagerObservation = await ensureManagerObservationSupport();
   const where = [];
   const params = [];
@@ -315,6 +387,12 @@ exports.listForExport = async (filters = {}, user = null) => {
   if (user && user.role === "machine_operator") {
     where.push("rs.employee_id = ?");
     params.push(user.id);
+  } else if (user && user.role === "quality_inspector") {
+    where.push("(rs.assigned_inspector_id = ? OR rs.inspector_id = ?)");
+    params.push(user.id, user.id);
+  } else if (user && user.role === "quality_manager") {
+    where.push("(rs.assigned_manager_id = ? OR rs.manager_id = ?)");
+    params.push(user.id, user.id);
   }
 
   const whereClause = where.length ? `WHERE ${where.join(" AND ")}` : "";
@@ -338,6 +416,8 @@ exports.listForExport = async (filters = {}, user = null) => {
   u.name AS submitted_by_name,
   insp.name AS inspector_name,
   mgr.name AS manager_name,
+  assigned_insp.name AS assigned_inspector_name,
+  assigned_mgr.name AS assigned_manager_name,
   rc.name AS category_name,
   rt.customer,
   rt.doc_no,
@@ -352,6 +432,8 @@ FROM report_submissions rs
 LEFT JOIN users u ON u.id = rs.employee_id
 LEFT JOIN users insp ON insp.id = rs.inspector_id
 LEFT JOIN users mgr ON mgr.id = rs.manager_id
+LEFT JOIN users assigned_insp ON assigned_insp.id = rs.assigned_inspector_id
+LEFT JOIN users assigned_mgr ON assigned_mgr.id = rs.assigned_manager_id
 LEFT JOIN report_templates rt ON rt.id = rs.template_id
 LEFT JOIN report_categories rc ON rc.id = rt.category_id
 LEFT JOIN (
@@ -368,12 +450,19 @@ ORDER BY rs.created_at DESC`,
 };
 
 exports.getSubmissionDetailForExport = async (submissionId, user = null) => {
+  await ensureReviewerAssignmentSupport();
   const hasManagerObservation = await ensureManagerObservationSupport();
   const params = [submissionId];
   let ownershipSql = "";
   if (user && user.role === "machine_operator") {
     ownershipSql = " AND rs.employee_id = ?";
     params.push(user.id);
+  } else if (user && user.role === "quality_inspector") {
+    ownershipSql = " AND (rs.assigned_inspector_id = ? OR rs.inspector_id = ?)";
+    params.push(user.id, user.id);
+  } else if (user && user.role === "quality_manager") {
+    ownershipSql = " AND (rs.assigned_manager_id = ? OR rs.manager_id = ?)";
+    params.push(user.id, user.id);
   }
 
   const [subs] = await db.query(
@@ -398,6 +487,8 @@ exports.getSubmissionDetailForExport = async (submissionId, user = null) => {
       u.name AS submitted_by_name,
       insp.name AS inspector_name,
       mgr.name AS manager_name,
+      assigned_insp.name AS assigned_inspector_name,
+      assigned_mgr.name AS assigned_manager_name,
       rc.name AS category_name,
       rt.customer,
       rt.doc_no,
@@ -410,6 +501,8 @@ exports.getSubmissionDetailForExport = async (submissionId, user = null) => {
     LEFT JOIN users u ON u.id = rs.employee_id
     LEFT JOIN users insp ON insp.id = rs.inspector_id
     LEFT JOIN users mgr ON mgr.id = rs.manager_id
+    LEFT JOIN users assigned_insp ON assigned_insp.id = rs.assigned_inspector_id
+    LEFT JOIN users assigned_mgr ON assigned_mgr.id = rs.assigned_manager_id
     LEFT JOIN report_templates rt ON rt.id = rs.template_id
     LEFT JOIN report_categories rc ON rc.id = rt.category_id
     WHERE rs.id = ? ${ownershipSql}

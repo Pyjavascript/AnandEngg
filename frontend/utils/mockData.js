@@ -13,7 +13,6 @@ export const mockUsers = [
     phone: '+91 98765 43210',
     department: 'Manufacturing',
     status: 'active',
-    joinDate: '2023-01-15',
   },
   {
     id: 2,
@@ -24,7 +23,6 @@ export const mockUsers = [
     phone: '+91 97654 32109',
     department: 'Quality Assurance',
     status: 'active',
-    joinDate: '2023-02-20',
   },
   {
     id: 3,
@@ -35,7 +33,6 @@ export const mockUsers = [
     phone: '+91 96543 21098',
     department: 'Quality Assurance',
     status: 'active',
-    joinDate: '2022-11-10',
   },
   {
     id: 4,
@@ -46,7 +43,6 @@ export const mockUsers = [
     phone: '+91 95432 10987',
     department: 'Manufacturing',
     status: 'inactive',
-    joinDate: '2023-03-05',
   },
   {
     id: 5,
@@ -57,7 +53,6 @@ export const mockUsers = [
     phone: '+91 94321 09876',
     department: 'Quality Assurance',
     status: 'active',
-    joinDate: '2023-04-12',
   },
 ];
 

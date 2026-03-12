@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Modal,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import BASE_URL from '../config/api';
@@ -67,6 +68,31 @@ export default function AddEntryScreen({ route, navigation }) {
 
     loadUser();
   }, []);
+
+  useEffect(() => {
+    const loadReviewers = async () => {
+      setLoadingReviewers(true);
+      try {
+        const data = await reportApi.getAvailableReviewers();
+        const inspectors = Array.isArray(data?.inspectors) ? data.inspectors : [];
+        const managers = Array.isArray(data?.managers) ? data.managers : [];
+        setReviewers({ inspectors, managers });
+        setForm(prev => ({
+          ...prev,
+          assignedInspectorId:
+            prev.assignedInspectorId || (inspectors.length === 1 ? String(inspectors[0].id) : ''),
+          assignedManagerId:
+            prev.assignedManagerId || (managers.length === 1 ? String(managers[0].id) : ''),
+        }));
+      } catch (err) {
+        console.log('Failed to load reviewers', err);
+      } finally {
+        setLoadingReviewers(false);
+      }
+    };
+
+    loadReviewers();
+  }, []);
   // Initialize Dimensions
   const initDimensions = part.dimensions.map(d => ({
     ...d,
@@ -83,12 +109,22 @@ export default function AddEntryScreen({ route, navigation }) {
     reportType: reportType,
     inspectionDate: new Date().toISOString().split('T')[0],
     shift: '',
+    assignedInspectorId: '',
+    assignedManagerId: '',
     dimensions: initDimensions,
   });
 
   const [loading, setLoading] = useState(false);
+  const [loadingReviewers, setLoadingReviewers] = useState(false);
   const [draftHydrating, setDraftHydrating] = useState(false);
   const [diagramViewerVisible, setDiagramViewerVisible] = useState(false);
+  const [reviewers, setReviewers] = useState({ inspectors: [], managers: [] });
+  const [selectorState, setSelectorState] = useState({
+    visible: false,
+    title: '',
+    field: '',
+    options: [],
+  });
 
   const buildSubmissionValues = async () => {
     const templateRes = await reportApi.getTemplatesByCategory(part.templateId);
@@ -148,6 +184,24 @@ export default function AddEntryScreen({ route, navigation }) {
       return;
     }
 
+    if (reviewers.inspectors.length > 1 && !form.assignedInspectorId) {
+      showAlert({
+        type: 'error',
+        title: 'Missing Inspector',
+        message: 'Please select an inspector before submitting.',
+      });
+      return;
+    }
+
+    if (reviewers.managers.length > 1 && !form.assignedManagerId) {
+      showAlert({
+        type: 'error',
+        title: 'Missing Manager',
+        message: 'Please select a manager before submitting.',
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const values = await buildSubmissionValues();
@@ -175,6 +229,8 @@ export default function AddEntryScreen({ route, navigation }) {
         template_id: part.templateId,
         inspection_date: form.inspectionDate,
         shift: form.shift,
+        assigned_inspector_id: form.assignedInspectorId || null,
+        assigned_manager_id: form.assignedManagerId || null,
         values,
       });
 
@@ -215,6 +271,8 @@ export default function AddEntryScreen({ route, navigation }) {
         template_id: part.templateId,
         inspection_date: form.inspectionDate,
         shift: form.shift || null,
+        assigned_inspector_id: form.assignedInspectorId || null,
+        assigned_manager_id: form.assignedManagerId || null,
         values,
         status: 'draft',
       });
@@ -287,6 +345,12 @@ export default function AddEntryScreen({ route, navigation }) {
             ? String(submission.inspection_date).slice(0, 10)
             : prev.inspectionDate,
           shift: submission.shift || prev.shift,
+          assignedInspectorId: submission.assigned_inspector_id
+            ? String(submission.assigned_inspector_id)
+            : prev.assignedInspectorId,
+          assignedManagerId: submission.assigned_manager_id
+            ? String(submission.assigned_manager_id)
+            : prev.assignedManagerId,
           dimensions: mergedDims,
         }));
       } catch (err) {
@@ -299,6 +363,22 @@ export default function AddEntryScreen({ route, navigation }) {
     loadDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftSubmissionId]);
+
+  const openSelector = (field, title, options) => {
+    setSelectorState({
+      visible: true,
+      title,
+      field,
+      options,
+    });
+  };
+
+  const selectedInspector = reviewers.inspectors.find(
+    item => String(item.id) === String(form.assignedInspectorId),
+  );
+  const selectedManager = reviewers.managers.find(
+    item => String(item.id) === String(form.assignedManagerId),
+  );
 
   return (
     <KeyboardAvoidingView
@@ -418,6 +498,71 @@ export default function AddEntryScreen({ route, navigation }) {
           </View>
         </View>
 
+        {(loadingReviewers ||
+          reviewers.inspectors.length > 1 ||
+          reviewers.managers.length > 1) && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="git-network-outline" size={20} color={C.primarySoft} />
+              <Text style={styles.cardTitle}>Review Assignment</Text>
+            </View>
+
+            {loadingReviewers ? (
+              <Text style={styles.helperText}>Loading available reviewers...</Text>
+            ) : (
+              <>
+                {reviewers.inspectors.length > 1 ? (
+                  <View style={styles.selectorBlock}>
+                    <Text style={styles.selectorLabel}>Select Inspector</Text>
+                    <TouchableOpacity
+                      style={styles.themeDropdown}
+                      onPress={() =>
+                        openSelector('assignedInspectorId', 'Select Inspector', reviewers.inspectors)
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.themeDropdownText,
+                          !selectedInspector && styles.themeDropdownPlaceholder,
+                        ]}
+                      >
+                        {selectedInspector
+                          ? `${selectedInspector.name} (${selectedInspector.employee_id})`
+                          : 'Choose inspector'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color={C.primarySoft} />
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+
+                {reviewers.managers.length > 1 ? (
+                  <View style={styles.selectorBlock}>
+                    <Text style={styles.selectorLabel}>Select Manager</Text>
+                    <TouchableOpacity
+                      style={styles.themeDropdown}
+                      onPress={() =>
+                        openSelector('assignedManagerId', 'Select Manager', reviewers.managers)
+                      }
+                    >
+                      <Text
+                        style={[
+                          styles.themeDropdownText,
+                          !selectedManager && styles.themeDropdownPlaceholder,
+                        ]}
+                      >
+                        {selectedManager
+                          ? `${selectedManager.name} (${selectedManager.employee_id})`
+                          : 'Choose manager'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={18} color={C.primarySoft} />
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </>
+            )}
+          </View>
+        )}
+
         {/* Dimensions Section */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -509,6 +654,54 @@ export default function AddEntryScreen({ route, navigation }) {
           imageSource={diagramSource}
           title={`${form.partNumber || 'Part'} Diagram`}
         />
+        <Modal
+          visible={selectorState.visible}
+          transparent
+          animationType="fade"
+          onRequestClose={() =>
+            setSelectorState(prev => ({ ...prev, visible: false }))
+          }
+        >
+          <View style={styles.selectorOverlay}>
+            <View style={styles.selectorModal}>
+              <View style={styles.selectorModalHeader}>
+                <Text style={styles.selectorModalTitle}>{selectorState.title}</Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setSelectorState(prev => ({ ...prev, visible: false }))
+                  }
+                >
+                  <Ionicons name="close" size={22} color={C.textMuted} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {selectorState.options.map(option => (
+                  <TouchableOpacity
+                    key={option.id}
+                    style={styles.selectorOption}
+                    onPress={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        [selectorState.field]: String(option.id),
+                      }));
+                      setSelectorState(prev => ({ ...prev, visible: false }));
+                    }}
+                  >
+                    <View style={styles.selectorOptionTextWrap}>
+                      <Text style={styles.selectorOptionTitle}>{option.name}</Text>
+                      <Text style={styles.selectorOptionMeta}>
+                        {option.employee_id} | {option.department || option.role}
+                      </Text>
+                    </View>
+                    {String(form[selectorState.field]) === String(option.id) ? (
+                      <Ionicons name="checkmark-circle" size={20} color={C.primarySoft} />
+                    ) : null}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <View style={{ height: 30 }} />
       </ScrollView>
@@ -698,6 +891,90 @@ const createStyles = C => StyleSheet.create({
   picker: {
     flex: 1,
     color: C.textBody,
+  },
+  selectorBlock: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  selectorLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.textBody,
+    marginBottom: 8,
+  },
+  themeDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: C.border,
+    backgroundColor: C.surfaceAlt,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  themeDropdownText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.textBody,
+  },
+  themeDropdownPlaceholder: {
+    color: C.textSubtle,
+  },
+  helperText: {
+    fontSize: 13,
+    color: C.textMuted,
+    lineHeight: 18,
+  },
+  selectorOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.36)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  selectorModal: {
+    maxHeight: '70%',
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  selectorModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  selectorModalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: C.textStrong,
+  },
+  selectorOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+  },
+  selectorOptionTextWrap: {
+    flex: 1,
+  },
+  selectorOptionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.textBody,
+  },
+  selectorOptionMeta: {
+    marginTop: 3,
+    fontSize: 12,
+    color: C.textMuted,
+    fontWeight: '500',
   },
   dimensionCard: {
     backgroundColor: C.surfaceAlt,

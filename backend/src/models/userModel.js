@@ -166,6 +166,22 @@ exports.getAllUsers = async () => {
   return rows;
 };
 
+exports.getActiveUsersByRoles = async roles => {
+  if (!Array.isArray(roles) || roles.length === 0) {
+    return [];
+  }
+
+  const placeholders = roles.map(() => '?').join(', ');
+  const [rows] = await db.query(
+    `SELECT id, name, employee_id, email, phone, department, role, status
+     FROM users
+     WHERE status = 'active' AND role IN (${placeholders})
+     ORDER BY name ASC`,
+    roles,
+  );
+  return rows;
+};
+
 exports.deleteUserById = async (id) => {
   const [result] = await db.query(
     `DELETE FROM users WHERE id = ?`,
