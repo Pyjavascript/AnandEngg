@@ -144,19 +144,19 @@ const ManageReportsScreen = ({ navigation }) => {
   const sectionItems = [
     {
       key: 'overview',
-      label: 'Overview',
+      label: 'Report Overview',
       icon: 'grid-outline',
       count: categories.length + submissions.length,
     },
     {
       key: 'types',
-      label: 'Categories',
+      label: 'Report Categories',
       icon: 'layers-outline',
       count: categories.length,
     },
     {
       key: 'submissions',
-      label: 'Submissions',
+      label: 'Report Submissions',
       icon: 'document-text-outline',
       count: submissions.length,
     },

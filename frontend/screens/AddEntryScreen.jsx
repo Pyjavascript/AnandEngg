@@ -492,7 +492,7 @@ export default function AddEntryScreen({ route, navigation }) {
             >
               <Picker.Item label="Select Shift" value="" />
               <Picker.Item label="Day Shift" value="day" />
-              <Picker.Item label="Evening Shift" value="evening" />
+              <Picker.Item label="Afternoon Shift" value="afternoon" />
               <Picker.Item label="Night Shift" value="night" />
             </Picker>
           </View>
