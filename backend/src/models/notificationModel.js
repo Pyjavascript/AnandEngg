@@ -70,6 +70,10 @@ exports.createNotification = async ({
       if (invalidTokens.length > 0) {
         await pushTokenModel.deleteTokens(invalidTokens);
       }
+
+      console.log(
+        `Push send result for user ${userId}: ${sendResult.successCount} success, ${sendResult.failureCount} failed`,
+      );
     }
   } catch (err) {
     console.log('Push notification send failed:', err.message);

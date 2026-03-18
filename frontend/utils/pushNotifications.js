@@ -76,6 +76,7 @@ export async function syncPushTokenIfAuthenticated() {
     { headers },
   );
   await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, fcmToken);
+  console.log('Push token registered successfully');
   return fcmToken;
 }
 
@@ -112,6 +113,7 @@ export function attachPushNotificationListeners(navigationRef) {
         { headers },
       );
       await AsyncStorage.setItem(PUSH_TOKEN_STORAGE_KEY, nextToken);
+      console.log('Push token refreshed successfully');
     } catch (err) {
       console.log('Failed to refresh push token', err?.message || err);
     }

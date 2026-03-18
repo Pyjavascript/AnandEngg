@@ -909,6 +909,7 @@ exports.RegisterPushToken = async (req, res) => {
       token,
       platform,
     });
+    console.log(`Push token saved for user ${req.user.id} on ${platform}`);
     return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ message: err.message });
