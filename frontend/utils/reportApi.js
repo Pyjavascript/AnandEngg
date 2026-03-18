@@ -80,6 +80,19 @@ export const markNotificationsRead = async () => {
   return res.data;
 };
 
+export const registerPushToken = async payload => {
+  const res = await axios.post(`${API}/push-token`, payload, await authHeader());
+  return res.data;
+};
+
+export const unregisterPushToken = async token => {
+  const res = await axios.delete(`${API}/push-token`, {
+    ...(await authHeader()),
+    data: { token },
+  });
+  return res.data;
+};
+
 export const getMyDraftSubmissions = async userId => {
   const rows = await getAllSubmissions();
   return (Array.isArray(rows) ? rows : []).filter(
@@ -169,6 +182,8 @@ export default {
   getAvailableReviewers,
   getNotifications,
   markNotificationsRead,
+  registerPushToken,
+  unregisterPushToken,
   getMyDraftSubmissions,
   createSubmission,
   getSubmissionById,

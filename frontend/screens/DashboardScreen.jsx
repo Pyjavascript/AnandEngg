@@ -16,6 +16,82 @@ import { useFocusEffect } from '@react-navigation/native';
 import reportApi from '../utils/reportApi';
 import { useAppTheme } from '../theme/ThemeProvider';
 
+const getSubmissionStatus = report => report?.status || 'submitted';
+
+const getDashboardReportStats = (reports, user) => {
+  const role = user?.role;
+  const currentUserId = Number(user?.id || 0);
+
+  if (role === 'quality_inspector') {
+    const assignedReports = reports.filter(
+      report =>
+        Number(report.assigned_inspector_id) === currentUserId ||
+        Number(report.inspector_id) === currentUserId,
+    );
+
+    return {
+      totalReports: assignedReports.length,
+      approvedReports: assignedReports.filter(
+        report =>
+          Number(report.inspector_id) === currentUserId &&
+          ['inspector_reviewed', 'manager_approved'].includes(
+            getSubmissionStatus(report),
+          ),
+      ).length,
+      pendingReports: assignedReports.filter(
+        report =>
+          ['submitted', 'pending', 'pending_inspector'].includes(
+            getSubmissionStatus(report),
+          ) && !report.inspector_id,
+      ).length,
+      rejectedReports: assignedReports.filter(
+        report =>
+          getSubmissionStatus(report) === 'rejected',
+      ).length,
+    };
+  }
+
+  if (role === 'quality_manager') {
+    const assignedReports = reports.filter(
+      report =>
+        Number(report.assigned_manager_id) === currentUserId ||
+        Number(report.manager_id) === currentUserId,
+    );
+
+    return {
+      totalReports: assignedReports.length,
+      approvedReports: assignedReports.filter(
+        report =>
+          getSubmissionStatus(report) === 'manager_approved' &&
+          Number(report.manager_id) === currentUserId,
+      ).length,
+      pendingReports: assignedReports.filter(
+        report =>
+          ['inspector_reviewed', 'inspector_approved'].includes(
+            getSubmissionStatus(report),
+          ) && !report.manager_id,
+      ).length,
+      rejectedReports: assignedReports.filter(
+        report =>
+          getSubmissionStatus(report) === 'rejected',
+      ).length,
+    };
+  }
+
+  return {
+    totalReports: reports.length,
+    approvedReports: reports.filter(
+      report => getSubmissionStatus(report) === 'manager_approved',
+    ).length,
+    pendingReports: reports.filter(report =>
+      ['submitted', 'inspector_reviewed'].includes(getSubmissionStatus(report)),
+    ).length,
+    rejectedReports: reports.filter(
+      report => getSubmissionStatus(report) === 'rejected',
+    ).length,
+  };
+};
+
 const DashboardScreen = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useAppTheme();
   const C = theme.colors;
@@ -90,49 +166,8 @@ const DashboardScreen = ({ navigation }) => {
 
   const isInspector = userData.role === 'quality_inspector';
   const isManager = userData.role === 'quality_manager';
-  const currentUserId = Number(userData.id || 0);
-
-  // Calculate stats from reports based on workflow role.
-  let approvedReports = 0;
-  let pendingReports = 0;
-  let rejectedReports = 0;
-  let totalReports = 0;
-
-  if (isInspector) {
-    approvedReports = reports.filter(
-      r =>
-        Number(r.inspector_id) === currentUserId &&
-        (r.status === 'inspector_reviewed' || r.status === 'manager_approved'),
-    ).length;
-    rejectedReports = reports.filter(
-      r =>
-        r.status === 'rejected' &&
-        Number(r.inspector_id) === currentUserId &&
-        !r.manager_id,
-    ).length;
-    pendingReports = reports.filter(r =>
-      ['submitted', 'pending', 'pending_inspector'].includes(r.status || 'submitted'),
-    ).length;
-    totalReports = approvedReports + pendingReports + rejectedReports;
-  } else if (isManager) {
-    approvedReports = reports.filter(
-      r => r.status === 'manager_approved' && Number(r.manager_id) === currentUserId,
-    ).length;
-    rejectedReports = reports.filter(
-      r => r.status === 'rejected' && Number(r.manager_id) === currentUserId,
-    ).length;
-    pendingReports = reports.filter(r =>
-      ['inspector_reviewed', 'inspector_approved'].includes(r.status || ''),
-    ).length;
-    totalReports = approvedReports + pendingReports + rejectedReports;
-  } else {
-    totalReports = reports.length;
-    approvedReports = reports.filter(r => r.status === 'manager_approved').length;
-    pendingReports = reports.filter(
-      r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
-    ).length;
-    rejectedReports = reports.filter(r => r.status === 'rejected').length;
-  }
+  const { approvedReports, pendingReports, rejectedReports, totalReports } =
+    getDashboardReportStats(reports, userData);
 
   const quickActions = [
     {

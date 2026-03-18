@@ -24,6 +24,7 @@ const ReportsScreen = () => {
   const navigation = useNavigation();
   const [role, setRole] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [reports, setReports] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -198,7 +199,7 @@ const ReportsScreen = () => {
     }
   };
 
-  const filteredReports =
+  const statusFilteredReports =
     activeFilter === 'all'
       ? reports
       : reports.filter(r => {
@@ -208,6 +209,26 @@ const ReportsScreen = () => {
           if (activeFilter === 'approved') return status === 'manager_approved';
           return status === activeFilter;
         });
+
+  const query = searchQuery.trim().toLowerCase();
+  const filteredReports = statusFilteredReports.filter(report => {
+    if (!query) return true;
+
+    const searchableFields = [
+      report.template_label,
+      report.part_no,
+      report.doc_no,
+      report.category_name,
+      report.submitted_by_name,
+      report.status,
+      report.id,
+      report.template_id,
+    ]
+      .filter(value => value != null)
+      .map(value => String(value).toLowerCase());
+
+    return searchableFields.some(value => value.includes(query));
+  });
 
   return (
     <View style={styles.container}>
@@ -265,7 +286,15 @@ const ReportsScreen = () => {
               style={styles.searchInput}
               placeholder="Search by part number or title..."
               placeholderTextColor="#B0B7C3"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
             />
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+              </TouchableOpacity>
+            ) : null}
           </View>
         </View>
 
@@ -428,7 +457,9 @@ const ReportsScreen = () => {
             <Ionicons name="document-text-outline" size={64} color="#CBD5E1" />
             <Text style={styles.emptyTitle}>No reports found</Text>
             <Text style={styles.emptySubtitle}>
-              {activeFilter === 'all'
+              {searchQuery
+                ? 'No reports match your search'
+                : activeFilter === 'all'
                 ? 'Create your first report to get started'
                 : `No ${activeFilter} reports available`}
             </Text>

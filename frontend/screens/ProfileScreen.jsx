@@ -13,6 +13,84 @@ import { useFocusEffect } from '@react-navigation/native';
 import CustomAlert from '../components/CustomAlert';
 import reportApi from '../utils/reportApi';
 import { useAppTheme } from '../theme/ThemeProvider';
+import { unregisterPushToken } from '../utils/pushNotifications';
+
+const getSubmissionStatus = report => report?.status || 'submitted';
+
+const getProfileReportStats = (reports, user) => {
+  const role = user?.role;
+  const currentUserId = Number(user?.id || 0);
+
+  if (role === 'quality_inspector') {
+    const assignedReports = reports.filter(
+      report =>
+        Number(report.assigned_inspector_id) === currentUserId ||
+        Number(report.inspector_id) === currentUserId,
+    );
+
+    return {
+      totalReports: assignedReports.length,
+      approvedReports: assignedReports.filter(
+        report =>
+          Number(report.inspector_id) === currentUserId &&
+          ['inspector_reviewed', 'manager_approved'].includes(
+            getSubmissionStatus(report),
+          ),
+      ).length,
+      inProcessReports: assignedReports.filter(
+        report =>
+          ['submitted', 'pending', 'pending_inspector'].includes(
+            getSubmissionStatus(report),
+          ) && !report.inspector_id,
+      ).length,
+      rejectedReports: assignedReports.filter(
+        report => getSubmissionStatus(report) === 'rejected',
+      ).length,
+    };
+  }
+
+  if (role === 'quality_manager') {
+    const assignedReports = reports.filter(
+      report =>
+        Number(report.assigned_manager_id) === currentUserId ||
+        Number(report.manager_id) === currentUserId,
+    );
+
+    return {
+      totalReports: assignedReports.length,
+      approvedReports: assignedReports.filter(
+        report =>
+          getSubmissionStatus(report) === 'manager_approved' &&
+          Number(report.manager_id) === currentUserId,
+      ).length,
+      inProcessReports: assignedReports.filter(
+        report =>
+          ['inspector_reviewed', 'inspector_approved'].includes(
+            getSubmissionStatus(report),
+          ) && !report.manager_id,
+      ).length,
+      rejectedReports: assignedReports.filter(
+        report => getSubmissionStatus(report) === 'rejected',
+      ).length,
+    };
+  }
+
+  const mine = reports.filter(
+    report => Number(report.submitted_by) === currentUserId,
+  );
+  return {
+    totalReports: mine.length,
+    approvedReports: mine.filter(
+      report => getSubmissionStatus(report) === 'manager_approved',
+    ).length,
+    inProcessReports: mine.filter(report =>
+      ['submitted', 'inspector_reviewed'].includes(getSubmissionStatus(report)),
+    ).length,
+    rejectedReports: mine.filter(
+      report => getSubmissionStatus(report) === 'rejected',
+    ).length,
+  };
+};
 
 const ProfileScreen = ({ navigation }) => {
   const { theme, isDark, toggleTheme } = useAppTheme();
@@ -33,6 +111,7 @@ const ProfileScreen = ({ navigation }) => {
 
   // ✅ ALL useState FIRST
   const [userData, setUserData] = useState({
+    id: null,
     name: '',
     employeeId: '',
     role: '',
@@ -51,6 +130,7 @@ const ProfileScreen = ({ navigation }) => {
           const user = JSON.parse(storedUser);
 
           setUserData({
+            id: user.id || null,
             name: user.name || '',
             role: user.role || '',
             employeeId: user.employeeId || user.employee_id || '',
@@ -72,13 +152,10 @@ const ProfileScreen = ({ navigation }) => {
   useFocusEffect(
     React.useCallback(() => {
       const fetchMyReports = async () => {
+        setLoadingStats(true);
         try {
-          const user = JSON.parse((await AsyncStorage.getItem('user')) || '{}');
           const all = await reportApi.getAllSubmissions();
-          const mine = Array.isArray(all)
-            ? all.filter(r => Number(r.submitted_by) === Number(user.id))
-            : [];
-          setReports(mine);
+          setReports(Array.isArray(all) ? all : []);
         } catch (err) {
           console.log('Failed to load report stats', err);
         } finally {
@@ -89,13 +166,8 @@ const ProfileScreen = ({ navigation }) => {
       fetchMyReports();
     }, []),
   );
-  const totalReports = reports.length;
-
-  const approvedReports = reports.filter(r => r.status === 'manager_approved').length;
-
-  const inProcessReports = reports.filter(
-    r => (r.status || 'submitted') === 'submitted' || r.status === 'inspector_reviewed',
-  ).length;
+  const { totalReports, approvedReports, inProcessReports, rejectedReports } =
+    getProfileReportStats(reports, userData);
 
   const stats = [
     {
@@ -118,6 +190,13 @@ const ProfileScreen = ({ navigation }) => {
       value: loadingStats ? '-' : approvedReports,
       icon: 'checkmark-circle',
       color: '#F59E0B',
+    },
+    {
+      id: 4,
+      label: 'Rejected',
+      value: loadingStats ? '-' : rejectedReports,
+      icon: 'close-circle',
+      color: '#EF4444',
     },
   ];
 
@@ -145,6 +224,7 @@ const ProfileScreen = ({ navigation }) => {
     showAlert('info', 'Logging out');
 
     setTimeout(async () => {
+      await unregisterPushToken();
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('token');
       navigation.replace('AuthScreen');
@@ -380,7 +460,7 @@ const createStyles = C => StyleSheet.create({
     gap: 6,
   },
   employeeId: { fontSize: 13, fontWeight: '600', color: C.primary },
-  statsContainer: { flexDirection: 'row', paddingHorizontal: 20, gap: 12 },
+  statsContainer: { flexDirection: 'row', paddingHorizontal: 20, gap: 6 },
   statCard: {
     flex: 1,
     backgroundColor: C.surface,
@@ -391,7 +471,7 @@ const createStyles = C => StyleSheet.create({
     borderColor: C.border,
   },
   statValue: { fontSize: 20, fontWeight: '700', color: C.textBody },
-  statLabel: { fontSize: 12, color: C.textMuted },
+  statLabel: { fontSize: 9, color: C.textMuted },
   section: { paddingHorizontal: 20, marginTop: 20 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: C.textStrong },
   infoCard: {

@@ -354,6 +354,7 @@ const categoryModel = require('../models/categoryModel');
 const templateModel = require('../models/templateModel');
 const submissionModel = require('../models/submissionModel');
 const notificationModel = require('../models/notificationModel');
+const pushTokenModel = require('../models/pushTokenModel');
 const User = require('../models/userModel');
 const db = require('../config/db');
 const path = require('path');
@@ -892,6 +893,42 @@ exports.MarkNotificationsRead = async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.RegisterPushToken = async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    const platform = String(req.body?.platform || 'android').trim() || 'android';
+    if (!token) {
+      return res.status(400).json({ message: 'token is required' });
+    }
+
+    await pushTokenModel.upsertToken({
+      userId: req.user.id,
+      token,
+      platform,
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+exports.UnregisterPushToken = async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) {
+      return res.status(400).json({ message: 'token is required' });
+    }
+
+    await pushTokenModel.deleteToken({
+      userId: req.user.id,
+      token,
+    });
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
   }
 };
 

@@ -181,6 +181,7 @@ import { View, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import BASE_URL from '../config/api';
 import AppLogo from '../assets/pictures/AppLogo.png';
+import { syncPushTokenIfAuthenticated } from '../utils/pushNotifications';
 
 const SplashScreen = ({ navigation }) => {
   useEffect(() => {
@@ -211,6 +212,9 @@ const SplashScreen = ({ navigation }) => {
         }
 
         const data = await res.json();
+        await syncPushTokenIfAuthenticated().catch(err => {
+          console.log('Push token sync failed during bootstrap', err?.message || err);
+        });
 
         if (data.user.role === 'admin') {
           navigation.replace('AdminDashboard');
@@ -224,7 +228,7 @@ const SplashScreen = ({ navigation }) => {
     };
 
     bootstrapAuth();
-  }, []);
+  }, [navigation]);
 
   return (
     <View style={styles.container}>

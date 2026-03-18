@@ -19,6 +19,7 @@ import RoleSelector from '../components/RoleSelector';
 import CustomAlert from '../components/CustomAlert';
 import roleApi from '../utils/roleApi';
 import { useAppTheme } from '../theme/ThemeProvider';
+import { syncPushTokenIfAuthenticated } from '../utils/pushNotifications';
 
 const DEFAULT_REGISTER_ROLES = [
   { id: 1, name: 'machine_operator', display_name: 'Machine Operator' },
@@ -137,6 +138,9 @@ const AuthScreen = ({ navigation }) => {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
         await AsyncStorage.setItem('role', data.user.role);
+        await syncPushTokenIfAuthenticated().catch(err => {
+          console.log('Push token sync failed after login', err?.message || err);
+        });
 
         showAlert('success', 'Login Successful');
 

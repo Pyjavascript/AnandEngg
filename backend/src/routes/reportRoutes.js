@@ -87,6 +87,8 @@ router.get('/submissions', auth, ReportController.ListSubmissions);
 router.get('/reviewers', auth, ReportController.GetAvailableReviewers);
 router.get('/notifications', auth, ReportController.ListNotifications);
 router.put('/notifications/read', auth, ReportController.MarkNotificationsRead);
+router.post('/push-token', auth, ReportController.RegisterPushToken);
+router.delete('/push-token', auth, ReportController.UnregisterPushToken);
 router.get('/submissions/:id', auth, ReportController.GetSubmissionById);
 router.delete('/submissions/:id', auth, ReportController.DeleteSubmission);
 router.get('/download', auth, ReportController.DownloadSubmissions);

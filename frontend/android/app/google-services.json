@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "675588126739",
+    "project_id": "stayio",
+    "storage_bucket": "stayio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:675588126739:android:93cb98b940770061af27e6",
+        "android_client_info": {
+          "package_name": "com.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "675588126739-gpdm5hmc5avu9e3up4ijvqnvtn7lo0f3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB5Khs1Zr5_M2khNM-9q3zIxUDgSOf3R2A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "675588126739-gpdm5hmc5avu9e3up4ijvqnvtn7lo0f3.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

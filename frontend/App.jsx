@@ -1,8 +1,11 @@
-import { NavigationContainer } from '@react-navigation/native';
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StatusBar } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import SplashScreen from './screens/SplashScreen';
 import Features from './screens/Features';
 import AuthScreen from './screens/AuthScreen';
@@ -23,9 +26,27 @@ import ManageRolesScreen from './screens/AdminScreens/ManageRolesScreen'
 import ManageReportsScreen from './screens/AdminScreens/ManageReportsScreen'
 import UserDetailScreen from './screens/AdminScreens/UserDetailScreen'
 import { ThemeProvider, useAppTheme } from './theme/ThemeProvider';
+import {
+  attachPushNotificationListeners,
+  syncPushTokenIfAuthenticated,
+} from './utils/pushNotifications';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef();
+
+function PushNotificationBootstrap() {
+  useEffect(() => {
+    syncPushTokenIfAuthenticated().catch(err => {
+      console.log('Push token sync failed', err?.message || err);
+    });
+
+    const unsubscribe = attachPushNotificationListeners(navigationRef);
+    return unsubscribe;
+  }, []);
+
+  return null;
+}
 
 function MainTabs() {
   const { theme } = useAppTheme();
@@ -149,7 +170,8 @@ function AppNavigator() {
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={C.bg}
       />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
+        <PushNotificationBootstrap />
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={SplashScreen} />
           <Stack.Screen name="Features" component={Features} />

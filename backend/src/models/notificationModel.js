@@ -1,4 +1,6 @@
 const db = require('../config/db');
+const pushTokenModel = require('./pushTokenModel');
+const firebasePushService = require('../services/firebasePushService');
 
 let notificationTablePromise = null;
 
@@ -39,6 +41,40 @@ exports.createNotification = async ({
      VALUES (?, ?, ?, ?, ?)`,
     [userId, title, message, type, relatedSubmissionId],
   );
+
+  try {
+    const tokenRows = await pushTokenModel.listTokensByUserId(userId);
+    const tokens = tokenRows.map(row => row.token).filter(Boolean);
+    if (tokens.length > 0) {
+      const sendResult = await firebasePushService.sendMulticast({
+        tokens,
+        title,
+        message,
+        data: {
+          type,
+          relatedSubmissionId,
+        },
+      });
+
+      const invalidTokens = [];
+      (sendResult.responses || []).forEach((response, index) => {
+        const code = response?.error?.code || '';
+        if (
+          code === 'messaging/registration-token-not-registered' ||
+          code === 'messaging/invalid-registration-token'
+        ) {
+          invalidTokens.push(tokens[index]);
+        }
+      });
+
+      if (invalidTokens.length > 0) {
+        await pushTokenModel.deleteTokens(invalidTokens);
+      }
+    }
+  } catch (err) {
+    console.log('Push notification send failed:', err.message);
+  }
+
   return result;
 };
 
