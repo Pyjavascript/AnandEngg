@@ -12,6 +12,7 @@ import {
   Alert,
   Animated,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,8 +34,13 @@ const resolveDiagramUri = imageUri => {
 
 const ManageReportsScreen = ({ navigation }) => {
   const { theme } = useAppTheme();
+  const { width } = useWindowDimensions();
+  const showDesktopSidebar = width >= 980;
   const C = theme.colors;
-  const styles = React.useMemo(() => createStyles(C), [C]);
+  const styles = React.useMemo(
+    () => createStyles(C, showDesktopSidebar),
+    [C, showDesktopSidebar],
+  );
 
   const [activeSection, setActiveSection] = useState('overview');
   const [sidebarVisible, setSidebarVisible] = useState(false);
@@ -97,100 +103,133 @@ const ManageReportsScreen = ({ navigation }) => {
     (diagramFile && typeof diagramFile.uri === 'string' && diagramFile.uri) ||
     resolveDiagramUri(currentDiagramUri);
   const diagramPreviewSource = diagramPreviewUri ? { uri: diagramPreviewUri } : null;
-  const filteredSubmissions = submissions.filter(item => {
-    const query = submissionSearch.trim().toLowerCase();
-    const reportName = String(
-      item.template_label || item.part_description || item.title || item.report_type || '',
-    ).toLowerCase();
-    const categoryName = String(item.category_name || '').toLowerCase();
-    const matchesSearch =
-      !query || reportName.includes(query) || categoryName.includes(query);
-
-    const status = String(item.status || '').toLowerCase();
-    const matchesFilter =
-      submissionFilter === 'all' ||
-      (submissionFilter === 'approved' &&
-        (status === 'manager_approved' || status === 'inspector_reviewed')) ||
-      (submissionFilter === 'pending' && status === 'submitted') ||
-      (submissionFilter === 'rejected' && status === 'rejected');
-
-    return matchesSearch && matchesFilter;
-  });
-  const filteredTemplates = templates.filter(item => {
-    const query = templateSearch.trim().toLowerCase();
-    if (!query) return true;
-
-    const name = String(item.partDescription || '').toLowerCase();
-    const docNo = String(item.docNo || '').toLowerCase();
-    const customer = String(item.customer || '').toLowerCase();
-
-    return (
-      name.includes(query) || docNo.includes(query) || customer.includes(query)
-    );
-  });
-  const approvedSubmissionsCount = submissions.filter(
-    item => item.status === 'manager_approved' || item.status === 'inspector_reviewed',
-  ).length;
-  const pendingSubmissionsCount = submissions.filter(
-    item => item.status === 'submitted',
-  ).length;
-  const rejectedSubmissionsCount = submissions.filter(
-    item => item.status === 'rejected',
-  ).length;
-  const totalTemplatesCount = categories.reduce(
-    (sum, item) => sum + Number(item.report_count || 0),
-    0,
+  const submissionSearchQuery = submissionSearch.trim().toLowerCase();
+  const templateSearchQuery = templateSearch.trim().toLowerCase();
+  const approvedSubmissionsCount = React.useMemo(
+    () =>
+      submissions.filter(
+        item => item.status === 'manager_approved' || item.status === 'inspector_reviewed',
+      ).length,
+    [submissions],
   );
-  const sectionItems = [
-    {
-      key: 'overview',
-      label: 'Report Overview',
-      icon: 'grid-outline',
-      count: categories.length + submissions.length,
-    },
-    {
-      key: 'types',
-      label: 'Report Categories',
-      icon: 'layers-outline',
-      count: categories.length,
-    },
-    {
-      key: 'submissions',
-      label: 'Report Submissions',
-      icon: 'document-text-outline',
-      count: submissions.length,
-    },
-  ];
-  const overviewCards = [
-    {
-      key: 'categories',
-      label: 'Categories',
-      value: categories.length,
-      icon: 'layers-outline',
-      tone: '#1D4ED8',
-    },
-    {
-      key: 'templates',
-      label: 'Templates',
-      value: totalTemplatesCount,
-      icon: 'albums-outline',
-      tone: '#0F766E',
-    },
-    {
-      key: 'pending',
-      label: 'Pending',
-      value: pendingSubmissionsCount,
-      icon: 'time-outline',
-      tone: '#B45309',
-    },
-    {
-      key: 'approved',
-      label: 'Approved',
-      value: approvedSubmissionsCount,
-      icon: 'checkmark-done-outline',
-      tone: '#15803D',
-    },
-  ];
+  const pendingSubmissionsCount = React.useMemo(
+    () => submissions.filter(item => item.status === 'submitted').length,
+    [submissions],
+  );
+  const rejectedSubmissionsCount = React.useMemo(
+    () => submissions.filter(item => item.status === 'rejected').length,
+    [submissions],
+  );
+  const totalTemplatesCount = React.useMemo(
+    () =>
+      categories.reduce(
+        (sum, item) => sum + Number(item.report_count || 0),
+        0,
+      ),
+    [categories],
+  );
+  const filteredSubmissions = React.useMemo(
+    () =>
+      submissions.filter(item => {
+        const reportName = String(
+          item.template_label || item.part_description || item.title || item.report_type || '',
+        ).toLowerCase();
+        const categoryName = String(item.category_name || '').toLowerCase();
+        const matchesSearch =
+          !submissionSearchQuery
+          || reportName.includes(submissionSearchQuery)
+          || categoryName.includes(submissionSearchQuery);
+
+        const status = String(item.status || '').toLowerCase();
+        const matchesFilter =
+          submissionFilter === 'all' ||
+          (submissionFilter === 'approved' &&
+            (status === 'manager_approved' || status === 'inspector_reviewed')) ||
+          (submissionFilter === 'pending' && status === 'submitted') ||
+          (submissionFilter === 'rejected' && status === 'rejected');
+
+        return matchesSearch && matchesFilter;
+      }),
+    [submissionFilter, submissionSearchQuery, submissions],
+  );
+  const filteredTemplates = React.useMemo(
+    () =>
+      templates.filter(item => {
+        if (!templateSearchQuery) return true;
+
+        const name = String(item.partDescription || '').toLowerCase();
+        const docNo = String(item.docNo || '').toLowerCase();
+        const customer = String(item.customer || '').toLowerCase();
+
+        return (
+          name.includes(templateSearchQuery)
+          || docNo.includes(templateSearchQuery)
+          || customer.includes(templateSearchQuery)
+        );
+      }),
+    [templateSearchQuery, templates],
+  );
+  const sectionItems = React.useMemo(
+    () => [
+      {
+        key: 'overview',
+        label: 'Report Overview',
+        icon: 'grid-outline',
+        count: categories.length + submissions.length,
+      },
+      {
+        key: 'types',
+        label: 'Report Categories',
+        icon: 'layers-outline',
+        count: categories.length,
+      },
+      {
+        key: 'submissions',
+        label: 'Report Submissions',
+        icon: 'document-text-outline',
+        count: submissions.length,
+      },
+    ],
+    [categories.length, submissions.length],
+  );
+  const overviewCards = React.useMemo(
+    () => [
+      {
+        key: 'categories',
+        label: 'Categories',
+        value: categories.length,
+        icon: 'layers-outline',
+        tone: '#1D4ED8',
+      },
+      {
+        key: 'templates',
+        label: 'Templates',
+        value: totalTemplatesCount,
+        icon: 'albums-outline',
+        tone: '#0F766E',
+      },
+      {
+        key: 'pending',
+        label: 'Pending',
+        value: pendingSubmissionsCount,
+        icon: 'time-outline',
+        tone: '#B45309',
+      },
+      {
+        key: 'approved',
+        label: 'Approved',
+        value: approvedSubmissionsCount,
+        icon: 'checkmark-done-outline',
+        tone: '#15803D',
+      },
+    ],
+    [
+      approvedSubmissionsCount,
+      categories.length,
+      pendingSubmissionsCount,
+      totalTemplatesCount,
+    ],
+  );
 
   const openCategoryModal = () => {
     setModalMode('category');
@@ -315,21 +354,44 @@ const ManageReportsScreen = ({ navigation }) => {
         },
         {},
       );
+      const submissionsByCategoryKey = safeSubs.reduce((acc, sub) => {
+        const key = String(sub?.category_name || '')
+          .trim()
+          .toLowerCase();
+        if (!key) return acc;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(sub);
+        return acc;
+      }, {});
+
+      const submissionsByTemplateId = safeSubs.reduce((acc, sub) => {
+        const templateId = Number(sub?.template_id);
+        if (Number.isNaN(templateId) || templateId <= 0) return acc;
+        if (!acc[templateId]) {
+          acc[templateId] = [];
+        }
+        acc[templateId].push(sub);
+        return acc;
+      }, {});
+
       const merged = safeCats.map(cat => {
         const key = String(cat.name || cat.code || cat.id || '')
           .trim()
           .toLowerCase();
         const templateIds = templateMap[key] || new Set();
-        const matchedSubs = safeSubs.filter(sub => {
-          const subTemplateId = Number(sub?.template_id);
-          const byTemplate =
-            !Number.isNaN(subTemplateId) && templateIds.has(subTemplateId);
-          const byCategoryName =
-            String(sub?.category_name || '')
-              .trim()
-              .toLowerCase() === key;
-          return byTemplate || byCategoryName;
+        const matchedSubsMap = new Map();
+
+        (submissionsByCategoryKey[key] || []).forEach(sub => {
+          matchedSubsMap.set(Number(sub.id), sub);
         });
+        templateIds.forEach(templateId => {
+          (submissionsByTemplateId[templateId] || []).forEach(sub => {
+            matchedSubsMap.set(Number(sub.id), sub);
+          });
+        });
+        const matchedSubs = Array.from(matchedSubsMap.values());
 
         const createdDates = matchedSubs
           .map(sub => sub?.created_at)
@@ -984,33 +1046,62 @@ const ManageReportsScreen = ({ navigation }) => {
   };
 
   const renderSectionNav = () => (
-    <View style={styles.sidebar}>
-      {sectionItems.map(item => {
-        const isActive = activeSection === item.key;
-        return (
-          <Pressable
-            key={item.key}
-            style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
-            onPress={() => handleSectionChange(item.key)}
-          >
-            <View style={[styles.sidebarIconWrap, isActive && styles.sidebarIconWrapActive]}>
-              <Ionicons
-                name={item.icon}
-                size={18}
-                color={isActive ? '#FFFFFF' : '#114A76'}
-              />
-            </View>
-            <View style={styles.sidebarTextWrap}>
-              <Text style={[styles.sidebarLabel, isActive && styles.sidebarLabelActive]}>
-                {item.label}
-              </Text>
-              <Text style={[styles.sidebarMeta, isActive && styles.sidebarMetaActive]}>
-                {item.count}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+    <View style={styles.sidebarShell}>
+      <View style={styles.sidebarHero}>
+        <View style={styles.sidebarHeroBadge}>
+          <Ionicons name="analytics-outline" size={16} color="#DCEFFC" />
+        </View>
+        <Text style={styles.sidebarHeroEyebrow}>Admin Navigation</Text>
+        <Text style={styles.sidebarHeroTitle}>Report control workspace</Text>
+        <Text style={styles.sidebarHeroSubtitle}>
+          Switch between overview, categories, and live submission tracking.
+        </Text>
+      </View>
+
+      <View style={styles.sidebar}>
+        {sectionItems.map(item => {
+          const isActive = activeSection === item.key;
+          return (
+            <Pressable
+              key={item.key}
+              style={[styles.sidebarItem, isActive && styles.sidebarItemActive]}
+              onPress={() => handleSectionChange(item.key)}
+            >
+              <View style={[styles.sidebarIconWrap, isActive && styles.sidebarIconWrapActive]}>
+                <Ionicons
+                  name={item.icon}
+                  size={18}
+                  color={isActive ? '#FFFFFF' : '#114A76'}
+                />
+              </View>
+              <View style={styles.sidebarTextWrap}>
+                <Text style={[styles.sidebarLabel, isActive && styles.sidebarLabelActive]}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.sidebarMeta, isActive && styles.sidebarMetaActive]}>
+                  {item.count} item{item.count === 1 ? '' : 's'}
+                </Text>
+              </View>
+              <View style={[styles.sidebarCountPill, isActive && styles.sidebarCountPillActive]}>
+                <Text style={[styles.sidebarCountText, isActive && styles.sidebarCountTextActive]}>
+                  {item.count}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <View style={styles.sidebarFooter}>
+        <View style={styles.sidebarFooterChip}>
+          <View style={[styles.sidebarFooterDot, { backgroundColor: '#F59E0B' }]} />
+          <Text style={styles.sidebarFooterText}>{pendingSubmissionsCount} pending</Text>
+        </View>
+        <View style={styles.sidebarFooterChip}>
+          <View style={[styles.sidebarFooterDot, { backgroundColor: '#10B981' }]} />
+          <Text style={styles.sidebarFooterText}>{approvedSubmissionsCount} approved</Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -1057,8 +1148,13 @@ const ManageReportsScreen = ({ navigation }) => {
           <Pressable
             onPress={() => setSidebarVisible(true)}
             style={styles.menuButton}
+            disabled={showDesktopSidebar}
           >
-            <Ionicons name="menu-outline" size={22} color="#114A76" />
+            <Ionicons
+              name={showDesktopSidebar ? 'grid-outline' : 'menu-outline'}
+              size={22}
+              color="#114A76"
+            />
           </Pressable>
           <View>
             <Text style={styles.headerTitle}>Reports</Text>
@@ -1079,17 +1175,28 @@ const ManageReportsScreen = ({ navigation }) => {
         </View>
       ) : (
         <View style={styles.workspaceShell}>
+          {showDesktopSidebar ? (
+            <View style={styles.desktopSidebarDock}>{renderSectionNav()}</View>
+          ) : null}
           <View style={styles.sectionPanel}>
+            {!showDesktopSidebar ? (
             <View style={styles.mobileSectionBar}>
               <Pressable
                 style={styles.mobileSectionTrigger}
                 onPress={() => setSidebarVisible(true)}
               >
+                <Ionicons name="grid-outline" size={16} color="#114A76" />
                 <Text style={styles.mobileSectionTriggerText}>
                   {sectionItems.find(item => item.key === activeSection)?.label || 'Sections'}
                 </Text>
+                <View style={styles.mobileSectionTriggerBadge}>
+                  <Text style={styles.mobileSectionTriggerBadgeText}>
+                    {sectionItems.find(item => item.key === activeSection)?.count || 0}
+                  </Text>
+                </View>
               </Pressable>
             </View>
+            ) : null}
             {activeSection === 'overview' ? (
               renderOverviewSection()
             ) : (
@@ -1146,11 +1253,16 @@ const ManageReportsScreen = ({ navigation }) => {
                 )}
 
                 <FlatList
+                  key={activeSection}
                   data={activeSection === 'types' ? categories : filteredSubmissions}
                   renderItem={
                     activeSection === 'types' ? renderCategoryItem : renderSubmissionItem
                   }
                   keyExtractor={item => String(item.id)}
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={8}
+                  windowSize={7}
+                  removeClippedSubviews
                   contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
                   refreshing={refreshing}
                   onRefresh={loadAll}
@@ -1594,7 +1706,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
 export default ManageReportsScreen;
 
-const createStyles = C => StyleSheet.create({
+const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
@@ -1634,9 +1746,61 @@ const createStyles = C => StyleSheet.create({
   },
   workspaceShell: {
     flex: 1,
+    flexDirection: showDesktopSidebar ? 'row' : 'column',
+    gap: showDesktopSidebar ? 14 : 0,
     paddingHorizontal: 12,
     paddingTop: 12,
     paddingBottom: 10,
+  },
+  desktopSidebarDock: {
+    width: 292,
+  },
+  sidebarShell: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 26,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#D8E6F1',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.06,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+    gap: 14,
+  },
+  sidebarHero: {
+    backgroundColor: '#114A76',
+    borderRadius: 22,
+    padding: 16,
+    gap: 6,
+  },
+  sidebarHeroBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  sidebarHeroEyebrow: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    color: '#B7D9F1',
+  },
+  sidebarHeroTitle: {
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  sidebarHeroSubtitle: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#DCEFFC',
+    fontWeight: '500',
   },
   sidebar: {
     width: '100%',
@@ -1650,12 +1814,16 @@ const createStyles = C => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 18,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     gap: 10,
+    borderWidth: 1,
+    borderColor: '#E6EEF5',
+    backgroundColor: '#F8FBFD',
   },
   sidebarItemActive: {
     backgroundColor: '#114A76',
+    borderColor: '#114A76',
   },
   sidebarIconWrap: {
     width: 40,
@@ -1669,6 +1837,7 @@ const createStyles = C => StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
   sidebarTextWrap: {
+    flex: 1,
     alignItems: 'flex-start',
     gap: 2,
   },
@@ -1689,11 +1858,59 @@ const createStyles = C => StyleSheet.create({
   sidebarMetaActive: {
     color: '#D7E8F5',
   },
+  sidebarCountPill: {
+    minWidth: 34,
+    height: 28,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    backgroundColor: '#E2ECF4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sidebarCountPillActive: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  sidebarCountText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#114A76',
+  },
+  sidebarCountTextActive: {
+    color: '#FFFFFF',
+  },
+  sidebarFooter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  sidebarFooterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: '#F5F9FC',
+    borderWidth: 1,
+    borderColor: '#E2ECF4',
+  },
+  sidebarFooterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+  },
+  sidebarFooterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#335266',
+  },
   sectionPanel: {
     flex: 1,
     backgroundColor: '#F7FAFC',
     borderRadius: 24,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2ECF4',
   },
   mobileSectionBar: {
     paddingHorizontal: 16,
@@ -1718,6 +1935,20 @@ const createStyles = C => StyleSheet.create({
     fontWeight: '800',
     color: '#114A76',
   },
+  mobileSectionTriggerBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: '#114A76',
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileSectionTriggerBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
   sectionScrollContent: {
     padding: 16,
     paddingBottom: 100,
@@ -1735,12 +1966,13 @@ const createStyles = C => StyleSheet.create({
     flex: 1,
   },
   drawerSheet: {
-    width: 240,
-    paddingTop: 92,
+    width: 292,
+    paddingTop: 84,
     paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
-    borderTopRightRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 16,
+    backgroundColor: '#F4F8FB',
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
     shadowColor: '#000000',
     shadowOpacity: 0.14,
     shadowRadius: 16,
@@ -1752,7 +1984,7 @@ const createStyles = C => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 6,
   },
   drawerTitle: {
     fontSize: 16,
