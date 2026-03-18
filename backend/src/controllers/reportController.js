@@ -1186,173 +1186,485 @@ function resolveDiagramFilePath(diagramUrl) {
   return fs.existsSync(absPath) ? absPath : null;
 }
 
-function pushFieldRow(doc, left, top, colWidths, row, isHeader = false) {
-  const rowHeight = 22;
-  const font = isHeader ? 'Helvetica-Bold' : 'Helvetica';
-  const size = isHeader ? 9 : 8.5;
+function resolvePdfLogoPath() {
+  const candidates = [
+    path.join(__dirname, '../../../frontend/assets/pictures/AppLogo.png'),
+    path.join(process.cwd(), 'frontend/assets/pictures/AppLogo.png'),
+  ];
+  return candidates.find(filePath => fs.existsSync(filePath)) || null;
+}
 
-  let x = left;
-  row.forEach((cell, idx) => {
+function normalizePdfText(value, fallback = '-') {
+  if (value == null) return fallback;
+  const text = String(value)
+    .replace(/\s+/g, ' ')
+    .replace(/â€“/g, '-')
+    .trim();
+  return text || fallback;
+}
+
+function drawPdfCell(doc, {
+  x,
+  y,
+  width,
+  height,
+  text = '',
+  bold = false,
+  fontSize = 8,
+  align = 'left',
+  padding = 4,
+  textColor = '#111111',
+  strokeColor = '#111111',
+  fillColor = null,
+  lineWidth = 0.8,
+}) {
+  doc.save();
+  doc.lineWidth(lineWidth).strokeColor(strokeColor);
+  if (fillColor) {
+    doc.rect(x, y, width, height).fillAndStroke(fillColor, strokeColor);
+  } else {
+    doc.rect(x, y, width, height).stroke();
+  }
+  if (text) {
     doc
-      .rect(x, top, colWidths[idx], rowHeight)
-      .strokeColor('#DCE6F3')
-      .lineWidth(0.7)
-      .stroke();
-    doc
-      .font(font)
-      .fontSize(size)
-      .fillColor('#1F2937')
-      .text(String(cell ?? '-'), x + 4, top + 6, {
-        width: colWidths[idx] - 8,
-        height: rowHeight - 8,
+      .font(bold ? 'Helvetica-Bold' : 'Helvetica')
+      .fontSize(fontSize)
+      .fillColor(textColor)
+      .text(text, x + padding, y + padding, {
+        width: width - (padding * 2),
+        height: height - (padding * 2),
+        align,
         ellipsis: true,
       });
-    x += colWidths[idx];
-  });
-  return rowHeight;
+  }
+  doc.restore();
+}
+
+function drawPdfImageBox(doc, imagePath, x, y, width, height, padding = 10) {
+  doc.rect(x, y, width, height).lineWidth(0.8).strokeColor('#111111').stroke();
+  if (imagePath) {
+    doc.image(imagePath, x + padding, y + padding, {
+      fit: [width - (padding * 2), height - (padding * 2)],
+      align: 'center',
+      valign: 'center',
+    });
+    return;
+  }
+
+  doc
+    .font('Helvetica')
+    .fontSize(9)
+    .fillColor('#666666')
+    .text('No diagram attached', x, y + (height / 2) - 6, {
+      width,
+      align: 'center',
+    });
 }
 
 async function buildDetailedPdf(detail) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 36 });
+    const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 24 });
     const chunks = [];
     doc.on('data', chunk => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const left = doc.page.margins.left;
+    const top = doc.page.margins.top;
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const pageHeight = doc.page.height - doc.page.margins.top - doc.page.margins.bottom;
+    const right = left + pageWidth;
+    const rows = Array.isArray(detail.values) ? detail.values : [];
+    const tableRows = rows.length || 3;
+    const actualColumns = 5;
+    const outerX = left;
+    const outerY = top;
+    const outerWidth = pageWidth;
+    const outerHeight = pageHeight;
+    const headerHeight = 52;
+    const metaRowHeight = 28;
+    const tableHeaderTopHeight = 26;
+    const tableHeaderBottomHeight = 20;
+    const observationHeight = 38;
+    const footerHeight = 54;
+    const minDiagramHeight = 88;
+    const maxDiagramHeight = 220;
+    const minTableRowHeight = 24;
+    const maxTableRowHeight = 30;
+    const availableForDiagramAndRows = outerHeight
+      - headerHeight
+      - (metaRowHeight * 3)
+      - tableHeaderTopHeight
+      - tableHeaderBottomHeight
+      - observationHeight
+      - footerHeight;
+    const rowHeight = Math.max(
+      minTableRowHeight,
+      Math.min(maxTableRowHeight, Math.floor((availableForDiagramAndRows - minDiagramHeight) / tableRows))
+    );
+    const diagramHeight = Math.max(
+      minDiagramHeight,
+      Math.min(maxDiagramHeight, availableForDiagramAndRows - (rowHeight * tableRows))
+    );
 
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(18)
-      .fillColor('#114A76')
-      .text('Inspection Report', left, 34);
-
-    doc
-      .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#475569')
-      .text(`Submission ID: ${detail.id}`, left, 58);
-
-    doc.moveTo(left, 74).lineTo(left + pageWidth, 74).strokeColor('#DCE6F3').stroke();
-
-    const infoPairs = [
-      ['Category', detail.category_name || '-'],
-      ['Report Type', detail.part_description || '-'],
-      ['Customer', detail.customer || '-'],
-      ['Part No', detail.part_no || '-'],
-      ['Doc No / Rev No', `${detail.doc_no || '-'} / ${detail.rev_no || '-'}`],
-      ['Inspection Date', formatDate(detail.inspection_date)],
-      ['Template Created Date', formatDate(detail.template_created_at, true)],
-      ['Report Submitted Date', formatDate(detail.created_at, true)],
-      ['Shift', detail.shift || '-'],
-      ['Status', detail.status || '-'],
-      ['Submitted By', detail.submitted_by_name || '-'],
-      ['Inspector', detail.inspector_name || '-'],
-      ['Manager', detail.manager_name || '-'],
-    ];
-
-    let y = 84;
-    const colGap = 12;
-    const colWidth = (pageWidth - colGap) / 2;
-    infoPairs.forEach((pair, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const x = left + col * (colWidth + colGap);
-      const yy = y + row * 18;
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#334155').text(`${pair[0]}:`, x, yy, { width: 90 });
-      doc.font('Helvetica').fontSize(8.5).fillColor('#111827').text(String(pair[1]), x + 92, yy, { width: colWidth - 92 });
-    });
-
-    y += Math.ceil(infoPairs.length / 2) * 18 + 12;
-
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(11)
-      .fillColor('#123A59')
-      .text('Part Diagram', left, y);
-    y += 16;
-
+    const reportTitle = normalizePdfText(
+      detail.category_name || detail.template_label || 'Cutting Inspection Report',
+      'Cutting Inspection Report'
+    ).toUpperCase();
+    const docDate = formatDate(detail.template_created_at || detail.created_at);
+    const inspectionDate = formatDate(detail.inspection_date);
+    const visualObservation = [
+      detail.inspector_observation,
+      detail.manager_observation,
+    ]
+      .filter(Boolean)
+      .join(' | ') || ' ';
+    const dispositionRemarks = [
+      detail.inspector_remarks,
+      detail.manager_remarks,
+    ]
+      .filter(Boolean)
+      .join(' | ') || ' ';
+    const logoPath = resolvePdfLogoPath();
     const diagramPath = resolveDiagramFilePath(detail.diagram_url);
-    if (diagramPath) {
-      doc.rect(left, y, pageWidth, 150).strokeColor('#DCE6F3').stroke();
-      doc.image(diagramPath, left + 8, y + 8, {
-        fit: [pageWidth - 16, 134],
-        align: 'center',
+
+    doc.rect(outerX, outerY, outerWidth, outerHeight).lineWidth(1).strokeColor('#111111').stroke();
+
+    let y = outerY;
+    const logoWidth = 140;
+    const docInfoWidth = 210;
+    const titleWidth = outerWidth - logoWidth - docInfoWidth;
+
+    drawPdfCell(doc, {
+      x: outerX,
+      y,
+      width: logoWidth,
+      height: headerHeight,
+    });
+    if (logoPath) {
+      doc.image(logoPath, outerX + 8, y + 6, {
+        fit: [logoWidth - 16, headerHeight - 12],
+        align: 'left',
         valign: 'center',
       });
-      y += 160;
     } else {
-      doc.rect(left, y, pageWidth, 60).strokeColor('#DCE6F3').stroke();
-      doc
-        .font('Helvetica')
-        .fontSize(9)
-        .fillColor('#6B7280')
-        .text(detail.diagram_url ? `Diagram not found on server: ${detail.diagram_url}` : 'No diagram attached', left + 10, y + 23);
-      y += 70;
+      doc.font('Helvetica-Bold').fontSize(18).fillColor('#114A76').text('Anand', outerX + 10, y + 14);
+      doc.font('Helvetica').fontSize(17).fillColor('#7C8795').text('Engg', outerX + 56, y + 14);
     }
 
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(11)
-      .fillColor('#123A59')
-      .text('Dimensions & Measurements', left, y);
-    y += 14;
+    drawPdfCell(doc, {
+      x: outerX + logoWidth,
+      y,
+      width: titleWidth,
+      height: headerHeight,
+      text: reportTitle,
+      bold: true,
+      fontSize: 16,
+      align: 'center',
+      padding: 16,
+    });
 
-    const colWidths = [28, 140, 140, pageWidth - 28 - 140 - 140];
-    y += pushFieldRow(doc, left, y, colWidths, ['No', 'Dimension', 'Specification', 'Actual Values'], true);
+    const infoRowSmallHeight = Math.round(headerHeight / 3);
+    drawPdfCell(doc, {
+      x: right - docInfoWidth,
+      y,
+      width: docInfoWidth,
+      height: infoRowSmallHeight,
+      text: `Doc. No: ${normalizePdfText(detail.doc_no)}`,
+      bold: true,
+      fontSize: 8.5,
+      padding: 6,
+    });
+    drawPdfCell(doc, {
+      x: right - docInfoWidth,
+      y: y + infoRowSmallHeight,
+      width: docInfoWidth,
+      height: infoRowSmallHeight,
+      text: `Rev. No: ${normalizePdfText(detail.rev_no, '00')}`,
+      bold: true,
+      fontSize: 8.5,
+      padding: 6,
+    });
+    drawPdfCell(doc, {
+      x: right - docInfoWidth,
+      y: y + (infoRowSmallHeight * 2),
+      width: docInfoWidth,
+      height: headerHeight - (infoRowSmallHeight * 2),
+      text: `Date: ${normalizePdfText(docDate)}`,
+      bold: true,
+      fontSize: 8.5,
+      padding: 6,
+    });
 
-    const rows = Array.isArray(detail.values) ? detail.values : [];
-    if (rows.length === 0) {
-      y += pushFieldRow(doc, left, y, colWidths, ['-', 'No values', '-', '-']);
-    } else {
-      rows.forEach((v, idx) => {
-        const spec = v.specification
-          ? `${v.specification}${v.unit ? ` (${v.unit})` : ''}`
-          : '-';
-        const actual = Array.isArray(v.actual_values) && v.actual_values.length
-          ? v.actual_values.join(' | ')
-          : '-';
-        if (y > doc.page.height - 72) {
-          doc.addPage();
-          y = doc.page.margins.top;
-          y += pushFieldRow(doc, left, y, colWidths, ['No', 'Dimension', 'Specification', 'Actual Values'], true);
-        }
-        y += pushFieldRow(doc, left, y, colWidths, [idx + 1, v.label || '-', spec, actual]);
-      });
-    }
-
-    if (y > doc.page.height - 140) {
-      doc.addPage();
-      y = doc.page.margins.top;
-    }
-    y += 12;
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(11)
-      .fillColor('#123A59')
-      .text('Review Notes', left, y);
-    y += 16;
-
-    const reviewPairs = [
-      ['Inspector Observation', detail.inspector_observation || 'Unavailable'],
-      ['Inspector Remarks', detail.inspector_remarks || 'Unavailable'],
-      ['Manager Observation', detail.manager_observation || 'Unavailable'],
-      ['Manager Remarks', detail.manager_remarks || 'Unavailable'],
+    y += headerHeight;
+    const metaLabelWidth = 150;
+    const metaRightLabelWidth = 82;
+    const metaRightValueWidth = 51;
+    const metaValueWidth = outerWidth - metaLabelWidth - metaRightLabelWidth - metaRightValueWidth;
+    const metaRows = [
+      ['CUSTOMER :', normalizePdfText(detail.customer), 'Inspection Date', normalizePdfText(inspectionDate)],
+      ['PART / DRAWING NO :', normalizePdfText(detail.part_no), 'Shift', normalizePdfText(detail.shift)],
+      ['PART DESCRIPTION :', normalizePdfText(detail.part_description), '', ''],
     ];
 
-    reviewPairs.forEach(([label, value]) => {
-      if (y > doc.page.height - 56) {
-        doc.addPage();
-        y = doc.page.margins.top;
-      }
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#334155').text(`${label}:`, left, y);
-      y += 12;
-      doc.font('Helvetica').fontSize(9).fillColor('#111827').text(String(value), left, y, {
-        width: pageWidth,
+    metaRows.forEach(([label, value, rightLabel, rightValue]) => {
+      drawPdfCell(doc, {
+        x: outerX,
+        y,
+        width: metaLabelWidth,
+        height: metaRowHeight,
+        text: label,
+        bold: true,
+        fontSize: 8.5,
+        padding: 6,
       });
-      y += 18;
+      drawPdfCell(doc, {
+        x: outerX + metaLabelWidth,
+        y,
+        width: metaValueWidth,
+        height: metaRowHeight,
+        text: value,
+        bold: true,
+        fontSize: 8.5,
+        align: 'center',
+        padding: 8,
+      });
+      drawPdfCell(doc, {
+        x: outerX + metaLabelWidth + metaValueWidth,
+        y,
+        width: metaRightLabelWidth,
+        height: metaRowHeight,
+        text: rightLabel,
+        bold: true,
+        fontSize: 8.5,
+        padding: 6,
+      });
+      drawPdfCell(doc, {
+        x: outerX + metaLabelWidth + metaValueWidth + metaRightLabelWidth,
+        y,
+        width: metaRightValueWidth,
+        height: metaRowHeight,
+        text: rightValue,
+        bold: true,
+        fontSize: 8.5,
+        align: 'center',
+        padding: 6,
+      });
+      y += metaRowHeight;
+    });
+
+    drawPdfImageBox(doc, diagramPath, outerX, y, outerWidth, diagramHeight, 12);
+    y += diagramHeight;
+
+    const slWidth = 42;
+    const descWidth = 135;
+    const specWidth = 125;
+    const actualWidth = outerWidth - slWidth - descWidth - specWidth;
+    const actualCellWidth = actualWidth / actualColumns;
+
+    drawPdfCell(doc, {
+      x: outerX,
+      y,
+      width: slWidth,
+      height: tableHeaderTopHeight + tableHeaderBottomHeight,
+      text: 'Sl. No',
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + slWidth,
+      y,
+      width: descWidth,
+      height: tableHeaderTopHeight + tableHeaderBottomHeight,
+      text: 'Descriptions',
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + slWidth + descWidth,
+      y,
+      width: specWidth,
+      height: tableHeaderTopHeight + tableHeaderBottomHeight,
+      text: 'Specifications (mm)',
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + slWidth + descWidth + specWidth,
+      y,
+      width: actualWidth,
+      height: tableHeaderTopHeight,
+      text: 'Actual Dimensions (mm)',
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 7,
+    });
+
+    for (let i = 0; i < actualColumns; i += 1) {
+      drawPdfCell(doc, {
+        x: outerX + slWidth + descWidth + specWidth + (actualCellWidth * i),
+        y: y + tableHeaderTopHeight,
+        width: actualCellWidth,
+        height: tableHeaderBottomHeight,
+      });
+    }
+    y += tableHeaderTopHeight + tableHeaderBottomHeight;
+
+    const tableData = rows.length ? rows : [{}, {}, {}];
+    tableData.forEach((row, idx) => {
+      const actualValues = Array.isArray(row.actual_values) ? [...row.actual_values] : [];
+      while (actualValues.length < actualColumns) actualValues.push('');
+      if (actualValues.length > actualColumns) {
+        actualValues[actualColumns - 1] = actualValues.slice(actualColumns - 1).join(' | ');
+      }
+
+      drawPdfCell(doc, {
+        x: outerX,
+        y,
+        width: slWidth,
+        height: rowHeight,
+        text: normalizePdfText(row.position || idx + 1, ''),
+        bold: false,
+        fontSize: 8,
+        align: 'center',
+        padding: 8,
+      });
+      drawPdfCell(doc, {
+        x: outerX + slWidth,
+        y,
+        width: descWidth,
+        height: rowHeight,
+        text: normalizePdfText(row.label || row.desc, ''),
+        bold: true,
+        fontSize: 8,
+        align: 'center',
+        padding: 8,
+      });
+      drawPdfCell(doc, {
+        x: outerX + slWidth + descWidth,
+        y,
+        width: specWidth,
+        height: rowHeight,
+        text: normalizePdfText(row.specification || row.spec, ''),
+        bold: true,
+        fontSize: 8,
+        align: 'center',
+        padding: 8,
+      });
+      for (let i = 0; i < actualColumns; i += 1) {
+        drawPdfCell(doc, {
+          x: outerX + slWidth + descWidth + specWidth + (actualCellWidth * i),
+          y,
+          width: actualCellWidth,
+          height: rowHeight,
+          text: normalizePdfText(actualValues[i], ''),
+          bold: false,
+          fontSize: 8,
+          align: 'center',
+          padding: 8,
+        });
+      }
+      y += rowHeight;
+    });
+
+    drawPdfCell(doc, {
+      x: outerX,
+      y,
+      width: outerWidth,
+      height: observationHeight,
+      text: `Visual observation: ${visualObservation}`,
+      bold: true,
+      fontSize: 8,
+      padding: 6,
+    });
+    y += observationHeight;
+
+    const dispositionWidth = 240;
+    const qaWidth = 420;
+    const reviewedWidth = 106;
+    const approvedWidth = outerWidth - dispositionWidth - qaWidth - reviewedWidth;
+
+    drawPdfCell(doc, {
+      x: outerX,
+      y,
+      width: dispositionWidth,
+      height: footerHeight,
+      text: `Disposition remarks:\n${dispositionRemarks}`,
+      bold: true,
+      fontSize: 8,
+      padding: 6,
+    });
+
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth,
+      y,
+      width: qaWidth,
+      height: Math.round(footerHeight / 2),
+      text: normalizePdfText(detail.status || 'QA'),
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth,
+      y: y + Math.round(footerHeight / 2),
+      width: qaWidth,
+      height: footerHeight - Math.round(footerHeight / 2),
+      text: '',
+    });
+
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth + qaWidth,
+      y,
+      width: reviewedWidth,
+      height: Math.round(footerHeight / 2),
+      text: 'Reviewed By:',
+      bold: true,
+      fontSize: 7,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth + qaWidth,
+      y: y + Math.round(footerHeight / 2),
+      width: reviewedWidth,
+      height: footerHeight - Math.round(footerHeight / 2),
+      text: normalizePdfText(detail.inspector_name, ''),
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
+    });
+
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth + qaWidth + reviewedWidth,
+      y,
+      width: approvedWidth,
+      height: Math.round(footerHeight / 2),
+      text: 'Approved By:',
+      bold: true,
+      fontSize: 7,
+      align: 'center',
+      padding: 10,
+    });
+    drawPdfCell(doc, {
+      x: outerX + dispositionWidth + qaWidth + reviewedWidth,
+      y: y + Math.round(footerHeight / 2),
+      width: approvedWidth,
+      height: footerHeight - Math.round(footerHeight / 2),
+      text: normalizePdfText(detail.manager_name, ''),
+      bold: true,
+      fontSize: 8,
+      align: 'center',
+      padding: 10,
     });
 
     doc.end();
