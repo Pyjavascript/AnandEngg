@@ -1217,6 +1217,9 @@ function drawPdfCell(doc, {
   strokeColor = '#111111',
   fillColor = null,
   lineWidth = 0.8,
+  singleLine = false,
+  shrinkToFit = false,
+  minFontSize = 6,
 }) {
   doc.save();
   doc.lineWidth(lineWidth).strokeColor(strokeColor);
@@ -1226,15 +1229,30 @@ function drawPdfCell(doc, {
     doc.rect(x, y, width, height).stroke();
   }
   if (text) {
+    let resolvedFontSize = fontSize;
+    const fontName = bold ? 'Helvetica-Bold' : 'Helvetica';
+    doc.font(fontName);
+    if (singleLine && shrinkToFit) {
+      while (
+        resolvedFontSize > minFontSize
+        && doc.fontSize(resolvedFontSize).widthOfString(text) > (width - (padding * 2))
+      ) {
+        resolvedFontSize -= 0.2;
+      }
+    }
+    const textY = singleLine
+      ? y + Math.max(padding, ((height - resolvedFontSize) / 2) - 1)
+      : y + padding;
     doc
-      .font(bold ? 'Helvetica-Bold' : 'Helvetica')
-      .fontSize(fontSize)
+      .font(fontName)
+      .fontSize(resolvedFontSize)
       .fillColor(textColor)
-      .text(text, x + padding, y + padding, {
+      .text(text, x + padding, textY, {
         width: width - (padding * 2),
         height: height - (padding * 2),
         align,
-        ellipsis: true,
+        ellipsis: !singleLine,
+        lineBreak: !singleLine,
       });
   }
   doc.restore();
@@ -1282,7 +1300,7 @@ async function buildDetailedPdf(detail) {
     const outerWidth = pageWidth;
     const outerHeight = pageHeight;
     const headerHeight = 52;
-    const metaRowHeight = 28;
+    const metaRowHeight = 24;
     const tableHeaderTopHeight = 26;
     const tableHeaderBottomHeight = 20;
     const observationHeight = 38;
@@ -1331,8 +1349,8 @@ async function buildDetailedPdf(detail) {
     doc.rect(outerX, outerY, outerWidth, outerHeight).lineWidth(1).strokeColor('#111111').stroke();
 
     let y = outerY;
-    const logoWidth = 140;
-    const docInfoWidth = 210;
+    const logoWidth = 152;
+    const docInfoWidth = 198;
     const titleWidth = outerWidth - logoWidth - docInfoWidth;
 
     drawPdfCell(doc, {
@@ -1359,9 +1377,12 @@ async function buildDetailedPdf(detail) {
       height: headerHeight,
       text: reportTitle,
       bold: true,
-      fontSize: 16,
+      fontSize: 14,
       align: 'center',
-      padding: 16,
+      padding: 12,
+      singleLine: true,
+      shrinkToFit: true,
+      minFontSize: 11,
     });
 
     const infoRowSmallHeight = Math.round(headerHeight / 3);
@@ -1374,6 +1395,8 @@ async function buildDetailedPdf(detail) {
       bold: true,
       fontSize: 8.5,
       padding: 6,
+      singleLine: true,
+      shrinkToFit: true,
     });
     drawPdfCell(doc, {
       x: right - docInfoWidth,
@@ -1384,6 +1407,8 @@ async function buildDetailedPdf(detail) {
       bold: true,
       fontSize: 8.5,
       padding: 6,
+      singleLine: true,
+      shrinkToFit: true,
     });
     drawPdfCell(doc, {
       x: right - docInfoWidth,
@@ -1394,12 +1419,14 @@ async function buildDetailedPdf(detail) {
       bold: true,
       fontSize: 8.5,
       padding: 6,
+      singleLine: true,
+      shrinkToFit: true,
     });
 
     y += headerHeight;
     const metaLabelWidth = 150;
-    const metaRightLabelWidth = 82;
-    const metaRightValueWidth = 51;
+    const metaRightLabelWidth = 95;
+    const metaRightValueWidth = 64;
     const metaValueWidth = outerWidth - metaLabelWidth - metaRightLabelWidth - metaRightValueWidth;
     const metaRows = [
       ['CUSTOMER :', normalizePdfText(detail.customer), 'Inspection Date', normalizePdfText(inspectionDate)],
@@ -1417,6 +1444,8 @@ async function buildDetailedPdf(detail) {
         bold: true,
         fontSize: 8.5,
         padding: 6,
+        singleLine: true,
+        shrinkToFit: true,
       });
       drawPdfCell(doc, {
         x: outerX + metaLabelWidth,
@@ -1427,7 +1456,9 @@ async function buildDetailedPdf(detail) {
         bold: true,
         fontSize: 8.5,
         align: 'center',
-        padding: 8,
+        padding: 6,
+        singleLine: true,
+        shrinkToFit: true,
       });
       drawPdfCell(doc, {
         x: outerX + metaLabelWidth + metaValueWidth,
@@ -1438,6 +1469,8 @@ async function buildDetailedPdf(detail) {
         bold: true,
         fontSize: 8.5,
         padding: 6,
+        singleLine: true,
+        shrinkToFit: true,
       });
       drawPdfCell(doc, {
         x: outerX + metaLabelWidth + metaValueWidth + metaRightLabelWidth,
@@ -1446,9 +1479,12 @@ async function buildDetailedPdf(detail) {
         height: metaRowHeight,
         text: rightValue,
         bold: true,
-        fontSize: 8.5,
+        fontSize: 8,
         align: 'center',
         padding: 6,
+        singleLine: true,
+        shrinkToFit: true,
+        minFontSize: 5.8,
       });
       y += metaRowHeight;
     });
@@ -1472,6 +1508,7 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
     });
     drawPdfCell(doc, {
       x: outerX + slWidth,
@@ -1483,6 +1520,7 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
     });
     drawPdfCell(doc, {
       x: outerX + slWidth + descWidth,
@@ -1494,6 +1532,8 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
+      shrinkToFit: true,
     });
     drawPdfCell(doc, {
       x: outerX + slWidth + descWidth + specWidth,
@@ -1505,6 +1545,8 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 7,
+      singleLine: true,
+      shrinkToFit: true,
     });
 
     for (let i = 0; i < actualColumns; i += 1) {
@@ -1535,6 +1577,8 @@ async function buildDetailedPdf(detail) {
         fontSize: 8,
         align: 'center',
         padding: 8,
+        singleLine: true,
+        shrinkToFit: true,
       });
       drawPdfCell(doc, {
         x: outerX + slWidth,
@@ -1546,6 +1590,8 @@ async function buildDetailedPdf(detail) {
         fontSize: 8,
         align: 'center',
         padding: 8,
+        singleLine: true,
+        shrinkToFit: true,
       });
       drawPdfCell(doc, {
         x: outerX + slWidth + descWidth,
@@ -1557,6 +1603,8 @@ async function buildDetailedPdf(detail) {
         fontSize: 8,
         align: 'center',
         padding: 8,
+        singleLine: true,
+        shrinkToFit: true,
       });
       for (let i = 0; i < actualColumns; i += 1) {
         drawPdfCell(doc, {
@@ -1569,6 +1617,8 @@ async function buildDetailedPdf(detail) {
           fontSize: 8,
           align: 'center',
           padding: 8,
+          singleLine: true,
+          shrinkToFit: true,
         });
       }
       y += rowHeight;
@@ -1607,11 +1657,12 @@ async function buildDetailedPdf(detail) {
       y,
       width: qaWidth,
       height: Math.round(footerHeight / 2),
-      text: normalizePdfText(detail.status || 'QA'),
+      text: 'QA',
       bold: true,
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
     });
     drawPdfCell(doc, {
       x: outerX + dispositionWidth,
@@ -1631,6 +1682,7 @@ async function buildDetailedPdf(detail) {
       fontSize: 7,
       align: 'center',
       padding: 10,
+      singleLine: true,
     });
     drawPdfCell(doc, {
       x: outerX + dispositionWidth + qaWidth,
@@ -1642,6 +1694,8 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
+      shrinkToFit: true,
     });
 
     drawPdfCell(doc, {
@@ -1654,6 +1708,7 @@ async function buildDetailedPdf(detail) {
       fontSize: 7,
       align: 'center',
       padding: 10,
+      singleLine: true,
     });
     drawPdfCell(doc, {
       x: outerX + dispositionWidth + qaWidth + reviewedWidth,
@@ -1665,6 +1720,8 @@ async function buildDetailedPdf(detail) {
       fontSize: 8,
       align: 'center',
       padding: 10,
+      singleLine: true,
+      shrinkToFit: true,
     });
 
     doc.end();
