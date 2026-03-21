@@ -932,106 +932,6 @@ exports.UnregisterPushToken = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
-// exports.CreateInspectionReport = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-//     const data = req.body;
-
-//     if (!data.dimensions || !Array.isArray(data.dimensions)) {
-//       return res.status(400).json({ message: 'Dimensions array is required' });
-//     }
-
-//     // Transform frontend data into submission format
-//     const submissionData = {
-//       template_id: data.templateId || 'unknown',
-//       employee_id: userId,
-//       inspection_date: data.inspectionDate,
-//       shift: data.shift,
-//       customer: data.customer,
-//       part_no: data.partNumber,
-//       doc_no: data.docNo,
-//       rev_no: data.revNo,
-//       visual_observation: data.visualObservation || '',
-//       remarks: data.remarks || '',
-//       report_data: JSON.stringify({
-//         dimensions: data.dimensions,
-//         visualObservation: data.visualObservation,
-//         remarks: data.remarks,
-//       }),
-//       status: 'submitted',
-//     };
-
-//     // Create submission directly with JSON data
-//     const [result] = await db.query(
-//       `INSERT INTO reports (user_id, title, part_no, report_type, report_data, status)
-//        VALUES (?, ?, ?, ?, ?, ?)`,
-//       [
-//         userId,
-//         `Inspection Report - ${data.partNumber}`,
-//         data.partNumber,
-//         data.reportType,
-//         submissionData.report_data,
-//         'pending'
-//       ]
-//     );
-
-//     res.status(201).json({ 
-//       message: 'Inspection report submitted successfully', 
-//       id: result.insertId 
-//     });
-//   } catch (err) {
-//     console.log('Error creating inspection report:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// exports.GetAllInjectionReports = async (req, res) => {
-//   try {
-//     const [reports] = await db.query(
-//       `SELECT 
-//         r.id,
-//         r.user_id,
-//         r.title,
-//         r.part_no,
-//         r.report_type,
-//         r.report_data,
-//         r.status,
-//         r.created_at,
-//         u.name as submitted_by,
-//         u.employee_id
-//        FROM reports r
-//        LEFT JOIN users u ON r.user_id = u.id
-//        ORDER BY r.created_at DESC`
-//     );
-//     res.json(reports || []);
-//   } catch (err) {
-//     console.log('Error fetching reports:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// exports.GetReportTypesWithStats = async (req, res) => {
-//   try {
-//     // Get all unique report types with submission count
-//     const [stats] = await db.query(
-//       `SELECT 
-//         report_type,
-//         COUNT(*) as submission_count,
-//         MIN(created_at) as first_created,
-//         MAX(created_at) as last_created
-//        FROM reports
-//        GROUP BY report_type
-//        ORDER BY report_type`
-//     );
-
-//     res.json(stats || []);
-//   } catch (err) {
-//     console.log('Error fetching report stats:', err);
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
 exports.GetAllTemplatesWithParts = async (req, res) => {
   try {
     const templates = await templateModel.getAllTemplatesWithDimensions();
@@ -1230,9 +1130,12 @@ function resolvePdfLogoPath() {
   const candidates = [
     path.join(repoRoot, 'frontend/assets/pictures/AppLogo.png'),
     path.join(repoRoot, 'frontend/assets/pictures/applogo.png'),
+    path.join(backendRoot, '../frontend/assets/pictures/AppLogo.png'),
+    path.join(backendRoot, '../frontend/assets/pictures/applogo.png'),
     path.join(backendRoot, 'assets/AppLogo.png'),
     path.join(backendRoot, 'assets/applogo.png'),
     path.join(process.cwd(), 'frontend/assets/pictures/AppLogo.png'),
+    path.join(process.cwd(), '../frontend/assets/pictures/AppLogo.png'),
     path.join(process.cwd(), 'assets/pictures/AppLogo.png'),
   ];
   return candidates.find(filePath => fs.existsSync(filePath)) || null;
@@ -1326,6 +1229,22 @@ function drawPdfCell(doc, {
       });
   }
   doc.restore();
+}
+
+function drawPdfLogo(doc, logoPath, x, y, width, height) {
+  if (!logoPath) return false;
+
+  try {
+    doc.image(logoPath, x + 8, y + 6, {
+      fit: [width - 16, height - 12],
+      align: 'left',
+      valign: 'center',
+    });
+    return true;
+  } catch (error) {
+    console.log('PDF logo render failed:', error?.message || error);
+    return false;
+  }
 }
 
 function drawPdfObservationAndFooter(doc, {
@@ -1565,16 +1484,7 @@ async function buildDetailedPdf(detail) {
       width: logoWidth,
       height: headerHeight,
     });
-    if (logoPath) {
-      doc.image(logoPath, outerX + 8, y + 6, {
-        fit: [logoWidth - 16, headerHeight - 12],
-        align: 'left',
-        valign: 'center',
-      });
-    } else {
-      doc.font('Helvetica-Bold').fontSize(18).fillColor('#114A76').text('Anand', outerX + 10, y + 14);
-      doc.font('Helvetica').fontSize(17).fillColor('#7C8795').text('Engg', outerX + 56, y + 14);
-    }
+    drawPdfLogo(doc, logoPath, outerX, y, logoWidth, headerHeight);
 
     drawPdfCell(doc, {
       x: outerX + logoWidth,
@@ -1874,24 +1784,14 @@ async function buildDetailedPdf(detail) {
         width: continuationLogoWidth,
         height: continuationHeaderHeight,
       });
-      if (logoPath) {
-        doc.image(logoPath, continuationLeft + 8, continuationTop + 6, {
-          fit: [continuationLogoWidth - 16, continuationHeaderHeight - 12],
-          align: 'left',
-          valign: 'center',
-        });
-      } else {
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(18)
-          .fillColor('#114A76')
-          .text('Anand', continuationLeft + 10, continuationTop + 12);
-        doc
-          .font('Helvetica')
-          .fontSize(17)
-          .fillColor('#7C8795')
-          .text('Engg', continuationLeft + 56, continuationTop + 12);
-      }
+      drawPdfLogo(
+        doc,
+        logoPath,
+        continuationLeft,
+        continuationTop,
+        continuationLogoWidth,
+        continuationHeaderHeight,
+      );
 
       drawPdfCell(doc, {
         x: continuationLeft + continuationLogoWidth,
@@ -2075,7 +1975,6 @@ exports.DownloadSubmissions = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 
 
 
