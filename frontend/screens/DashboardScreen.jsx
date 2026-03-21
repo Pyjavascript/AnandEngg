@@ -507,11 +507,12 @@ const createStyles = C => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    
   },
   todayTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+     color: C.textStrong,
   },
   todayStatsRow: {
     flexDirection: 'row',
@@ -553,15 +554,9 @@ const createStyles = C => StyleSheet.create({
   },
   quickActionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
   },
   quickActionItem: {
     flex: 1,
-    backgroundColor: C.surface,
-    borderWidth: 1,
-    borderColor: C.border,
-    borderRadius: 14,
     paddingVertical: 12,
     alignItems: 'center',
     gap: 8,

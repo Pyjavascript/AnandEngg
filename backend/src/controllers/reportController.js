@@ -1225,9 +1225,15 @@ function resolveDiagramFilePath(diagramUrl) {
 }
 
 function resolvePdfLogoPath() {
+  const repoRoot = path.resolve(__dirname, '../../..');
+  const backendRoot = path.resolve(__dirname, '../..');
   const candidates = [
-    path.join(__dirname, '../../../frontend/assets/pictures/AppLogo.png'),
+    path.join(repoRoot, 'frontend/assets/pictures/AppLogo.png'),
+    path.join(repoRoot, 'frontend/assets/pictures/applogo.png'),
+    path.join(backendRoot, 'assets/AppLogo.png'),
+    path.join(backendRoot, 'assets/applogo.png'),
     path.join(process.cwd(), 'frontend/assets/pictures/AppLogo.png'),
+    path.join(process.cwd(), 'assets/pictures/AppLogo.png'),
   ];
   return candidates.find(filePath => fs.existsSync(filePath)) || null;
 }
@@ -1239,6 +1245,32 @@ function normalizePdfText(value, fallback = '-') {
     .replace(/â€“/g, '-')
     .trim();
   return text || fallback;
+}
+
+function measurePdfTextHeight(doc, {
+  text = '',
+  width,
+  bold = false,
+  fontSize = 8,
+  padding = 4,
+  lineGap = 0,
+  minHeight = 0,
+}) {
+  if (!text) return minHeight;
+
+  const innerWidth = Math.max(0, width - (padding * 2));
+  if (!innerWidth) return minHeight;
+
+  const fontName = bold ? 'Helvetica-Bold' : 'Helvetica';
+  doc.save();
+  doc.font(fontName).fontSize(fontSize);
+  const textHeight = doc.heightOfString(text, {
+    width: innerWidth,
+    lineGap,
+  });
+  doc.restore();
+
+  return Math.max(minHeight, Math.ceil(textHeight + (padding * 2)));
 }
 
 function drawPdfCell(doc, {
@@ -1294,6 +1326,122 @@ function drawPdfCell(doc, {
       });
   }
   doc.restore();
+}
+
+function drawPdfObservationAndFooter(doc, {
+  outerX,
+  y,
+  outerWidth,
+  detail,
+  visualObservation,
+  dispositionRemarks,
+  observationHeight,
+  footerHeight,
+}) {
+  const dispositionWidth = 240;
+  const qaWidth = 420;
+  const reviewedWidth = 106;
+  const approvedWidth = outerWidth - dispositionWidth - qaWidth - reviewedWidth;
+  const halfFooterHeight = Math.round(footerHeight / 2);
+  const observationText = `Visual observation: ${visualObservation}`;
+  const dispositionText = `Disposition remarks:\n${dispositionRemarks}`;
+
+  drawPdfCell(doc, {
+    x: outerX,
+    y,
+    width: outerWidth,
+    height: observationHeight,
+    text: observationText,
+    bold: true,
+    fontSize: 8,
+    padding: 6,
+  });
+  y += observationHeight;
+
+  drawPdfCell(doc, {
+    x: outerX,
+    y,
+    width: dispositionWidth,
+    height: footerHeight,
+    text: dispositionText,
+    bold: true,
+    fontSize: 8,
+    padding: 6,
+  });
+
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth,
+    y,
+    width: qaWidth,
+    height: halfFooterHeight,
+    text: 'QA',
+    bold: true,
+    fontSize: 8,
+    align: 'center',
+    padding: 10,
+    singleLine: true,
+  });
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth,
+    y: y + halfFooterHeight,
+    width: qaWidth,
+    height: footerHeight - halfFooterHeight,
+    text: '',
+  });
+
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth + qaWidth,
+    y,
+    width: reviewedWidth,
+    height: halfFooterHeight,
+    text: 'Reviewed By:',
+    bold: true,
+    fontSize: 7,
+    align: 'center',
+    padding: 10,
+    singleLine: true,
+  });
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth + qaWidth,
+    y: y + halfFooterHeight,
+    width: reviewedWidth,
+    height: footerHeight - halfFooterHeight,
+    text: normalizePdfText(detail.inspector_name, ''),
+    bold: true,
+    fontSize: 8,
+    align: 'center',
+    padding: 10,
+    singleLine: true,
+    shrinkToFit: true,
+  });
+
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth + qaWidth + reviewedWidth,
+    y,
+    width: approvedWidth,
+    height: halfFooterHeight,
+    text: 'Approved By:',
+    bold: true,
+    fontSize: 7,
+    align: 'center',
+    padding: 10,
+    singleLine: true,
+  });
+  drawPdfCell(doc, {
+    x: outerX + dispositionWidth + qaWidth + reviewedWidth,
+    y: y + halfFooterHeight,
+    width: approvedWidth,
+    height: footerHeight - halfFooterHeight,
+    text: normalizePdfText(detail.manager_name, ''),
+    bold: true,
+    fontSize: 8,
+    align: 'center',
+    padding: 10,
+    singleLine: true,
+    shrinkToFit: true,
+  });
+
+  return y + footerHeight;
 }
 
 function drawPdfImageBox(doc, imagePath, x, y, width, height, padding = 10) {
@@ -1383,6 +1531,26 @@ async function buildDetailedPdf(detail) {
       .join(' | ') || ' ';
     const logoPath = resolvePdfLogoPath();
     const diagramPath = resolveDiagramFilePath(detail.diagram_url);
+    const observationText = `Visual observation: ${visualObservation}`;
+    const dispositionText = `Disposition remarks:\n${dispositionRemarks}`;
+    const computedObservationHeight = measurePdfTextHeight(doc, {
+      text: observationText,
+      width: outerWidth,
+      bold: true,
+      fontSize: 8,
+      padding: 6,
+      lineGap: 1,
+      minHeight: observationHeight,
+    });
+    const computedFooterHeight = measurePdfTextHeight(doc, {
+      text: dispositionText,
+      width: 240,
+      bold: true,
+      fontSize: 8,
+      padding: 6,
+      lineGap: 1,
+      minHeight: footerHeight,
+    });
 
     doc.rect(outerX, outerY, outerWidth, outerHeight).lineWidth(1).strokeColor('#111111').stroke();
 
@@ -1662,105 +1830,95 @@ async function buildDetailedPdf(detail) {
       y += rowHeight;
     });
 
-    drawPdfCell(doc, {
-      x: outerX,
-      y,
-      width: outerWidth,
-      height: observationHeight,
-      text: `Visual observation: ${visualObservation}`,
-      bold: true,
-      fontSize: 8,
-      padding: 6,
-    });
-    y += observationHeight;
+    const availableFooterSpace = (outerY + outerHeight) - y;
+    const totalFooterHeight = computedObservationHeight + computedFooterHeight;
 
-    const dispositionWidth = 240;
-    const qaWidth = 420;
-    const reviewedWidth = 106;
-    const approvedWidth = outerWidth - dispositionWidth - qaWidth - reviewedWidth;
+    if (totalFooterHeight <= availableFooterSpace) {
+      drawPdfObservationAndFooter(doc, {
+        outerX,
+        y,
+        outerWidth,
+        detail,
+        visualObservation,
+        dispositionRemarks,
+        observationHeight: computedObservationHeight,
+        footerHeight: computedFooterHeight,
+      });
+    } else {
+      doc.addPage({ size: 'A4', layout: 'landscape', margin: 24 });
 
-    drawPdfCell(doc, {
-      x: outerX,
-      y,
-      width: dispositionWidth,
-      height: footerHeight,
-      text: `Disposition remarks:\n${dispositionRemarks}`,
-      bold: true,
-      fontSize: 8,
-      padding: 6,
-    });
+      const continuationLeft = doc.page.margins.left;
+      const continuationTop = doc.page.margins.top;
+      const continuationWidth =
+        doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const continuationHeight =
+        doc.page.height - doc.page.margins.top - doc.page.margins.bottom;
+      const continuationHeaderHeight = 48;
+      const continuationLogoWidth = 152;
+      const continuationTitleWidth = continuationWidth - continuationLogoWidth;
 
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth,
-      y,
-      width: qaWidth,
-      height: Math.round(footerHeight / 2),
-      text: 'QA',
-      bold: true,
-      fontSize: 8,
-      align: 'center',
-      padding: 10,
-      singleLine: true,
-    });
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth,
-      y: y + Math.round(footerHeight / 2),
-      width: qaWidth,
-      height: footerHeight - Math.round(footerHeight / 2),
-      text: '',
-    });
+      doc
+        .rect(
+          continuationLeft,
+          continuationTop,
+          continuationWidth,
+          continuationHeight,
+        )
+        .lineWidth(1)
+        .strokeColor('#111111')
+        .stroke();
 
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth + qaWidth,
-      y,
-      width: reviewedWidth,
-      height: Math.round(footerHeight / 2),
-      text: 'Reviewed By:',
-      bold: true,
-      fontSize: 7,
-      align: 'center',
-      padding: 10,
-      singleLine: true,
-    });
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth + qaWidth,
-      y: y + Math.round(footerHeight / 2),
-      width: reviewedWidth,
-      height: footerHeight - Math.round(footerHeight / 2),
-      text: normalizePdfText(detail.inspector_name, ''),
-      bold: true,
-      fontSize: 8,
-      align: 'center',
-      padding: 10,
-      singleLine: true,
-      shrinkToFit: true,
-    });
+      drawPdfCell(doc, {
+        x: continuationLeft,
+        y: continuationTop,
+        width: continuationLogoWidth,
+        height: continuationHeaderHeight,
+      });
+      if (logoPath) {
+        doc.image(logoPath, continuationLeft + 8, continuationTop + 6, {
+          fit: [continuationLogoWidth - 16, continuationHeaderHeight - 12],
+          align: 'left',
+          valign: 'center',
+        });
+      } else {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(18)
+          .fillColor('#114A76')
+          .text('Anand', continuationLeft + 10, continuationTop + 12);
+        doc
+          .font('Helvetica')
+          .fontSize(17)
+          .fillColor('#7C8795')
+          .text('Engg', continuationLeft + 56, continuationTop + 12);
+      }
 
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth + qaWidth + reviewedWidth,
-      y,
-      width: approvedWidth,
-      height: Math.round(footerHeight / 2),
-      text: 'Approved By:',
-      bold: true,
-      fontSize: 7,
-      align: 'center',
-      padding: 10,
-      singleLine: true,
-    });
-    drawPdfCell(doc, {
-      x: outerX + dispositionWidth + qaWidth + reviewedWidth,
-      y: y + Math.round(footerHeight / 2),
-      width: approvedWidth,
-      height: footerHeight - Math.round(footerHeight / 2),
-      text: normalizePdfText(detail.manager_name, ''),
-      bold: true,
-      fontSize: 8,
-      align: 'center',
-      padding: 10,
-      singleLine: true,
-      shrinkToFit: true,
-    });
+      drawPdfCell(doc, {
+        x: continuationLeft + continuationLogoWidth,
+        y: continuationTop,
+        width: continuationTitleWidth,
+        height: continuationHeaderHeight,
+        text: `${reportTitle} - OBSERVATIONS`,
+        bold: true,
+        fontSize: 13,
+        align: 'center',
+        padding: 12,
+        singleLine: true,
+        shrinkToFit: true,
+        minFontSize: 10,
+      });
+
+      drawPdfObservationAndFooter(doc, {
+        outerX: continuationLeft,
+        y: continuationTop + continuationHeaderHeight,
+        outerWidth: continuationWidth,
+        detail,
+        visualObservation,
+        dispositionRemarks,
+        observationHeight: computedObservationHeight,
+        footerHeight: computedFooterHeight,
+      });
+    }
 
     doc.end();
   });
