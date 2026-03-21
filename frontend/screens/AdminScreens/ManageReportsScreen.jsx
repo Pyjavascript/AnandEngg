@@ -33,13 +33,13 @@ const resolveDiagramUri = imageUri => {
 };
 
 const ManageReportsScreen = ({ navigation }) => {
-  const { theme } = useAppTheme();
+  const { theme, isDark } = useAppTheme();
   const { width } = useWindowDimensions();
   const showDesktopSidebar = width >= 980;
   const C = theme.colors;
   const styles = React.useMemo(
-    () => createStyles(C, showDesktopSidebar),
-    [C, showDesktopSidebar],
+    () => createStyles(C, isDark, showDesktopSidebar),
+    [C, isDark, showDesktopSidebar],
   );
 
   const [activeSection, setActiveSection] = useState('overview');
@@ -727,57 +727,6 @@ const ManageReportsScreen = ({ navigation }) => {
       ],
     );
   };
-
-  /* ================= RENDER COMPONENTS ================= */
-
-  // const renderCategoryItem = ({ item }) => (
-  //   <View style={styles.card}>
-  //     <View style={styles.cardHeader}>
-  //       <View style={styles.iconContainer}>
-  //         <Ionicons name="layers" size={20} color="#286DA6" />
-  //       </View>
-  //       <View style={{ flex: 1 }}>
-  //         <Text style={styles.cardTitle}>{item.name}</Text>
-  //         <Text style={styles.cardSubtitle}>
-  //           ID: {item.id} • Created: {new Date().toLocaleDateString()}
-  //         </Text>
-  //       </View>
-  //       <Ionicons name="chevron-forward" size={18} color="#B0C4D8" />
-  //     </View>
-  //   </View>
-  // );
-  // const renderCategoryItem = ({ item }) => (
-  //   <Pressable
-  //     style={[
-  //       styles.card,
-  //       selectedCategory?.id === item.id && {
-  //         borderColor: '#286DA6',
-  //         borderWidth: 2,
-  //       },
-  //     ]}
-  //     onPress={() => handleCategoryPress(item)}
-  //   >
-  //     <View style={styles.cardHeader}>
-  //       <View style={styles.iconContainer}>
-  //         <Ionicons name="layers" size={20} color="#286DA6" />
-  //       </View>
-  //       <View style={{ flex: 1 }}>
-  //         <Text style={styles.cardTitle}>{item.name}</Text>
-  //         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 4 }}>
-  //           <Text style={styles.cardSubtitle}>
-  //             📊 {item.submission_count || 0} submissions
-  //           </Text>
-  //           {item.first_created && (
-  //             <Text style={styles.cardSubtitle}>
-  //               📅 {new Date(item.first_created).toLocaleDateString()}
-  //             </Text>
-  //           )}
-  //         </View>
-  //       </View>
-  //       <Ionicons name="chevron-forward" size={18} color="#B0C4D8" />
-  //     </View>
-  //   </Pressable>
-  // );
   const renderCategoryItem = ({ item }) => {
     const isExpanded = selectedCategory?.id === item.id;
 
@@ -795,7 +744,7 @@ const ManageReportsScreen = ({ navigation }) => {
           }}
         >
           <View style={styles.iconContainer}>
-            <Ionicons name="layers" size={20} color="#286DA6" />
+            <Ionicons name="layers" size={20} color={C.primary} />
           </View>
 
           <View style={{ flex: 1 }}>
@@ -823,7 +772,7 @@ const ManageReportsScreen = ({ navigation }) => {
           <Ionicons
             name={isExpanded ? 'chevron-down' : 'chevron-forward'}
             size={20}
-            color="#9CA3AF"
+            color={C.textSubtle}
           />
         </Pressable>
 
@@ -846,17 +795,17 @@ const ManageReportsScreen = ({ navigation }) => {
 
               <View style={styles.categorySearchWrap}>
                 <View style={styles.categorySearchInputWrap}>
-                  <Ionicons name="search-outline" size={16} color="#64748B" />
+                  <Ionicons name="search-outline" size={16} color={C.textMuted} />
                   <TextInput
                     style={styles.categorySearchInput}
                     placeholder="Search report, doc no, or company"
                     value={templateSearch}
                     onChangeText={setTemplateSearch}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor={C.textSubtle}
                   />
                   {templateSearch ? (
                     <Pressable onPress={() => setTemplateSearch('')}>
-                      <Ionicons name="close-circle" size={17} color="#94A3B8" />
+                      <Ionicons name="close-circle" size={17} color={C.textSubtle} />
                     </Pressable>
                   ) : null}
                 </View>
@@ -864,23 +813,23 @@ const ManageReportsScreen = ({ navigation }) => {
 
               {loadingTemplates ? (
                 <View style={styles.loadingInlineState}>
-                  <ActivityIndicator color="#286DA6" />
+                  <ActivityIndicator color={C.primary} />
                 </View>
               ) : templates.length === 0 ? (
                 <View style={styles.emptyInlineState}>
-                  <Ionicons name="documents-outline" size={22} color="#94A3B8" />
+                  <Ionicons name="documents-outline" size={22} color={C.textSubtle} />
                   <Text style={styles.emptyInlineText}>No reports created yet</Text>
                 </View>
               ) : filteredTemplates.length === 0 ? (
                 <View style={styles.emptyInlineState}>
-                  <Ionicons name="search-outline" size={22} color="#94A3B8" />
+                  <Ionicons name="search-outline" size={22} color={C.textSubtle} />
                   <Text style={styles.emptyInlineText}>No reports match this filter</Text>
                 </View>
               ) : (
                 filteredTemplates.map(tpl => (
                   <View key={tpl.id} style={styles.templateListRow}>
                     <View style={styles.templateListIndex}>
-                      <Ionicons name="document-text-outline" size={15} color="#286DA6" />
+                      <Ionicons name="document-text-outline" size={15} color={C.primary} />
                     </View>
                     <Pressable
                       style={styles.templateListContent}
@@ -904,13 +853,13 @@ const ManageReportsScreen = ({ navigation }) => {
                         style={styles.templateActionBtn}
                         onPress={() => openEditTemplateModal(tpl.templateId)}
                       >
-                        <Ionicons name="create-outline" size={16} color="#64748B" />
+                        <Ionicons name="create-outline" size={16} color={C.textMuted} />
                       </Pressable>
                       <Pressable
                         style={[styles.templateActionBtn, styles.templateDeleteBtn]}
                         onPress={() => handleDeleteTemplate(tpl)}
                       >
-                        <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                        <Ionicons name="trash-outline" size={16} color={C.danger} />
                       </Pressable>
                     </View>
                   </View>
@@ -922,14 +871,14 @@ const ManageReportsScreen = ({ navigation }) => {
               style={styles.createReportBtn}
               onPress={() => openCreateReportModal(item)}
             >
-              <Ionicons name="add-circle" size={18} color="#286DA6" />
+              <Ionicons name="add-circle" size={18} color={C.primary} />
               <Text style={styles.createReportBtnText}>Create Report</Text>
             </Pressable>
             <Pressable
               style={styles.deleteCategoryBtn}
               onPress={() => handleDeleteCategory(item)}
             >
-              <Ionicons name="trash-outline" size={17} color="#DC2626" />
+              <Ionicons name="trash-outline" size={17} color={C.danger} />
               <Text style={styles.deleteCategoryBtnText}>Delete Category</Text>
             </Pressable>
           </View>
@@ -965,14 +914,14 @@ const ManageReportsScreen = ({ navigation }) => {
           </View>
         </View>
         <View style={styles.metaRow}>
-          <Ionicons name="person-outline" size={14} color="#6B7280" />
+          <Ionicons name="person-outline" size={14} color={C.textMuted} />
           <Text style={styles.metaText}>
             {item.submitted_by_name || item.submitted_by || item.name || 'Anonymous'}
           </Text>
           <Ionicons
             name="calendar-outline"
             size={14}
-            color="#6B7280"
+            color={C.textMuted}
             style={{ marginLeft: 12 }}
           />
           <Text style={styles.metaText}>
@@ -1208,7 +1157,7 @@ const ManageReportsScreen = ({ navigation }) => {
             <Ionicons
               name={showDesktopSidebar ? 'grid-outline' : 'menu-outline'}
               size={22}
-              color="#114A76"
+              color={C.primary}
             />
           </Pressable>
           <View>
@@ -1226,7 +1175,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#286DA6" />
+          <ActivityIndicator size="large" color={C.primary} />
         </View>
       ) : (
         <View style={styles.workspaceShell}>
@@ -1240,7 +1189,7 @@ const ManageReportsScreen = ({ navigation }) => {
                 style={styles.mobileSectionTrigger}
                 onPress={() => setSidebarVisible(true)}
               >
-                <Ionicons name="grid-outline" size={16} color="#114A76" />
+                <Ionicons name="grid-outline" size={16} color={C.primary} />
                 <Text style={styles.mobileSectionTriggerText}>
                   {sectionItems.find(item => item.key === activeSection)?.label || 'Sections'}
                 </Text>
@@ -1259,17 +1208,17 @@ const ManageReportsScreen = ({ navigation }) => {
                 {activeSection === 'submissions' && (
                   <View style={styles.searchPanel}>
                     <View style={styles.searchInputWrap}>
-                      <Ionicons name="search-outline" size={18} color="#64748B" />
+                      <Ionicons name="search-outline" size={18} color={C.textMuted} />
                       <TextInput
                         style={styles.searchInput}
                         placeholder="Search by category or report name"
                         value={submissionSearch}
                         onChangeText={setSubmissionSearch}
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={C.textSubtle}
                       />
                       {submissionSearch ? (
                         <Pressable onPress={() => setSubmissionSearch('')}>
-                          <Ionicons name="close-circle" size={18} color="#94A3B8" />
+                          <Ionicons name="close-circle" size={18} color={C.textSubtle} />
                         </Pressable>
                       ) : null}
                     </View>
@@ -1323,7 +1272,7 @@ const ManageReportsScreen = ({ navigation }) => {
                   onRefresh={loadAll}
                   ListEmptyComponent={
                     <View style={styles.emptyContainer}>
-                      <Ionicons name="document-outline" size={48} color="#D1D5DB" />
+                      <Ionicons name="document-outline" size={48} color={C.textSubtle} />
                       <Text style={styles.emptyText}>
                         {activeSection === 'submissions'
                           ? 'No submissions match your search'
@@ -1345,12 +1294,10 @@ const ManageReportsScreen = ({ navigation }) => {
         onRequestClose={() => setSidebarVisible(false)}
       >
         <View style={styles.drawerModalRoot}>
-          <Pressable style={styles.drawerDismissArea} onPress={() => setSidebarVisible(false)}>
-            <Animated.View
-              pointerEvents="none"
-              style={[styles.drawerBackdrop, { opacity: drawerBackdropOpacity }]}
-            />
-          </Pressable>
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.drawerBackdrop, { opacity: drawerBackdropOpacity }]}
+          />
           <Animated.View
             style={[
               styles.drawerSheet,
@@ -1360,11 +1307,15 @@ const ManageReportsScreen = ({ navigation }) => {
             <View style={styles.drawerHeader}>
               <Text style={styles.drawerTitle}>Sections</Text>
               <Pressable onPress={() => setSidebarVisible(false)}>
-                <Ionicons name="close" size={22} color="#64748B" />
+                <Ionicons name="close" size={22} color={C.textMuted} />
               </Pressable>
             </View>
             {renderSectionNav()}
           </Animated.View>
+          <Pressable
+            style={styles.drawerDismissArea}
+            onPress={() => setSidebarVisible(false)}
+          />
         </View>
       </Modal>
 
@@ -1426,14 +1377,14 @@ const ManageReportsScreen = ({ navigation }) => {
                   : 'Step 2: Add Fields'}
               </Text>
               <Pressable onPress={resetModal}>
-                <Ionicons name="close" size={26} color="#6B7280" />
+                <Ionicons name="close" size={26} color={C.textMuted} />
               </Pressable>
             </View>
 
             <ScrollView style={styles.modalBody}>
               {loadingTemplateDetail && (
                 <View style={styles.center}>
-                  <ActivityIndicator size="small" color="#286DA6" />
+                  <ActivityIndicator size="small" color={C.primary} />
                 </View>
               )}
               {/* {step === 1 && (
@@ -1461,7 +1412,7 @@ const ManageReportsScreen = ({ navigation }) => {
 
                   <Text
                     style={{
-                      color: '#6B7280',
+                      color: C.textMuted,
                       fontSize: 12,
                       marginBottom: 10,
                       marginLeft: 2,
@@ -1592,7 +1543,7 @@ const ManageReportsScreen = ({ navigation }) => {
                       <Ionicons
                         name={diagramFile ? 'checkmark-circle-outline' : 'image-outline'}
                         size={26}
-                        color={diagramFile ? '#16A34A' : '#94A3B8'}
+                        color={diagramFile ? C.success : C.textSubtle}
                       />
                       <Text style={styles.uploadTitle}>
                         {diagramFile ? 'Diagram attached' : 'Click to upload part diagram'}
@@ -1604,7 +1555,7 @@ const ManageReportsScreen = ({ navigation }) => {
                       <View style={styles.diagramPreviewCard}>
                         <View style={styles.diagramPreviewHeader}>
                           <View style={styles.diagramPreviewTitleWrap}>
-                            <Ionicons name="image-outline" size={16} color="#286DA6" />
+                            <Ionicons name="image-outline" size={16} color={C.primary} />
                             <Text style={styles.diagramPreviewTitle}>
                               {diagramFile ? 'Selected Diagram Preview' : 'Uploaded Diagram'}
                             </Text>
@@ -1613,7 +1564,7 @@ const ManageReportsScreen = ({ navigation }) => {
                             style={styles.diagramReuploadBtn}
                             onPress={pickDiagram}
                           >
-                            <Ionicons name="cloud-upload-outline" size={15} color="#286DA6" />
+                            <Ionicons name="cloud-upload-outline" size={15} color={C.primary} />
                             <Text style={styles.diagramReuploadText}>Reupload</Text>
                           </Pressable>
                         </View>
@@ -1761,7 +1712,25 @@ const ManageReportsScreen = ({ navigation }) => {
 
 export default ManageReportsScreen;
 
-const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
+const createStyles = (C, isDark = false, showDesktopSidebar = false) => {
+  const panelBg = C.surface;
+  const panelAlt = C.surfaceAlt;
+  const panelSoft = isDark ? '#1A2835' : '#F7FAFC';
+  const primaryTint = isDark ? 'rgba(105,179,242,0.16)' : '#EAF2F8';
+  const primaryTintStrong = isDark ? 'rgba(105,179,242,0.22)' : '#D8E8F4';
+  const primaryBorder = isDark ? 'rgba(105,179,242,0.24)' : '#D5E4EF';
+  const chipBg = isDark ? '#203142' : '#F5F9FC';
+  const heroBg = isDark ? '#12344C' : '#114A76';
+  const heroAccent = isDark ? '#2F78B5' : '#2C7FBA';
+  const heroTextMuted = isDark ? '#BDD9F2' : '#D7E8F5';
+  const textInverseSoft = isDark ? '#D3E8FA' : '#DCEFFC';
+  const dangerSoft = isDark ? 'rgba(248,113,113,0.14)' : '#FEF2F2';
+  const dangerBorder = isDark ? 'rgba(248,113,113,0.26)' : '#FECACA';
+  const modalGlass = isDark
+    ? 'rgba(22,33,45,0.84)'
+    : 'rgba(255,255,255,0.78)';
+
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
@@ -1780,14 +1749,16 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#648197',
+    color: C.textMuted,
     marginTop: 2,
   },
   menuButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EAF2F8',
+    backgroundColor: primaryTint,
+    borderWidth: 1,
+    borderColor: primaryBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1811,20 +1782,20 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     width: 292,
   },
   sidebarShell: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderRadius: 26,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#D8E6F1',
+    borderColor: C.border,
     shadowColor: '#0F172A',
-    shadowOpacity: 0.06,
+    shadowOpacity: isDark ? 0.22 : 0.06,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
     elevation: 4,
     gap: 14,
   },
   sidebarHero: {
-    backgroundColor: '#114A76',
+    backgroundColor: heroBg,
     borderRadius: 22,
     padding: 16,
     gap: 6,
@@ -1843,7 +1814,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
-    color: '#B7D9F1',
+    color: heroTextMuted,
   },
   sidebarHeroTitle: {
     fontSize: 18,
@@ -1854,7 +1825,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   sidebarHeroSubtitle: {
     fontSize: 12,
     lineHeight: 18,
-    color: '#DCEFFC',
+    color: textInverseSoft,
     fontWeight: '500',
   },
   sidebar: {
@@ -1873,18 +1844,18 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingHorizontal: 12,
     gap: 10,
     borderWidth: 1,
-    borderColor: '#E6EEF5',
-    backgroundColor: '#F8FBFD',
+    borderColor: C.border,
+    backgroundColor: panelSoft,
   },
   sidebarItemActive: {
-    backgroundColor: '#114A76',
-    borderColor: '#114A76',
+    backgroundColor: heroBg,
+    borderColor: heroBg,
   },
   sidebarIconWrap: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: '#D8E8F4',
+    backgroundColor: primaryTintStrong,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1899,7 +1870,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   sidebarLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#114A76',
+    color: C.primary,
     textAlign: 'left',
   },
   sidebarLabelActive: {
@@ -1908,7 +1879,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   sidebarMeta: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#648197',
+    color: C.textMuted,
   },
   sidebarMetaActive: {
     color: '#D7E8F5',
@@ -1918,7 +1889,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     height: 28,
     borderRadius: 999,
     paddingHorizontal: 10,
-    backgroundColor: '#E2ECF4',
+    backgroundColor: primaryTintStrong,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1928,7 +1899,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   sidebarCountText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#114A76',
+    color: C.primary,
   },
   sidebarCountTextActive: {
     color: '#FFFFFF',
@@ -1945,9 +1916,9 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: '#F5F9FC',
+    backgroundColor: chipBg,
     borderWidth: 1,
-    borderColor: '#E2ECF4',
+    borderColor: C.border,
   },
   sidebarFooterDot: {
     width: 8,
@@ -1957,21 +1928,21 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   sidebarFooterText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#335266',
+    color: C.textMuted,
   },
   sectionPanel: {
     flex: 1,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: panelSoft,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#E2ECF4',
+    borderColor: C.border,
   },
   mobileSectionBar: {
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 4,
-    backgroundColor: '#F7FAFC',
+    backgroundColor: panelSoft,
   },
   mobileSectionTrigger: {
     alignSelf: 'flex-start',
@@ -1981,20 +1952,20 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 999,
-    backgroundColor: '#EAF2F8',
+    backgroundColor: primaryTint,
     borderWidth: 1,
-    borderColor: '#D5E4EF',
+    borderColor: primaryBorder,
   },
   mobileSectionTriggerText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#114A76',
+    color: C.primary,
   },
   mobileSectionTriggerBadge: {
     minWidth: 24,
     height: 24,
     borderRadius: 999,
-    backgroundColor: '#114A76',
+    backgroundColor: heroBg,
     paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2025,11 +1996,15 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingTop: 84,
     paddingHorizontal: 12,
     paddingBottom: 16,
-    backgroundColor: '#F4F8FB',
+    backgroundColor: panelBg,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
+    borderRightWidth: 1,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: C.border,
     shadowColor: '#000000',
-    shadowOpacity: 0.14,
+    shadowOpacity: isDark ? 0.3 : 0.14,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
@@ -2044,10 +2019,10 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   drawerTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
   },
   heroCard: {
-    backgroundColor: '#114A76',
+    backgroundColor: heroBg,
     borderRadius: 24,
     padding: 18,
     gap: 16,
@@ -2058,7 +2033,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   heroEyebrow: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#B7D9F1',
+    color: heroTextMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -2071,7 +2046,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   heroSubtitle: {
     fontSize: 13,
     lineHeight: 19,
-    color: '#D7E8F5',
+    color: textInverseSoft,
     fontWeight: '500',
   },
   heroActions: {
@@ -2084,7 +2059,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#2C7FBA',
+    backgroundColor: heroAccent,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,
@@ -2099,7 +2074,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 14,
@@ -2107,7 +2082,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   heroSecondaryBtnText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#114A76',
+    color: C.primary,
   },
   overviewGrid: {
     flexDirection: 'row',
@@ -2116,11 +2091,11 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   },
   overviewCard: {
     width: '47%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     gap: 6,
   },
   overviewIconWrap: {
@@ -2133,30 +2108,30 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   overviewValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: C.textStrong,
   },
   overviewLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: C.textMuted,
   },
   workspaceCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     gap: 12,
   },
   workspaceTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
   },
   workspaceSubtitle: {
     fontSize: 12,
     lineHeight: 17,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
   },
   workspaceRow: {
@@ -2164,7 +2139,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 12,
@@ -2178,19 +2153,19 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },
   workspaceRowTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
   },
   workspaceRowMeta: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: C.textMuted,
     marginTop: 2,
   },
   statusSummaryRow: {
@@ -2202,9 +2177,9 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: panelAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -2217,22 +2192,22 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   statusSummaryText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: C.textMuted,
   },
   searchPanel: {
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 6,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: panelSoft,
     gap: 10,
   },
   searchInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderWidth: 1,
-    borderColor: '#D8E4EF',
+    borderColor: C.border,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2240,7 +2215,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#1F2937',
+    color: C.textBody,
     paddingVertical: 0,
   },
   filterRow: {
@@ -2251,21 +2226,21 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#E8EFF5',
+    backgroundColor: primaryTint,
   },
   filterChipActive: {
-    backgroundColor: '#114A76',
+    backgroundColor: heroBg,
   },
   filterChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5C7488',
+    color: C.textMuted,
   },
   filterChipTextActive: {
     color: '#FFFFFF',
   },
   card: {
-    backgroundColor: '#FFF',
+    backgroundColor: panelBg,
     padding: 16,
     borderRadius: 18,
     marginBottom: 14,
@@ -2277,12 +2252,12 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: primaryTint,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#123A59' },
-  cardSubtitle: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
+  cardTitle: { fontSize: 15, fontWeight: '700', color: C.textStrong },
+  cardSubtitle: { fontSize: 11, color: C.textSubtle, marginTop: 2 },
   categoryMetaRow: {
     flexDirection: 'row',
     gap: 8,
@@ -2293,21 +2268,21 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#ECF5FD',
+    backgroundColor: primaryTint,
     borderWidth: 1,
-    borderColor: '#D5E8F8',
+    borderColor: primaryBorder,
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   metaChipText: {
     fontSize: 11,
-    color: '#1D4D77',
+    color: C.primary,
     fontWeight: '600',
   },
   statusDot: { width: 10, height: 10, borderRadius: 5 },
   metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12 },
-  metaText: { fontSize: 12, color: '#6B7280', marginLeft: 6 },
+  metaText: { fontSize: 12, color: C.textMuted, marginLeft: 6 },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
@@ -2322,19 +2297,22 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: modalGlass,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     maxHeight: '92%',
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: 'hidden',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 24,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: C.border,
   },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#1F2937' },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.textStrong },
   modalBody: {
     padding: 20,
   },
@@ -2342,16 +2320,16 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     gap: 14,
   },
   builderSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderWidth: 1,
-    borderColor: '#E5EAF0',
+    borderColor: C.border,
     borderRadius: 14,
     padding: 14,
   },
   builderSectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
     marginBottom: 10,
   },
   doubleColRow: {
@@ -2364,30 +2342,30 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   uploadBox: {
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: C.border,
     borderRadius: 12,
     paddingVertical: 22,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: panelAlt,
   },
   uploadTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: C.textBody,
   },
   uploadSub: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: C.textSubtle,
   },
   diagramPreviewCard: {
     marginTop: 12,
     borderWidth: 1,
-    borderColor: '#D7E3EF',
+    borderColor: C.border,
     borderRadius: 12,
     padding: 12,
-    backgroundColor: '#FAFCFF',
+    backgroundColor: panelAlt,
   },
   diagramPreviewHeader: {
     flexDirection: 'row',
@@ -2405,7 +2383,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   diagramPreviewTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#123A59',
+    color: C.textStrong,
   },
   diagramReuploadBtn: {
     flexDirection: 'row',
@@ -2414,44 +2392,44 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#E8F1F8',
+    backgroundColor: primaryTint,
   },
   diagramReuploadText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#286DA6',
+    color: C.primary,
   },
   diagramImageWrap: {
     borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   diagramImage: {
     width: '100%',
     height: 220,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
   },
   diagramHint: {
     marginTop: 8,
     fontSize: 11,
-    color: '#64748B',
+    color: C.textMuted,
     textAlign: 'center',
     fontWeight: '600',
   },
   previewWrap: {
     borderWidth: 1,
-    borderColor: '#D7E3EF',
+    borderColor: C.border,
     borderRadius: 10,
-    backgroundColor: '#FAFCFF',
+    backgroundColor: panelAlt,
     padding: 12,
     gap: 6,
   },
   previewTitle: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
     marginBottom: 4,
   },
   previewRow: {
@@ -2462,12 +2440,12 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     width: 128,
     fontSize: 11,
     fontWeight: '700',
-    color: '#4B5563',
+    color: C.textMuted,
   },
   previewValue: {
     flex: 1,
     fontSize: 11,
-    color: '#1F2937',
+    color: C.textBody,
     fontWeight: '600',
   },
   tableHead: {
@@ -2477,13 +2455,13 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   },
   tableHeadCount: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
   },
   measureHeaderRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: C.border,
     paddingBottom: 8,
     marginBottom: 6,
   },
@@ -2491,32 +2469,32 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     flex: 1,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: C.textMuted,
     textTransform: 'uppercase',
   },
   measureRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: C.border,
     paddingVertical: 8,
   },
   measureCell: {
     flex: 1,
     fontSize: 13,
-    color: '#1F2937',
+    color: C.textBody,
     fontWeight: '500',
   },
   measureInput: {
     flex: 1,
     fontSize: 13,
-    color: '#1F2937',
+    color: C.textBody,
     fontWeight: '500',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     marginRight: 6,
   },
   emptyMeasure: {
@@ -2524,7 +2502,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     alignItems: 'center',
   },
   emptyMeasureText: {
-    color: '#94A3B8',
+    color: C.textSubtle,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -2546,19 +2524,19 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4B5563',
+    color: C.textMuted,
     marginBottom: 6,
     marginLeft: 2,
   },
   input: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: panelAlt,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: C.border,
     borderRadius: 12,
     padding: 14,
     marginBottom: 18,
     fontSize: 14,
-    color: '#1F2937',
+    color: C.textBody,
   },
   primaryBtn: {
     backgroundColor: '#286DA6',
@@ -2575,23 +2553,23 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     padding: 14,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#286DA6',
+    borderColor: C.primary,
     marginBottom: 20,
     justifyContent: 'center',
     borderStyle: 'dashed',
   },
-  secondaryBtnText: { color: '#286DA6', fontWeight: '700' },
+  secondaryBtnText: { color: C.primary, fontWeight: '700' },
   fieldBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: primaryTint,
     padding: 12,
     borderRadius: 10,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: primaryBorder,
   },
-  fieldBadgeText: { color: '#1E40AF', fontWeight: '600', fontSize: 13 },
+  fieldBadgeText: { color: C.primary, fontWeight: '600', fontSize: 13 },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyText: { color: '#9CA3AF', marginTop: 12, fontWeight: '600' },
+  emptyText: { color: C.textSubtle, marginTop: 12, fontWeight: '600' },
   templateItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2620,14 +2598,14 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     gap: 8,
     marginTop: 12,
     borderWidth: 1.5,
-    borderColor: '#286DA6',
+    borderColor: C.primary,
     borderStyle: 'dashed',
     borderRadius: 12,
     paddingVertical: 10,
-    backgroundColor: '#F8FBFE',
+    backgroundColor: primaryTint,
   },
   createReportBtnText: {
-    color: '#286DA6',
+    color: C.primary,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -2636,9 +2614,9 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     gap: 12,
   },
   expandedSection: {
-    backgroundColor: '#F8FBFE',
+    backgroundColor: panelAlt,
     borderWidth: 1,
-    borderColor: '#DCE7F2',
+    borderColor: C.border,
     borderRadius: 14,
     padding: 12,
   },
@@ -2664,12 +2642,12 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   inlineSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#123A59',
+    color: C.textStrong,
     marginBottom: 2,
   },
   sectionSubtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
   },
   categorySearchWrap: {
@@ -2680,9 +2658,9 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: panelBg,
     borderWidth: 1,
-    borderColor: '#D8E4EF',
+    borderColor: C.border,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 9,
@@ -2690,7 +2668,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   categorySearchInput: {
     flex: 1,
     fontSize: 13,
-    color: '#1F2937',
+    color: C.textBody,
     paddingVertical: 0,
   },
   templateListRow: {
@@ -2699,7 +2677,7 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     gap: 10,
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: C.border,
   },
   templateListIndex: {
     width: 28,
@@ -2712,11 +2690,11 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   templateListTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1F2937',
+    color: C.textStrong,
   },
   templateListMeta: {
     fontSize: 12,
-    color: '#64748B',
+    color: C.textMuted,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -2731,13 +2709,13 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: panelAlt,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: C.border,
   },
   templateDeleteBtn: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
+    backgroundColor: dangerSoft,
+    borderColor: dangerBorder,
   },
   emptyInlineState: {
     alignItems: 'center',
@@ -2752,14 +2730,14 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
   },
   emptyInlineText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: C.textSubtle,
     fontWeight: '700',
   },
   deleteCategoryBtn: {
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: dangerBorder,
+    backgroundColor: dangerSoft,
     borderRadius: 12,
     paddingVertical: 10,
     flexDirection: 'row',
@@ -2768,10 +2746,11 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     gap: 8,
   },
   deleteCategoryBtnText: {
-    color: '#DC2626',
+    color: C.danger,
     fontSize: 13,
     fontWeight: '700',
   },
-});
+  });
+};
 
 
