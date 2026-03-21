@@ -1128,6 +1128,9 @@ function resolvePdfLogoPath() {
   const repoRoot = path.resolve(__dirname, '../../..');
   const backendRoot = path.resolve(__dirname, '../..');
   const candidates = [
+    path.join(backendRoot, 'assets/pdf-logo.jpg'),
+    path.join(process.cwd(), 'backend/assets/pdf-logo.jpg'),
+    path.join(process.cwd(), 'assets/pdf-logo.jpg'),
     path.join(repoRoot, 'frontend/assets/pictures/AppLogo.png'),
     path.join(repoRoot, 'frontend/assets/pictures/applogo.png'),
     path.join(backendRoot, '../frontend/assets/pictures/AppLogo.png'),
@@ -1975,6 +1978,5 @@ exports.DownloadSubmissions = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
-
 
 
