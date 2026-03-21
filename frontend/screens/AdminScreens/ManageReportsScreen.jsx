@@ -683,6 +683,51 @@ const ManageReportsScreen = ({ navigation }) => {
     );
   };
 
+  const handleDeleteTemplate = template => {
+    const templateId = Number(template?.templateId || template?.id);
+    if (!templateId) {
+      showAlert('error', 'Delete Failed', 'Template id is missing.');
+      return;
+    }
+
+    const templateName =
+      template?.partDescription || template?.docNo || `Report ${templateId}`;
+
+    Alert.alert(
+      'Delete Report?',
+      `Delete "${templateName}" from this category? This will also delete its related submissions.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await reportApi.deleteTemplate(templateId);
+              setTemplates(current =>
+                current.filter(
+                  item => Number(item.templateId || item.id) !== templateId,
+                ),
+              );
+              showAlert(
+                'success',
+                'Report Deleted',
+                'The selected report was removed successfully.',
+              );
+              await loadAll();
+            } catch (err) {
+              const apiMessage =
+                err?.response?.data?.message ||
+                err?.message ||
+                'Failed to delete report';
+              showAlert('error', 'Delete Failed', apiMessage);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   /* ================= RENDER COMPONENTS ================= */
 
   // const renderCategoryItem = ({ item }) => (
@@ -833,15 +878,14 @@ const ManageReportsScreen = ({ navigation }) => {
                 </View>
               ) : (
                 filteredTemplates.map(tpl => (
-                  <Pressable
-                    key={tpl.id}
-                    style={styles.templateListRow}
-                    onPress={() => openEditTemplateModal(tpl.templateId)}
-                  >
+                  <View key={tpl.id} style={styles.templateListRow}>
                     <View style={styles.templateListIndex}>
                       <Ionicons name="document-text-outline" size={15} color="#286DA6" />
                     </View>
-                    <View style={styles.templateListContent}>
+                    <Pressable
+                      style={styles.templateListContent}
+                      onPress={() => openEditTemplateModal(tpl.templateId)}
+                    >
                       <Text style={styles.templateListTitle} numberOfLines={1}>
                         {tpl.partDescription || 'Untitled Report'}
                       </Text>
@@ -854,11 +898,22 @@ const ManageReportsScreen = ({ navigation }) => {
                           .filter(Boolean)
                           .join(' | ')}
                       </Text>
-                    </View>
+                    </Pressable>
                     <View style={styles.templateListActions}>
-                      <Ionicons name="create-outline" size={16} color="#64748B" />
+                      <Pressable
+                        style={styles.templateActionBtn}
+                        onPress={() => openEditTemplateModal(tpl.templateId)}
+                      >
+                        <Ionicons name="create-outline" size={16} color="#64748B" />
+                      </Pressable>
+                      <Pressable
+                        style={[styles.templateActionBtn, styles.templateDeleteBtn]}
+                        onPress={() => handleDeleteTemplate(tpl)}
+                      >
+                        <Ionicons name="trash-outline" size={16} color="#DC2626" />
+                      </Pressable>
                     </View>
-                  </Pressable>
+                  </View>
                 ))
               )}
             </View>
@@ -2666,9 +2721,23 @@ const createStyles = (C, showDesktopSidebar = false) => StyleSheet.create({
     marginTop: 2,
   },
   templateListActions: {
-    width: 24,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  templateActionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  templateDeleteBtn: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   emptyInlineState: {
     alignItems: 'center',

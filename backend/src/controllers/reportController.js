@@ -681,6 +681,78 @@ exports.UpdateTemplate = async (req, res) => {
   }
 };
 
+exports.DeleteTemplate = async (req, res) => {
+  if (!requireRole(req.user, 'admin')) {
+    return res.status(403).json({ message: 'Admin only' });
+  }
+
+  const templateId = Number(req.params.id);
+  if (!templateId) {
+    return res.status(400).json({ message: 'Valid template id is required' });
+  }
+
+  const existing = await templateModel.getById(templateId);
+  if (!existing) {
+    return res.status(404).json({ message: 'Template not found' });
+  }
+
+  const connection = await db.getConnection();
+  const diagramPath = String(existing.diagram_url || '').trim();
+  let uploadedDiagramFile = null;
+
+  if (diagramPath.startsWith('/uploads/')) {
+    uploadedDiagramFile = path.join(
+      uploadRoot,
+      diagramPath.replace(/^\/uploads\/+/i, '').replace(/\//g, path.sep),
+    );
+  }
+
+  try {
+    await connection.beginTransaction();
+
+    const [submissionRows] = await connection.query(
+      'SELECT id FROM report_submissions WHERE template_id = ?',
+      [templateId],
+    );
+    const submissionIds = submissionRows.map(row => Number(row.id)).filter(Boolean);
+
+    if (submissionIds.length > 0) {
+      try {
+        await connection.query(
+          'DELETE FROM app_notifications WHERE related_submission_id IN (?)',
+          [submissionIds],
+        );
+      } catch (err) {
+        if (!/app_notifications/i.test(String(err?.message || ''))) {
+          throw err;
+        }
+      }
+    }
+
+    await connection.query(
+      'DELETE FROM report_templates WHERE id = ?',
+      [templateId],
+    );
+
+    await connection.commit();
+
+    if (uploadedDiagramFile && fs.existsSync(uploadedDiagramFile)) {
+      fs.unlink(uploadedDiagramFile, unlinkErr => {
+        if (unlinkErr) {
+          console.log('Failed to remove template diagram:', unlinkErr.message);
+        }
+      });
+    }
+
+    return res.json({ message: 'Template deleted successfully' });
+  } catch (err) {
+    await connection.rollback();
+    return res.status(500).json({ message: err.message });
+  } finally {
+    connection.release();
+  }
+};
+
 exports.GetSubmissionById = async (req, res) => {
   try {
     const id = req.params.id;

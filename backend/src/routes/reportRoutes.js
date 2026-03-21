@@ -74,6 +74,7 @@ router.delete('/categories/:id', auth, ReportController.DeleteCategory);
 // Templates and fields (admin)
 router.post('/templates', auth, ReportController.CreateTemplate);
 router.put('/templates/:id', auth, ReportController.UpdateTemplate);
+router.delete('/templates/:id', auth, ReportController.DeleteTemplate);
 router.post('/templates/:id/diagram', auth, upload.single('diagram'), ReportController.UploadDiagram);
 router.post('/templates/:id/fields', auth, ReportController.CreateField);
 router.get('/templates/:id', auth, ReportController.GetTemplateById);

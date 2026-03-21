@@ -35,6 +35,11 @@ export const updateTemplate = async (templateId, data) => {
   return res.data;
 };
 
+export const deleteTemplate = async templateId => {
+  const res = await axios.delete(`${API}/templates/${templateId}`, await authHeader());
+  return res.data;
+};
+
 export const createField = async (templateId, field) => {
   const res = await axios.post(`${API}/templates/${templateId}/fields`, field, await authHeader());
   return res.data;
@@ -174,6 +179,7 @@ export default {
   createCategory,
   createTemplate,
   updateTemplate,
+  deleteTemplate,
   createField,
   uploadDiagram,
   getTemplatesByCategory,
